@@ -335,7 +335,7 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
 
         let response: Response
         if (isMercury) {
-          // Route Mercury models directly to Inception Labs API
+          // Route Mercury models directly to Inception API
           const inceptionAuth = await Auth.get("inception")
           if (!inceptionAuth || inceptionAuth.type !== "api" || !inceptionAuth.key) {
             return c.json(

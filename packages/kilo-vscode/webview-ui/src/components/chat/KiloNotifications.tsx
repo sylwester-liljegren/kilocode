@@ -1,4 +1,4 @@
-import { Component, Show, createMemo, createSignal } from "solid-js"
+import { Component, Show, createEffect, createMemo, createSignal } from "solid-js"
 import { useNotifications } from "../../context/notifications"
 import { useVSCode } from "../../context/vscode"
 import { useSession } from "../../context/session"
@@ -20,6 +20,12 @@ export const KiloNotifications: Component = () => {
   const safeIndex = () => Math.min(index(), Math.max(0, total() - 1))
   const current = createMemo(() => (total() === 0 ? undefined : items()[safeIndex()]))
 
+  // Clamp index whenever the list shrinks so navigation always reflects reality
+  createEffect(() => {
+    const max = Math.max(0, total() - 1)
+    if (index() > max) setIndex(max)
+  })
+
   const handleAction = (url: string) => {
     vscode.postMessage({ type: "openExternal", url })
   }
@@ -30,7 +36,7 @@ export const KiloNotifications: Component = () => {
     if (isLast()) {
       for (const n of items()) dismiss(n.id)
     } else {
-      setIndex((i) => i + 1)
+      setIndex(safeIndex() + 1)
     }
   }
 
@@ -94,7 +100,7 @@ export const KiloNotifications: Component = () => {
             </Show>
             <div class="kilo-notifications-next-group">
               <Show when={safeIndex() > 0}>
-                <button class="kilo-notifications-back-link" onClick={() => setIndex((i) => i - 1)}>
+                <button class="kilo-notifications-back-link" onClick={() => setIndex(safeIndex() - 1)}>
                   {language.t("notifications.action.previous")}
                 </button>
               </Show>

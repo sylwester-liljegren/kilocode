@@ -8,6 +8,7 @@ import { SubAgentViewerProvider } from "./SubAgentViewerProvider"
 import { EXTENSION_DISPLAY_NAME } from "./constants"
 import { KiloConnectionService } from "./services/cli-backend"
 import { registerAutocompleteProvider } from "./services/autocomplete"
+import { ensureBackendForAutocomplete } from "./services/autocomplete/ensure-backend"
 import { AutocompleteServiceManager } from "./services/autocomplete/AutocompleteServiceManager"
 import { BrowserAutomationService } from "./services/browser-automation"
 import { TelemetryProxy } from "./services/telemetry"
@@ -260,17 +261,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerAutocompleteProvider(context, connectionService)
 
   // Start the CLI backend server eagerly so autocomplete works without opening a Kilo tab.
-  // connectionService.connect() is idempotent — when a webview later calls connect(), it's a no-op.
-  // Only start eagerly if autocomplete is enabled and there's a real workspace folder — without
-  // workspace folders process.cwd() in the extension host is not meaningful.
-  const autocompleteEnabled =
-    vscode.workspace.getConfiguration("kilo-code.new.autocomplete").get<boolean>("enableAutoTrigger") ?? true
-  const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-  if (autocompleteEnabled && workspaceDir) {
-    connectionService.connect(workspaceDir).catch((error) => {
-      console.error("[Kilo New] Extension: Failed to eagerly start CLI backend:", error)
-    })
-  }
+  ensureBackendForAutocomplete(connectionService)
 
   // Register commit message generation
   registerCommitMessageService(context, connectionService)

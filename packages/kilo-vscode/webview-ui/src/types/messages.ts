@@ -251,6 +251,7 @@ export interface KilocodeNotification {
   message: string
   action?: KilocodeNotificationAction
   showIn?: string[]
+  suggestModelId?: string
 }
 
 // Profile types from kilo-gateway

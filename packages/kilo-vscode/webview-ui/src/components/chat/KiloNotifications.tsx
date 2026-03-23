@@ -4,10 +4,15 @@ import { IconButton } from "@kilocode/kilo-ui/icon-button"
 import { Icon } from "@kilocode/kilo-ui/icon"
 import { useNotifications } from "../../context/notifications"
 import { useVSCode } from "../../context/vscode"
+import { useSession } from "../../context/session"
+import { useProvider } from "../../context/provider"
+import { KILO_PROVIDER_ID } from "../../../../src/shared/provider-model"
 
 export const KiloNotifications: Component = () => {
   const { filteredNotifications, dismiss } = useNotifications()
   const vscode = useVSCode()
+  const session = useSession()
+  const provider = useProvider()
   const [index, setIndex] = createSignal(0)
 
   const items = filteredNotifications
@@ -27,6 +32,43 @@ export const KiloNotifications: Component = () => {
     if (!n) return
     dismiss(n.id)
     setIndex((i) => Math.min(i, Math.max(0, total() - 2)))
+  }
+
+  /**
+   * Resolve a suggestModelId string to a { providerID, modelID } pair.
+   * The suggestModelId may be a bare model ID (e.g. "anthropic/claude-sonnet-4-6")
+   * which is resolved against the kilo provider first, then all other providers.
+   */
+  const suggestedModel = createMemo(() => {
+    const id = current()?.suggestModelId
+    if (!id) return undefined
+    const models = provider.models()
+    // Try kilo provider first
+    const kiloMatch = models.find((m) => m.providerID === KILO_PROVIDER_ID && m.id === id)
+    if (kiloMatch) return { providerID: KILO_PROVIDER_ID, modelID: id }
+    // Fall back to any provider that has the model
+    const match = models.find((m) => m.id === id)
+    if (match) return { providerID: match.providerID, modelID: id }
+    return undefined
+  })
+
+  const canSwitchModel = createMemo(() => {
+    const suggestion = suggestedModel()
+    if (!suggestion) return false
+    const sel = session.selected()
+    if (sel && sel.providerID === suggestion.providerID && sel.modelID === suggestion.modelID) return false
+    return true
+  })
+
+  const handleTryModel = () => {
+    const suggestion = suggestedModel()
+    if (!suggestion) return
+    session.selectModel(suggestion.providerID, suggestion.modelID)
+    vscode.postMessage({
+      type: "telemetry",
+      event: "Notification Clicked",
+      properties: { actionText: "Try model", suggestModelId: current()?.suggestModelId },
+    })
   }
 
   return (
@@ -51,6 +93,11 @@ export const KiloNotifications: Component = () => {
                   <Icon name="arrow-right" size="small" />
                 </button>
               </div>
+            </Show>
+            <Show when={canSwitchModel()}>
+              <Button variant="primary" size="small" onClick={handleTryModel}>
+                Try model
+              </Button>
             </Show>
             <Show when={current()?.action}>
               {(action) => (

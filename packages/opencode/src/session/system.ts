@@ -68,7 +68,7 @@ export namespace SystemPrompt {
         `  Working directory: ${Instance.directory}`,
         `  Is directory a git repo: ${project.vcs === "git" ? "yes" : "no"}`,
         `  Platform: ${process.platform}`,
-        `  Project config: .kilo/ (command/*.md, agent/*.md, kilo.json, AGENTS.md). Always use .kilo/ for new config. Do not use .kilocode/ or .opencode/.`, // kilocode_change
+        `  Project config: .kilo/command/*.md, .kilo/agent/*.md, kilo.json, AGENTS.md. Put new commands and agents in .kilo/. Do not use .kilocode/ or .opencode/.`, // kilocode_change
         `  Global config: ${Global.Path.config}/ (same structure)`, // kilocode_change
         ...staticEnvLines(editorContext), // kilocode_change
         `</env>`,

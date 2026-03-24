@@ -103,12 +103,50 @@ describe("ErrorBackoff", () => {
       expect(backoff.getFatalStatus()).toBe(403)
     })
 
-    it("remains blocked until explicitly reset", () => {
+    it("remains blocked within probe interval", () => {
       backoff.failure(new Error("SSE failed: 402 Payment Required"))
       expect(backoff.blocked()).toBe(true)
 
-      // Even after a long time, still blocked
+      // Still blocked on immediate subsequent check
       expect(backoff.blocked()).toBe(true)
+    })
+
+    it("allows a probe after probe interval expires", () => {
+      const now = Date.now()
+      const original = Date.now
+      try {
+        Date.now = () => now
+        backoff.failure(new Error("SSE failed: 402 Payment Required"))
+        expect(backoff.blocked()).toBe(true)
+
+        // Advance past 5 minute probe interval
+        Date.now = () => now + 300_001
+        expect(backoff.blocked()).toBe(false)
+
+        // But blocked again immediately (probe window is one-shot)
+        expect(backoff.blocked()).toBe(true)
+      } finally {
+        Date.now = original
+      }
+    })
+
+    it("re-blocks after a probe fails again", () => {
+      const now = Date.now()
+      const original = Date.now
+      try {
+        Date.now = () => now
+        backoff.failure(new Error("SSE failed: 402 Payment Required"))
+
+        // Advance past probe interval, unblocked for probe
+        Date.now = () => now + 300_001
+        expect(backoff.blocked()).toBe(false)
+
+        // Probe fails with same error
+        backoff.failure(new Error("SSE failed: 402 Payment Required"))
+        expect(backoff.blocked()).toBe(true)
+      } finally {
+        Date.now = original
+      }
     })
 
     it("unblocks after reset()", () => {

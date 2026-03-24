@@ -59,6 +59,7 @@ export class AutocompleteServiceManager {
   public readonly inlineCompletionProvider: AutocompleteInlineCompletionProvider
   private inlineCompletionProviderDisposable: vscode.Disposable | null = null
   private unsubscribeState: (() => void) | null = null
+  private unsubscribeEvent: (() => void) | null = null
 
   constructor(context: vscode.ExtensionContext, connectionService: KiloConnectionService) {
     if (AutocompleteServiceManager._instance) {
@@ -95,6 +96,14 @@ export class AutocompleteServiceManager {
       this.inlineCompletionProvider.backoff.reset()
       void this.load()
     })
+
+    // Reset error backoff when auth state changes (login, logout, org switch).
+    // The CLI emits global.disposed after these actions, which is the most
+    // reliable signal that credentials may have changed.
+    this.unsubscribeEvent = connectionService.onEventFiltered(
+      (event) => event.type === "global.disposed",
+      () => this.inlineCompletionProvider.backoff.reset(),
+    )
 
     void this.load()
   }
@@ -385,9 +394,11 @@ export class AutocompleteServiceManager {
       this.snoozeTimer = null
     }
 
-    // Unsubscribe from connection state changes
+    // Unsubscribe from connection state changes and SSE events
     this.unsubscribeState?.()
     this.unsubscribeState = null
+    this.unsubscribeEvent?.()
+    this.unsubscribeEvent = null
 
     // Dispose inline completion provider registration
     if (this.inlineCompletionProviderDisposable) {

@@ -2,12 +2,14 @@
  * Circuit breaker and exponential backoff for autocomplete request errors.
  *
  * Classifies errors into:
- * - **fatal**: 401, 402, 403 — stops all requests until explicitly reset
+ * - **fatal**: 401, 402, 403 — stops all requests until reset or probe cooldown
  * - **retriable**: 429, 5xx, network errors — exponential backoff with cap
  * - **transient**: abort, unknown — no special handling
  *
  * When a fatal error (like 402 Payment Required) is detected, autocomplete
- * requests are blocked entirely to prevent thousands of wasted API calls.
+ * requests are blocked to prevent thousands of wasted API calls. A single
+ * probe request is allowed every FATAL_PROBE_INTERVAL_MS so autocomplete
+ * self-heals when the user adds credits or re-authenticates externally.
  */
 
 /** Base backoff delay in ms for retriable errors */
@@ -21,6 +23,9 @@ const CIRCUIT_THRESHOLD = 5
 
 /** Duration in ms the circuit stays open before allowing a probe (5 minutes) */
 const CIRCUIT_COOLDOWN_MS = 300_000
+
+/** Interval between probe requests when a fatal error is active (5 minutes) */
+const FATAL_PROBE_INTERVAL_MS = 300_000
 
 export type ErrorKind = "fatal" | "retriable" | "transient"
 
@@ -50,6 +55,8 @@ export class ErrorBackoff {
   private fatal: ErrorKind | null = null
   /** HTTP status of the fatal error (for notification messages) */
   private fatalStatus: number | null = null
+  /** Timestamp when the fatal error was recorded (for probe interval) */
+  private fatalAt = 0
   /** Timestamp when the circuit was opened (for retriable circuit breaker) */
   private opened = 0
   /** Consecutive retriable failure count */
@@ -63,6 +70,7 @@ export class ErrorBackoff {
   success(): void {
     this.fatal = null
     this.fatalStatus = null
+    this.fatalAt = 0
     this.failures = 0
     this.blockedUntil = 0
     this.opened = 0
@@ -78,6 +86,7 @@ export class ErrorBackoff {
     if (kind === "fatal") {
       this.fatal = kind
       this.fatalStatus = extractStatus(error)
+      this.fatalAt = Date.now()
       return kind
     }
 
@@ -102,8 +111,16 @@ export class ErrorBackoff {
    * Whether autocomplete requests should be blocked right now.
    */
   blocked(): boolean {
-    // Fatal errors block permanently until reset
-    if (this.fatal) return true
+    // Fatal errors block until reset, but allow a single probe request
+    // every FATAL_PROBE_INTERVAL_MS so autocomplete self-heals when the
+    // user adds credits or re-authenticates externally.
+    if (this.fatal) {
+      const elapsed = Date.now() - this.fatalAt
+      if (elapsed < FATAL_PROBE_INTERVAL_MS) return true
+      // Cooldown expired — allow one probe. If it fails, fatalAt resets.
+      this.fatalAt = Date.now()
+      return false
+    }
 
     // Circuit breaker is open
     if (this.opened > 0) {

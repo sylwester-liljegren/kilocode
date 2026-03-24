@@ -22,7 +22,6 @@ import {
   calcDebounceDelay,
   MatchingSuggestionWithFillIn as _MatchingSuggestionWithFillIn,
 } from "./inline-utils"
-import { HoleFiller } from "./HoleFiller"
 import { FimPromptBuilder } from "./FillInTheMiddle"
 import { AutocompleteModel } from "../AutocompleteModel"
 import { ContextRetrievalService } from "../continuedev/core/autocomplete/context/ContextRetrievalService"
@@ -119,7 +118,6 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
   public suggestionsHistory: FillInAtCursorSuggestion[] = []
   /** Tracks all pending/in-flight requests */
   private pendingRequests: PendingRequest[] = []
-  private holeFiller: HoleFiller
   private fimPromptBuilder: FimPromptBuilder
   private model: AutocompleteModel
   private costTrackingCallback: CostTrackingCallback
@@ -165,7 +163,6 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
       model,
       ignoreController: this.ignoreController,
     }
-    this.holeFiller = new HoleFiller(contextProvider)
     this.fimPromptBuilder = new FimPromptBuilder(contextProvider)
 
     this.recentlyVisitedRangesService = new RecentlyVisitedRangesService(ide)
@@ -218,10 +215,10 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
     const { prefix, suffix } = extractPrefixSuffix(document, position)
     const languageId = document.languageId
 
-    // Determine strategy based on model capabilities and call only the appropriate prompt builder
-    const prompt = this.model.supportsFim()
-      ? await this.fimPromptBuilder.getFimPrompts(autocompleteInput, this.model.getModelName() ?? "codestral")
-      : await this.holeFiller.getPrompts(autocompleteInput, languageId)
+    const prompt = await this.fimPromptBuilder.getFimPrompts(
+      autocompleteInput,
+      this.model.getModelName() ?? "codestral",
+    )
 
     return { prompt, prefix, suffix }
   }
@@ -389,9 +386,6 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
 
       const { prompt, prefix: promptPrefix, suffix: promptSuffix } = await this.getPrompt(document, position)
 
-      // Update context with strategy now that we know it
-      telemetryContext.strategy = prompt.strategy
-
       await this.debouncedFetchAndCacheSuggestion(prompt, promptPrefix, promptSuffix, document.languageId)
 
       const cachedResult = applyFirstLineOnly(findMatchingSuggestion(prefix, suffix, this.suggestionsHistory), prefix)
@@ -525,7 +519,6 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
       languageId,
       modelId: this.model?.getModelName(),
       provider: this.model?.getProviderDisplayName(),
-      strategy: prompt.strategy,
     }
 
     // Defense-in-depth: credentials may become invalid between the provider gate and the actual
@@ -540,10 +533,12 @@ export class AutocompleteInlineCompletionProvider implements vscode.InlineComple
       const curriedProcessSuggestion = (text: string) =>
         this.processSuggestion(text, prefix, suffix, this.model, telemetryContext, languageId)
 
-      const result =
-        prompt.strategy === "fim"
-          ? await this.fimPromptBuilder.getFromFIM(this.model, prompt, curriedProcessSuggestion, controller.signal)
-          : await this.holeFiller.getFromChat(this.model, prompt, curriedProcessSuggestion)
+      const result = await this.fimPromptBuilder.getFromFIM(
+        this.model,
+        prompt,
+        curriedProcessSuggestion,
+        controller.signal,
+      )
 
       const latencyMs = performance.now() - startTime
 

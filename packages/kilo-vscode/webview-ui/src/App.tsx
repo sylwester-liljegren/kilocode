@@ -149,37 +149,31 @@ export const LanguageBridge: Component<{ children: any }> = (props) => {
 // Inner app component that uses the contexts
 const AppContent: Component = () => {
   const [currentView, setCurrentView] = createSignal<ViewType>("newTask")
-  const [prevView, setPrevView] = createSignal<ViewType>("newTask")
   const [settingsTab, setSettingsTab] = createSignal<string | undefined>()
   const [migrationReturnView, setMigrationReturnView] = createSignal<ViewType>("newTask") // legacy-migration
   const session = useSession()
   const server = useServer()
 
-  const navigate = (view: ViewType) => {
-    setPrevView(currentView())
-    setCurrentView(view)
-  }
-
   const handleViewAction = (action: string) => {
     switch (action) {
       case "plusButtonClicked":
         window.dispatchEvent(new CustomEvent("newTaskRequest"))
-        navigate("newTask")
+        setCurrentView("newTask")
         break
       case "marketplaceButtonClicked":
-        navigate("marketplace")
+        setCurrentView("marketplace")
         break
       case "historyButtonClicked":
-        navigate("history")
+        setCurrentView("history")
         break
       case "cloudHistoryButtonClicked":
-        navigate("cloudHistory")
+        setCurrentView("cloudHistory")
         break
       case "profileButtonClicked":
-        navigate("profile")
+        setCurrentView("profile")
         break
       case "settingsButtonClicked":
-        navigate("settings")
+        setCurrentView("settings")
         break
       case "cycleAgentMode":
         if (document.hasFocus()) cycleAgent(1)
@@ -243,11 +237,11 @@ const AppContent: Component = () => {
           <MarketplaceView />
         </Match>
         <Match when={currentView() === "history"}>
-          <SessionList onSelectSession={handleSelectSession} onBack={() => setCurrentView(prevView())} />
+          <SessionList onSelectSession={handleSelectSession} onBack={() => setCurrentView("newTask")} />
         </Match>
         <Match when={currentView() === "cloudHistory"}>
           <CloudSessionList
-            onBack={() => setCurrentView(prevView())}
+            onBack={() => setCurrentView("newTask")}
             onSelectSession={(cloudSessionId) => {
               session.selectCloudSession(cloudSessionId)
               setCurrentView("newTask")

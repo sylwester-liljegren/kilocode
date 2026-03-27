@@ -12,6 +12,30 @@ Code Actions are a **VS Code extension feature** and are not available in the CL
 {% /callout %}
 
 {% tabs %}
+{% tab label="VSCode" %}
+
+## Available Code Actions
+
+The extension provides code actions via the editor context menu and lightbulb:
+
+- **Add to Context:** Adds selected code (with file path and line numbers) to the active chat session. Keyboard shortcut: `Cmd+K Cmd+A` (Mac) or `Ctrl+K Ctrl+A` (Windows/Linux).
+- **Explain Code:** Asks Kilo to explain the selected code.
+- **Fix Code:** Asks Kilo to fix problems in the selected code.
+- **Improve Code:** Asks Kilo to suggest improvements to the selected code.
+
+### Agent Manager Integration
+
+If the **Agent Manager** is active, code actions route to the current Agent Manager session rather than the sidebar chat. This allows code actions to work seamlessly within multi-session workflows.
+
+### Terminal Context Menu
+
+The extension also adds code actions to the **terminal context menu**:
+
+- **Add Terminal Content:** Adds selected terminal output to the chat context.
+- **Fix Command:** Asks Kilo to fix a failed terminal command.
+- **Explain Command:** Asks Kilo to explain a terminal command or its output.
+
+{% /tab %}
 {% tab label="VSCode (Legacy)" %}
 
 ## What are Code Actions?
@@ -96,30 +120,6 @@ You can customize the prompts used for each Code Action by modifying the "Suppor
 2.  **Find "Support Prompts":** You will see the support prompts, including "Enhance Prompt", "Explain Code", "Fix Code", and "Improve Code".
 3.  **Edit the Prompts:** Modify the text in the text area for the prompt you want to customize. You can use placeholders like `${filePath}` and `${selectedText}` to include information about the current file and selection.
 4.  **Click "Done":** Save your changes.
-
-{% /tab %}
-{% tab label="VSCode" %}
-
-## Available Code Actions
-
-The new extension provides the same core code actions via the editor context menu and lightbulb:
-
-- **Add to Context:** Adds selected code (with file path and line numbers) to the active chat session. Keyboard shortcut: `Cmd+K Cmd+A` (Mac) or `Ctrl+K Ctrl+A` (Windows/Linux).
-- **Explain Code:** Asks Kilo to explain the selected code.
-- **Fix Code:** Asks Kilo to fix problems in the selected code.
-- **Improve Code:** Asks Kilo to suggest improvements to the selected code.
-
-### Agent Manager Integration
-
-If the **Agent Manager** is active, code actions route to the current Agent Manager session rather than the sidebar chat. This allows code actions to work seamlessly within multi-session workflows.
-
-### Terminal Context Menu
-
-The new extension also adds code actions to the **terminal context menu**:
-
-- **Add Terminal Content:** Adds selected terminal output to the chat context.
-- **Fix Command:** Asks Kilo to fix a failed terminal command.
-- **Explain Command:** Asks Kilo to explain a terminal command or its output.
 
 {% /tab %}
 {% /tabs %}

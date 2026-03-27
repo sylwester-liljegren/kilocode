@@ -28,22 +28,12 @@ Checkpoints let you:
 ## Configuration Options
 
 {% tabs %}
-{% tab label="VSCode (Legacy)" %}
-
-Access checkpoint settings in Kilo Code settings under the "Checkpoints" section:
-
-1. Open Settings by clicking the gear icon {% codicon name="gear" /%} → Checkpoints
-2. Check or uncheck the "Enable automatic checkpoints" checkbox
-
-   {% image src="/docs/img/checkpoints/checkpoints.png" alt="Checkpoint settings in Kilo Code configuration" width="500" /%}
-
-{% /tab %}
-{% tab label="VSCode & CLI" %}
+{% tab label="VSCode" %}
 
 Checkpoints are controlled by the `snapshot` boolean:
 
 - **Settings UI**: Open Settings → Checkpoints tab and toggle the snapshot setting
-- **Config file**: Set `"snapshot": true` or `"snapshot": false` in your `kilo.json` configuration file
+- **Config file**: Set `"snapshot": true` or `"snapshot": false` in your `kilo.jsonc` configuration file
 
 ```json
 {
@@ -52,6 +42,29 @@ Checkpoints are controlled by the `snapshot` boolean:
 ```
 
 When enabled, the system automatically captures snapshots at each step of a task.
+
+{% /tab %}
+{% tab label="CLI" %}
+
+Checkpoints are controlled by the `snapshot` boolean in your `kilo.jsonc` configuration file:
+
+```json
+{
+  "snapshot": true
+}
+```
+
+When enabled, the system automatically captures snapshots at each step of a task.
+
+{% /tab %}
+{% tab label="VSCode (Legacy)" %}
+
+Access checkpoint settings in Kilo Code settings under the "Checkpoints" section:
+
+1. Open Settings by clicking the gear icon {% codicon name="gear" /%} → Checkpoints
+2. Check or uncheck the "Enable automatic checkpoints" checkbox
+
+   {% image src="/docs/img/checkpoints/checkpoints.png" alt="Checkpoint settings in Kilo Code configuration" width="500" /%}
 
 {% /tab %}
 {% /tabs %}
@@ -71,6 +84,34 @@ Checkpoints are stored as Git commits in the shadow repository, capturing:
 ## Working with Checkpoints
 
 {% tabs %}
+{% tab label="VSCode" %}
+
+Checkpoints are captured automatically at each step of a task, recording Git tree objects at each step.
+
+### Reverting Changes
+
+- **Full revert**: Revert your workspace to any point in the conversation
+- **Undo a revert**: Restore the state before the last revert
+- **Per-file revert**: Selectively undo changes to specific files while keeping others
+
+### Viewing Differences
+
+Diffs show per-file changes at each step. In the **Agent Manager**, these are displayed in a dedicated diff panel with full before/after file content.
+
+{% /tab %}
+{% tab label="CLI" %}
+
+Checkpoints are captured automatically at each step of a task, recording Git tree objects at each step.
+
+In the CLI terminal interface, checkpoints appear as revert points in the conversation. You can revert to any point by selecting the corresponding message.
+
+### Reverting Changes
+
+- **Full revert**: Revert your workspace to any point in the conversation
+- **Undo a revert**: Restore the state before the last revert
+- **Per-file revert**: Selectively undo changes to specific files while keeping others
+
+{% /tab %}
 {% tab label="VSCode (Legacy)" %}
 
 Checkpoints are integrated directly into your workflow through the chat interface.
@@ -117,32 +158,6 @@ To restore a project to a previous checkpoint state:
    - **Restore Files & Task** - Reverts both workspace files AND removes all subsequent conversation messages. Use when you want to completely reset both your code and conversation back to the checkpoint's point in time. This option requires confirmation in a dialog as it cannot be undone.
 
      {% image src="/docs/img/checkpoints/checkpoints-9.png" alt="Confirmation dialog for restoring checkpoint with files & task" width="300" /%}
-
-{% /tab %}
-{% tab label="VSCode & CLI" %}
-
-Checkpoints are captured automatically at each step of a task. The system calls `Snapshot.track()` at `start-step` and `finish-step` events, recording Git tree objects via `git write-tree`.
-
-### CLI TUI
-
-In the CLI terminal interface, checkpoints appear as revert points in the conversation. You can revert to any point by selecting the corresponding message.
-
-### Reverting Changes
-
-The new platform provides flexible revert capabilities:
-
-- **Full revert**: Use `SessionRevert.revert({ sessionID, messageID, partID })` to revert your workspace to any point in the conversation
-- **Undo a revert**: Use `unrevert()` to restore the state before the last revert
-- **Per-file revert**: `Snapshot.revert(patches)` can revert individual files via `git checkout <hash> -- <file>`, allowing you to selectively undo changes to specific files while keeping others
-
-### Viewing Differences
-
-The system provides detailed diff capabilities:
-
-- `Snapshot.diff()` returns per-file diffs showing what changed at each step
-- `Snapshot.diffFull()` returns full before/after file content for detailed review
-
-In the **Agent Manager** (VS Code extension), these diffs are displayed in a dedicated `DiffPanel` and `FullScreenDiffView`, providing a visual interface for reviewing all file changes made during a session.
 
 {% /tab %}
 {% /tabs %}

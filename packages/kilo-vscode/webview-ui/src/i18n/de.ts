@@ -1205,7 +1205,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Standardmodell",
   "settings.providers.defaultModel.description": "Primäres Modell für Gespräche",
   "settings.providers.smallModel.title": "Kleines Modell",
-  "settings.providers.smallModel.description": "Leichtgewichtiges Modell für Titelgenerierung und schnelle Aufgaben",
+  "settings.providers.smallModel.description":
+    "Leichtgewichtiges Modell für Titelgenerierung, Commit-Nachrichten, Prompt-Verbesserung und andere schnelle Aufgaben",
   "settings.providers.disabled": "Deaktivierte Anbieter",
   "settings.providers.disabled.description": "Anbieter aus der Anbieterliste ausblenden",
   "settings.providers.enabled": "Aktivierte Anbieter (Whitelist)",

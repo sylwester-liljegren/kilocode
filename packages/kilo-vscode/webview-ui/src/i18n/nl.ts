@@ -1175,7 +1175,7 @@ export const dict = {
   "settings.providers.defaultModel.description": "Primair model voor gesprekken",
   "settings.providers.smallModel.title": "Klein Model",
   "settings.providers.smallModel.description":
-    "Lichtgewicht model voor het genereren van titels en andere snelle taken",
+    "Lichtgewicht model voor het genereren van titels, commit-berichten, promptverbetering en andere snelle taken",
   "settings.providers.modeModels": "Model per Modus",
   "settings.providers.modeModels.description":
     "Overschrijf het standaard model voor specifieke modi. Indien niet ingesteld, wordt het globale standaard model gebruikt.",

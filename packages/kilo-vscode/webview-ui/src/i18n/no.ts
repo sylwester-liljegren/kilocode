@@ -1184,7 +1184,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Standardmodell",
   "settings.providers.defaultModel.description": "Primær modell for samtaler",
   "settings.providers.smallModel.title": "Liten modell",
-  "settings.providers.smallModel.description": "Lettvektsmodell for titelgenerering og raske oppgaver",
+  "settings.providers.smallModel.description":
+    "Lettvektsmodell for titelgenerering, generering av commit-meldinger, prompt-forbedring og andre raske oppgaver",
   "settings.providers.disabled": "Deaktiverte leverandører",
   "settings.providers.disabled.description": "Leverandører å skjule fra listen",
   "settings.providers.enabled": "Aktiverte leverandører (hvitliste)",

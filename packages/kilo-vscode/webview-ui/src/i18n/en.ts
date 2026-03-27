@@ -1185,7 +1185,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Default Model",
   "settings.providers.defaultModel.description": "Primary model for conversations",
   "settings.providers.smallModel.title": "Small Model",
-  "settings.providers.smallModel.description": "Lightweight model for title generation and other quick tasks",
+  "settings.providers.smallModel.description":
+    "Lightweight model for title generation, commit message generation, prompt enhancement, and other quick tasks",
   "settings.providers.modeModels": "Model per Mode",
   "settings.providers.modeModels.description":
     "Override the default model for specific modes. If not set, the global default model is used.",

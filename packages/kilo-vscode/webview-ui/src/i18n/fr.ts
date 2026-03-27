@@ -1211,7 +1211,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Modèle par défaut",
   "settings.providers.defaultModel.description": "Modèle principal pour les conversations",
   "settings.providers.smallModel.title": "Petit modèle",
-  "settings.providers.smallModel.description": "Modèle léger pour la génération de titres et tâches rapides",
+  "settings.providers.smallModel.description":
+    "Modèle léger pour la génération de titres, de messages de commit, l'amélioration de prompts et d'autres tâches rapides",
   "settings.providers.disabled": "Fournisseurs désactivés",
   "settings.providers.disabled.description": "Fournisseurs à masquer de la liste",
   "settings.providers.enabled": "Fournisseurs activés (liste blanche)",

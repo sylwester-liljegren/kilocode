@@ -1191,7 +1191,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Domyślny model",
   "settings.providers.defaultModel.description": "Główny model do rozmów",
   "settings.providers.smallModel.title": "Mały model",
-  "settings.providers.smallModel.description": "Lekki model do generowania tytułów i szybkich zadań",
+  "settings.providers.smallModel.description":
+    "Lekki model do generowania tytułów, wiadomości commitów, ulepszania zapytań i innych szybkich zadań",
   "settings.providers.disabled": "Wyłączeni dostawcy",
   "settings.providers.disabled.description": "Dostawcy do ukrycia z listy",
   "settings.providers.enabled": "Włączeni dostawcy (biała lista)",

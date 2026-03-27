@@ -1191,7 +1191,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Модель по умолчанию",
   "settings.providers.defaultModel.description": "Основная модель для разговоров",
   "settings.providers.smallModel.title": "Малая модель",
-  "settings.providers.smallModel.description": "Лёгкая модель для генерации заголовков и быстрых задач",
+  "settings.providers.smallModel.description":
+    "Лёгкая модель для генерации заголовков, сообщений коммитов, улучшения промптов и других быстрых задач",
   "settings.providers.disabled": "Отключённые провайдеры",
   "settings.providers.disabled.description": "Провайдеры для скрытия из списка",
   "settings.providers.enabled": "Включённые провайдеры (белый список)",

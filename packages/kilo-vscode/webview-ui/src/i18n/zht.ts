@@ -1152,7 +1152,7 @@ export const dict = {
   "settings.providers.defaultModel.title": "預設模型",
   "settings.providers.defaultModel.description": "對話的主要模型",
   "settings.providers.smallModel.title": "小模型",
-  "settings.providers.smallModel.description": "用於標題產生和其他快速任務的輕量模型",
+  "settings.providers.smallModel.description": "用於標題產生、提交訊息產生、提示增強和其他快速任務的輕量模型",
   "settings.providers.disabled": "已停用的供應商",
   "settings.providers.disabled.description": "從供應商清單中隱藏的供應商",
   "settings.providers.enabled": "已啟用的供應商（白名單）",

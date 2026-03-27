@@ -1191,7 +1191,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Zadani model",
   "settings.providers.defaultModel.description": "Primarni model za razgovore",
   "settings.providers.smallModel.title": "Mali model",
-  "settings.providers.smallModel.description": "Lagani model za generiranje naslova i brze zadatke",
+  "settings.providers.smallModel.description":
+    "Lagani model za generiranje naslova, commit poruka, poboljšanje promptova i druge brze zadatke",
   "settings.providers.disabled": "Onemogućeni pružatelji",
   "settings.providers.disabled.description": "Pružatelji za skrivanje s popisa",
   "settings.providers.enabled": "Omogućeni pružatelji (bijela lista)",

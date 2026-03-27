@@ -1168,7 +1168,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "النموذج الافتراضي",
   "settings.providers.defaultModel.description": "النموذج الأساسي للمحادثات",
   "settings.providers.smallModel.title": "نموذج صغير",
-  "settings.providers.smallModel.description": "نموذج خفيف لتوليد العناوين والمهام السريعة",
+  "settings.providers.smallModel.description":
+    "نموذج خفيف لتوليد العناوين ورسائل الـ commit وتحسين المطالبات والمهام السريعة الأخرى",
   "settings.providers.disabled": "مزودون معطلون",
   "settings.providers.disabled.description": "مزودون لإخفائهم من القائمة",
   "settings.providers.enabled": "مزودون مفعلون (قائمة بيضاء)",

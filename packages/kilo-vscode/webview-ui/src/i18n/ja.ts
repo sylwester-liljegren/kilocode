@@ -1182,7 +1182,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "デフォルトモデル",
   "settings.providers.defaultModel.description": "会話のプライマリモデル",
   "settings.providers.smallModel.title": "小型モデル",
-  "settings.providers.smallModel.description": "タイトル生成やその他の高速タスク用の軽量モデル",
+  "settings.providers.smallModel.description":
+    "タイトル生成、コミットメッセージ生成、プロンプト改善、およびその他の高速タスク用の軽量モデル",
   "settings.providers.disabled": "無効化されたプロバイダー",
   "settings.providers.disabled.description": "プロバイダーリストから非表示にするプロバイダー",
   "settings.providers.enabled": "有効化されたプロバイダー（ホワイトリスト）",

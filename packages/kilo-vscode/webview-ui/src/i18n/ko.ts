@@ -1171,7 +1171,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "기본 모델",
   "settings.providers.defaultModel.description": "대화의 기본 모델",
   "settings.providers.smallModel.title": "소형 모델",
-  "settings.providers.smallModel.description": "제목 생성 및 기타 빠른 작업을 위한 경량 모델",
+  "settings.providers.smallModel.description":
+    "제목 생성, 커밋 메시지 생성, 프롬프트 개선 및 기타 빠른 작업을 위한 경량 모델",
   "settings.providers.disabled": "비활성화된 공급자",
   "settings.providers.disabled.description": "공급자 목록에서 숨길 공급자",
   "settings.providers.enabled": "활성화된 공급자 (허용 목록)",

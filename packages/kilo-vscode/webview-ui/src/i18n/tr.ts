@@ -1170,7 +1170,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Varsayılan Model",
   "settings.providers.defaultModel.description": "Sohbetler için birincil model",
   "settings.providers.smallModel.title": "Küçük Model",
-  "settings.providers.smallModel.description": "Başlık oluşturma ve diğer hızlı görevler için hafif model",
+  "settings.providers.smallModel.description":
+    "Başlık oluşturma, commit mesajı oluşturma, komut istemi iyileştirme ve diğer hızlı görevler için hafif model",
   "settings.providers.modeModels": "Mod Başına Model",
   "settings.providers.modeModels.description":
     "Belirli modlar için varsayılan modeli geçersiz kılın. Ayarlanmadıysa genel varsayılan model kullanılır.",

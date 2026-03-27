@@ -1182,7 +1182,8 @@ export const dict = {
   "settings.providers.defaultModel.title": "Standardmodel",
   "settings.providers.defaultModel.description": "Primær model til samtaler",
   "settings.providers.smallModel.title": "Lille model",
-  "settings.providers.smallModel.description": "Letvægtsmodel til titelgenerering og hurtige opgaver",
+  "settings.providers.smallModel.description":
+    "Letvægtsmodel til titelgenerering, generering af commit-beskeder, prompt-forbedring og andre hurtige opgaver",
   "settings.providers.disabled": "Deaktiverede udbydere",
   "settings.providers.disabled.description": "Udbydere at skjule fra listen",
   "settings.providers.enabled": "Aktiverede udbydere (hvidliste)",

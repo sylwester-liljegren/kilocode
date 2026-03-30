@@ -206,7 +206,7 @@ export namespace KiloSessions {
       await ingest.sync(evt.properties.sessionID, [{ type: "session_close", data: { reason: evt.properties.reason } }])
     })
 
-    const cfg = await Config.get()
+    const cfg = await Config.getGlobal()
     if (remoteEnabled || cfg.remote_control)
       enableRemote().catch((err) => log.warn("remote not enabled", { error: String(err) }))
     Bus.subscribe(Bus.InstanceDisposed, () => disableRemote())

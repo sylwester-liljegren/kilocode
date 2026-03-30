@@ -55,6 +55,7 @@ const AgentBehaviourTab: Component = () => {
   const [newSkillPath, setNewSkillPath] = createSignal("")
   const [newSkillUrl, setNewSkillUrl] = createSignal("")
   const [newInstruction, setNewInstruction] = createSignal("")
+  const browse = () => vscode.postMessage({ type: "openMarketplacePanel" })
 
   // Agent view state
   const [agentView, setAgentView] = createSignal<AgentView>("list")
@@ -303,6 +304,9 @@ const AgentBehaviourTab: Component = () => {
             <Button variant="ghost" size="small" onClick={triggerImport}>
               {language.t("settings.agentBehaviour.importMode")}
             </Button>
+            <Button variant="ghost" size="small" onClick={browse}>
+              {language.t("settings.agentBehaviour.mcpBrowseMarketplace")}
+            </Button>
             <Button variant="secondary" size="small" onClick={() => setAgentView("create")}>
               {language.t("settings.agentBehaviour.createMode")}
             </Button>
@@ -518,8 +522,6 @@ const AgentBehaviourTab: Component = () => {
         />
       )
     }
-
-    const browse = () => vscode.postMessage({ type: "openMarketplacePanel" })
 
     return (
       <div>
@@ -738,6 +740,18 @@ const AgentBehaviourTab: Component = () => {
 
   const renderSkillsSubtab = () => (
     <div>
+      <div
+        style={{
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "flex-end",
+          "margin-bottom": "8px",
+        }}
+      >
+        <Button variant="secondary" size="small" onClick={browse}>
+          {language.t("settings.agentBehaviour.mcpBrowseMarketplace")}
+        </Button>
+      </div>
       {/* Discovered skills */}
       <h4 style={{ "margin-top": "0", "margin-bottom": "8px" }}>
         {language.t("settings.agentBehaviour.discoveredSkills")}

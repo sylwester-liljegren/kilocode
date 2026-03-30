@@ -59,7 +59,7 @@ Then set your default model:
 
 ```jsonc
 {
-  "model": "moonshot/moonshot-v1-auto",
+  "model": "moonshotai/moonshot-v1-auto",
 }
 ```
 

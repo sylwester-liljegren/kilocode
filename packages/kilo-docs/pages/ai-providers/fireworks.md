@@ -40,7 +40,7 @@ Set the API key as an environment variable or configure it in your `kilo.json` c
 **Environment variable:**
 
 ```bash
-export FIREWORKS_AI_API_KEY="your-api-key"
+export FIREWORKS_API_KEY="your-api-key"
 ```
 
 **Config file** (`~/.config/kilo/kilo.json` or `./kilo.json`):
@@ -49,7 +49,7 @@ export FIREWORKS_AI_API_KEY="your-api-key"
 {
   "provider": {
     "fireworks-ai": {
-      "env": ["FIREWORKS_AI_API_KEY"],
+      "env": ["FIREWORKS_API_KEY"],
     },
   },
 }
@@ -59,7 +59,7 @@ Then set your default model:
 
 ```jsonc
 {
-  "model": "fireworks/accounts/fireworks/models/llama4-scout-instruct-basic",
+  "model": "fireworks-ai/accounts/fireworks/models/llama4-scout-instruct-basic",
 }
 ```
 

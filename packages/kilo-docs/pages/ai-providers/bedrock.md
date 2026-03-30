@@ -91,7 +91,7 @@ Then set your default model:
 
 ```jsonc
 {
-  "model": "bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
 }
 ```
 

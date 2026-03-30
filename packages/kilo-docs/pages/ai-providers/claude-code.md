@@ -45,9 +45,9 @@ The specific models available depend on your Claude subscription and plan. See [
 {% /tab %}
 {% tab label="VSCode" %}
 
-Open **Settings** (gear icon) and go to the **Providers** tab. Claude Code uses your existing Anthropic credentials from the `claude` CLI — make sure it is installed and authenticated before adding the provider.
-
-The extension stores this in your `kilo.json` config file. You can also edit the config file directly — see the **CLI** tab for the file format.
+{% callout type="warning" %}
+Claude Code credentials no longer work in Kilo Code. Please use the [Anthropic provider](/docs/ai-providers/anthropic) with an API key instead.
+{% /callout %}
 
 {% /tab %}
 {% tab label="CLI" %}

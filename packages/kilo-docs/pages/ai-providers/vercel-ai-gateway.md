@@ -96,7 +96,7 @@ Then set your default model:
 
 ```jsonc
 {
-  "model": "vercel-ai-gateway/anthropic/claude-sonnet-4",
+  "model": "vercel/anthropic/claude-sonnet-4",
 }
 ```
 

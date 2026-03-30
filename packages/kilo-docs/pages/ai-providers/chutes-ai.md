@@ -62,7 +62,7 @@ Then set your default model:
 
 ```jsonc
 {
-  "model": "chutes-ai/model-name",
+  "model": "chutes/model-name",
 }
 ```
 

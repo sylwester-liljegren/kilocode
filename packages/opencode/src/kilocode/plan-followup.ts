@@ -8,6 +8,7 @@ import { Identifier } from "@/id/id"
 import { Provider } from "@/provider/provider"
 import { Question } from "@/question"
 import { Session } from "@/session"
+import { SessionID, MessageID, PartID } from "@/session/schema"
 import { LLM } from "@/session/llm"
 import { MessageV2 } from "@/session/message-v2"
 import { Todo } from "@/session/todo"
@@ -66,9 +67,9 @@ export async function generateHandover(input: {
       ? await Provider.getModel(agent.model.providerID, agent.model.modelID)
       : await Provider.getModel(input.model.providerID, input.model.modelID)
 
-    const sessionID = Identifier.ascending("session")
+    const sessionID = SessionID.make(Identifier.ascending("session"))
     const userMsg: MessageV2.User = {
-      id: Identifier.ascending("message"),
+      id: MessageID.ascending(),
       sessionID,
       role: "user",
       time: { created: Date.now() },
@@ -162,7 +163,7 @@ export namespace PlanFollowup {
   async function resolvePlan(input: {
     assistant?: MessageV2.WithParts
     messages: MessageV2.WithParts[]
-    sessionID: string
+    sessionID: SessionID
   }) {
     // Fast path: check the last assistant message's text first (avoids array scanning)
     if (input.assistant) {
@@ -179,14 +180,14 @@ export namespace PlanFollowup {
     if (text) return text
 
     // Fall back to plan file on disk
-    const session = await Session.get(input.sessionID)
+    const session = await Session.get(SessionID.make(input.sessionID))
     const file = Bun.file(Session.plan(session))
     const plan = await file.text().catch(() => "")
     return plan.trim()
   }
 
   async function inject(input: {
-    sessionID: string
+    sessionID: SessionID
     agent: string
     model: MessageV2.User["model"]
     variant?: MessageV2.User["variant"]
@@ -194,7 +195,7 @@ export namespace PlanFollowup {
     synthetic?: boolean
   }) {
     const msg: MessageV2.User = {
-      id: Identifier.ascending("message"),
+      id: MessageID.ascending(),
       sessionID: input.sessionID,
       role: "user",
       time: {
@@ -206,7 +207,7 @@ export namespace PlanFollowup {
     }
     await Session.updateMessage(msg)
     await Session.updatePart({
-      id: Identifier.ascending("part"),
+      id: PartID.ascending(),
       messageID: msg.id,
       sessionID: input.sessionID,
       type: "text",
@@ -215,7 +216,7 @@ export namespace PlanFollowup {
     } satisfies MessageV2.TextPart)
   }
 
-  function prompt(input: { sessionID: string; abort: AbortSignal }) {
+  function prompt(input: { sessionID: SessionID; abort: AbortSignal }) {
     const promise = Question.ask({
       sessionID: input.sessionID,
       questions: [
@@ -255,7 +256,7 @@ export namespace PlanFollowup {
   }
 
   async function startNew(input: {
-    sessionID: string
+    sessionID: SessionID
     plan: string
     messages: MessageV2.WithParts[]
     model: MessageV2.User["model"]
@@ -303,7 +304,7 @@ export namespace PlanFollowup {
   }
 
   export async function ask(input: {
-    sessionID: string
+    sessionID: SessionID
     messages: MessageV2.WithParts[]
     abort: AbortSignal
   }): Promise<"continue" | "break"> {

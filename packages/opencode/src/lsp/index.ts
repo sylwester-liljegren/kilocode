@@ -120,7 +120,6 @@ export namespace LSP {
                   ...process.env,
                   ...item.env,
                 },
-                windowsHide: true, // kilocode_change - prevent CMD window flash on Windows
               }),
               initialization: item.initialization,
             }

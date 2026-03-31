@@ -57,6 +57,7 @@ describe("session processor empty tool-calls", () => {
     const { Instance } = await import("../../src/project/instance")
     const { LLM } = await import("../../src/session/llm")
     const { Identifier } = await import("../../src/id/id")
+    const { MessageID } = await import("../../src/session/schema")
     const { MessageV2 } = await import("../../src/session/message-v2")
 
     await using tmp = await tmpdir({ git: true })
@@ -69,7 +70,7 @@ describe("session processor empty tool-calls", () => {
         const m = model()
         const session = await Session.create({})
         const user = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           role: "user",
           sessionID: session.id,
           time: { created: Date.now() },
@@ -78,7 +79,7 @@ describe("session processor empty tool-calls", () => {
           tools: {},
         })) as MessageV2.User
         const assistant = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           parentID: user.id,
           role: "assistant",
           mode: "code",
@@ -143,6 +144,7 @@ describe("session processor empty tool-calls", () => {
     const { Instance } = await import("../../src/project/instance")
     const { LLM } = await import("../../src/session/llm")
     const { Identifier } = await import("../../src/id/id")
+    const { MessageID } = await import("../../src/session/schema")
     const { MessageV2 } = await import("../../src/session/message-v2")
 
     await using tmp = await tmpdir({ git: true })
@@ -155,7 +157,7 @@ describe("session processor empty tool-calls", () => {
         const m = model()
         const session = await Session.create({})
         const user = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           role: "user",
           sessionID: session.id,
           time: { created: Date.now() },
@@ -164,7 +166,7 @@ describe("session processor empty tool-calls", () => {
           tools: {},
         })) as MessageV2.User
         const assistant = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           parentID: user.id,
           role: "assistant",
           mode: "code",

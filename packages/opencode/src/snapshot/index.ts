@@ -1,3 +1,4 @@
+import { $ } from "bun" // kilocode_change
 import path from "path"
 import fs from "fs/promises"
 import { Filesystem } from "../util/filesystem"

@@ -6,6 +6,10 @@ import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { Question } from "@/question"
 import { PermissionNext } from "@/permission/next"
+import { PermissionID } from "@/permission/schema"
+import { SessionID } from "@/session/schema"
+import { QuestionID } from "@/question/schema"
+import { ModelID, ProviderID } from "@/provider/schema"
 import { Log } from "@/util/log"
 import z from "zod"
 
@@ -27,8 +31,8 @@ const RemotePromptInput = SessionPrompt.PromptInput.extend({
 function normalizeModel(model: z.infer<typeof RemotePromptInput.shape.model>) {
   if (!model) return undefined
   return {
-    providerID: "kilo",
-    modelID: model.startsWith("kilocode/") ? model.slice("kilocode/".length) : model,
+    providerID: ProviderID.make("kilo"),
+    modelID: ModelID.make(model.startsWith("kilocode/") ? model.slice("kilocode/".length) : model),
   }
 }
 
@@ -128,7 +132,7 @@ export namespace RemoteSender {
     }
 
     async function discoverChildren(parentId: string) {
-      const childSessions = await Session.children(parentId)
+      const childSessions = await Session.children(SessionID.make(parentId))
       for (const child of childSessions) {
         children.set(child.id, parentId)
         const root = rootOf(child.id) ?? parentId
@@ -242,7 +246,7 @@ export namespace RemoteSender {
           })
           return
         }
-        dispatchQuick(msg, () => Question.reply(parsed.data))
+        dispatchQuick(msg, () => Question.reply({ ...parsed.data, requestID: QuestionID.make(parsed.data.requestID) }))
         return
       }
       if (msg.command === "question_reject") {
@@ -255,7 +259,7 @@ export namespace RemoteSender {
           })
           return
         }
-        dispatchQuick(msg, () => Question.reject(parsed.data.requestID))
+        dispatchQuick(msg, () => Question.reject(QuestionID.make(parsed.data.requestID)))
         return
       }
       if (msg.command === "permission_respond") {
@@ -268,7 +272,7 @@ export namespace RemoteSender {
           })
           return
         }
-        dispatchQuick(msg, () => PermissionNext.reply(parsed.data))
+        dispatchQuick(msg, () => PermissionNext.reply({ ...parsed.data, requestID: PermissionID.make(parsed.data.requestID) }))
         return
       }
       options.conn.send({

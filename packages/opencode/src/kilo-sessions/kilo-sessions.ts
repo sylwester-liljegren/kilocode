@@ -1,6 +1,8 @@
 import { Bus } from "@/bus"
 import { Provider } from "@/provider/provider"
 import { Session } from "@/session"
+import { SessionID } from "@/session/schema"
+import { ModelID, ProviderID } from "@/provider/schema"
 import { MessageV2 } from "@/session/message-v2"
 import { Storage } from "@/storage/storage"
 import { Log } from "@/util/log"
@@ -246,7 +248,7 @@ export namespace KiloSessions {
         if (viewedSessionId) ids.add(viewedSessionId)
         const results = await Promise.all(
           [...ids].map(async (id) => {
-            const session = await Session.get(id).catch(() => undefined)
+            const session = await Session.get(SessionID.make(id)).catch(() => undefined)
             if (!session) return undefined
             return {
               id,
@@ -486,15 +488,15 @@ export namespace KiloSessions {
   async function fullSync(sessionId: string) {
     log.info("full sync", { sessionId })
 
-    const session = await Session.get(sessionId)
-    const diffs = await Session.diff(sessionId)
-    const messages = await Array.fromAsync(MessageV2.stream(sessionId))
+    const session = await Session.get(SessionID.make(sessionId))
+    const diffs = await Session.diff(SessionID.make(sessionId))
+    const messages = await Array.fromAsync(MessageV2.stream(SessionID.make(sessionId)))
     messages.reverse()
     const models = await Promise.all(
       messages
         .filter((m) => m.info.role === "user")
         .map((m) => (m.info as SDK.UserMessage).model)
-        .map((m) => Provider.getModel(m.providerID, m.modelID).then((m) => m)),
+        .map((m) => Provider.getModel(ProviderID.make(m.providerID), ModelID.make(m.modelID)).then((m) => m)),
     )
 
     await ingest.sync(sessionId, [

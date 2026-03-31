@@ -76,6 +76,8 @@ describe("session processor retry limit", () => {
     // Dynamic imports so that flag.ts sees KILO_SESSION_RETRY_LIMIT="2" set above
     const { Bus } = await import("../../src/bus")
     const { Identifier } = await import("../../src/id/id")
+    const { MessageID } = await import("../../src/session/schema")
+    const { ProviderID } = await import("../../src/provider/schema")
     const { Instance } = await import("../../src/project/instance")
     const { LLM } = await import("../../src/session/llm")
     const { MessageV2 } = await import("../../src/session/message-v2")
@@ -92,7 +94,7 @@ describe("session processor retry limit", () => {
         const model = createModel()
         const session = await Session.create({})
         const user = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           role: "user",
           sessionID: session.id,
           time: { created: Date.now() },
@@ -101,7 +103,7 @@ describe("session processor retry limit", () => {
           tools: {},
         })) as MessageV2.User
         const assistant = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.ascending(),
           parentID: user.id,
           role: "assistant",
           mode: "code",
@@ -160,7 +162,7 @@ describe("session processor retry limit", () => {
 
         try {
           const result = await processor.process(inp)
-          const expected = MessageV2.fromError(retryable429(), { providerID: "openai" })
+          const expected = MessageV2.fromError(retryable429(), { providerID: ProviderID.make("openai") })
 
           expect(result).toBe("stop")
           expect(llm).toHaveBeenCalledTimes(3)

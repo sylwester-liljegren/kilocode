@@ -53,7 +53,6 @@ import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
 import { Identifier } from "@/utils/id"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { same } from "@/utils/same"
-import { Identifier } from "@/utils/id" // kilocode_change
 import { formatServerError } from "@/utils/server-errors"
 
 const emptyUserMessages: UserMessage[] = []

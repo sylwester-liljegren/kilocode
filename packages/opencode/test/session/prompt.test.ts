@@ -304,8 +304,8 @@ describe("session.prompt abort", () => {
           const run = SessionPrompt.prompt({
             sessionID: session.id,
             model: {
-              providerID: "openai",
-              modelID: model.id,
+              providerID: ProviderID.make("openai"),
+              modelID: ModelID.make(model.id),
             },
             parts: [{ type: "text", text: "say hello" }],
           })

@@ -72,7 +72,7 @@ export const PermissionRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          requestID: z.string(),
+          requestID: PermissionID.zod,
         }),
       ),
       validator(

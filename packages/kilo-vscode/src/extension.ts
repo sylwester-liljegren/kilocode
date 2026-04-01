@@ -45,6 +45,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
 
+  // Track all open tab panel providers so toolbar button commands can target them
+  const tabPanels = new Map<vscode.WebviewPanel, KiloProvider>()
+  const activeTabProvider = () => {
+    for (const [panel, p] of tabPanels) {
+      if (panel.active) return p
+    }
+    return undefined
+  }
+
   // Create the provider with shared service
   const provider = new KiloProvider(context.extensionUri, connectionService, context)
 
@@ -94,9 +103,11 @@ export function activate(context: vscode.ExtensionContext) {
           agentManagerProvider.continueFromSidebar(sessionId, progress),
         )
         tabProvider.resolveWebviewPanel(panel)
+        tabPanels.set(panel, tabProvider)
         panel.onDidDispose(
           () => {
             console.log("[Kilo New] Tab panel restored from restart disposed")
+            tabPanels.delete(panel)
             tabProvider.dispose()
           },
           null,
@@ -158,7 +169,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Register toolbar button command handlers
   context.subscriptions.push(
     vscode.commands.registerCommand("kilo-code.new.plusButtonClicked", () => {
-      provider.postMessage({ type: "action", action: "plusButtonClicked" })
+      const tab = activeTabProvider()
+      if (tab) tab.postMessage({ type: "action", action: "plusButtonClicked" })
+      else provider.postMessage({ type: "action", action: "plusButtonClicked" })
     }),
     vscode.commands.registerCommand("kilo-code.new.agentManagerOpen", () => {
       agentManagerProvider.openPanel()
@@ -167,7 +180,9 @@ export function activate(context: vscode.ExtensionContext) {
       settingsEditorProvider.openPanel("marketplace", undefined, directory)
     }),
     vscode.commands.registerCommand("kilo-code.new.historyButtonClicked", () => {
-      provider.postMessage({ type: "action", action: "historyButtonClicked" })
+      const tab = activeTabProvider()
+      if (tab) tab.postMessage({ type: "action", action: "historyButtonClicked" })
+      else provider.postMessage({ type: "action", action: "historyButtonClicked" })
     }),
     vscode.commands.registerCommand("kilo-code.new.cycleAgentMode", () => {
       provider.postMessage({ type: "action", action: "cycleAgentMode" })
@@ -199,7 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
       provider.postMessage({ type: "triggerTask", text: `Generate a terminal command: ${input}` })
     }),
     vscode.commands.registerCommand("kilo-code.new.openInTab", () => {
-      return openKiloInNewTab(context, connectionService, agentManagerProvider)
+      return openKiloInNewTab(context, connectionService, agentManagerProvider, tabPanels)
     }),
     vscode.commands.registerCommand("kilo-code.new.showChanges", () => {
       diffViewerProvider.openPanel()
@@ -330,6 +345,7 @@ async function openKiloInNewTab(
   context: vscode.ExtensionContext,
   connectionService: KiloConnectionService,
   agentManagerProvider: AgentManagerProvider,
+  tabPanels: Map<vscode.WebviewPanel, KiloProvider>,
 ) {
   const lastCol = Math.max(...vscode.window.visibleTextEditors.map((e) => e.viewColumn || 0), 0)
   const hasVisibleEditors = vscode.window.visibleTextEditors.length > 0
@@ -356,6 +372,7 @@ async function openKiloInNewTab(
     agentManagerProvider.continueFromSidebar(sessionId, progress),
   )
   tabProvider.resolveWebviewPanel(panel)
+  tabPanels.set(panel, tabProvider)
 
   // Wait for the new panel to become active before locking the editor group.
   // This avoids the race where VS Code hasn't switched focus yet.
@@ -365,6 +382,7 @@ async function openKiloInNewTab(
   panel.onDidDispose(
     () => {
       console.log("[Kilo New] Tab panel disposed")
+      tabPanels.delete(panel)
       tabProvider.dispose()
     },
     null,

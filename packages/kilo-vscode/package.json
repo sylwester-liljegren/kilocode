@@ -373,6 +373,36 @@
           "command": "kilo-code.new.openInTab",
           "group": "navigation",
           "when": "true"
+        },
+        {
+          "command": "kilo-code.new.plusButtonClicked",
+          "group": "navigation@0",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
+        },
+        {
+          "command": "kilo-code.new.historyButtonClicked",
+          "group": "navigation@1",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
+        },
+        {
+          "command": "kilo-code.new.agentManagerOpen",
+          "group": "navigation@2",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
+        },
+        {
+          "command": "kilo-code.new.marketplaceButtonClicked",
+          "group": "navigation@3",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
+        },
+        {
+          "command": "kilo-code.new.profileButtonClicked",
+          "group": "navigation@4",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
+        },
+        {
+          "command": "kilo-code.new.settingsButtonClicked",
+          "group": "navigation@5",
+          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
         }
       ],
       "editor/context": [

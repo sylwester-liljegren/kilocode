@@ -1314,14 +1314,17 @@ export const dict = {
   "settings.agentBehaviour.createMode.description.help": "Bu modun ne yaptığının kısa açıklaması.",
   "settings.agentBehaviour.createMode.description.placeholder": "e.g. Reviews code for quality and best practices",
   "settings.agentBehaviour.createMode.name": "Ad",
-  "settings.agentBehaviour.createMode.name.description": "Mod için benzersiz tanımlayıcı. Yalnızca küçük harf, rakam ve tire kullanın.",
+  "settings.agentBehaviour.createMode.name.description":
+    "Mod için benzersiz tanımlayıcı. Yalnızca küçük harf, rakam ve tire kullanın.",
   "settings.agentBehaviour.createMode.name.placeholder": "e.g. reviewer",
-  "settings.agentBehaviour.createMode.nameInvalid": "Ad küçük harfle başlamalı ve yalnızca küçük harf, rakam ve tire içermelidir",
+  "settings.agentBehaviour.createMode.nameInvalid":
+    "Ad küçük harfle başlamalı ve yalnızca küçük harf, rakam ve tire içermelidir",
   "settings.agentBehaviour.createMode.nameRequired": "Ad gereklidir",
   "settings.agentBehaviour.createMode.nameTaken": "Bu adda bir mod zaten mevcut",
   "settings.agentBehaviour.createMode.prompt": "Sistem İstemi",
   "settings.agentBehaviour.createMode.prompt.help": "Bu modu kullanırken yapay zeka ajanı için talimatlar.",
-  "settings.agentBehaviour.createMode.prompt.placeholder": "e.g. You are a code reviewer. Focus on code quality, best practices, and potential bugs.",
+  "settings.agentBehaviour.createMode.prompt.placeholder":
+    "e.g. You are a code reviewer. Focus on code quality, best practices, and potential bugs.",
   "settings.agentBehaviour.editMode": "Modu Düzenle",
   "settings.agentBehaviour.editMode.back": "Listeye dön",
   "settings.agentBehaviour.editMode.description": "Açıklama",

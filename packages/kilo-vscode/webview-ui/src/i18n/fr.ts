@@ -13,7 +13,7 @@ export const dict = {
   "command.category.model": "Modèle",
   "command.category.mcp": "MCP",
   "command.category.agent": "Agent",
-  "command.category.permissions": "Permissions",
+  "command.category.permissions": "Autorisations",
   "command.category.workspace": "Espace de travail",
 
   "command.category.settings": "Paramètres",
@@ -79,11 +79,11 @@ export const dict = {
   "command.session.undo.description": "Annuler le dernier message",
   "command.session.redo": "Rétablir",
   "command.session.redo.description": "Rétablir le dernier message annulé",
-  "revert.banner.count_one": "{{count}} message reverted",
-  "revert.banner.count_other": "{{count}} messages reverted",
-  "revert.banner.redo": "Redo",
-  "revert.banner.redo.all": "Redo All",
-  "revert.banner.hint": "Send a new message to make this permanent",
+  "revert.banner.count_one": "{{count}} message annulé",
+  "revert.banner.count_other": "{{count}} messages annulés",
+  "revert.banner.redo": "Rétablir",
+  "revert.banner.redo.all": "Tout rétablir",
+  "revert.banner.hint": "Envoyez un nouveau message pour rendre ceci permanent",
   "revert.disabled.agentBusy": "Attendre la fin de l'agent",
   "command.session.compact": "Compacter la session",
   "command.session.compact.description": "Résumer la session pour réduire la taille du contexte",
@@ -692,7 +692,7 @@ export const dict = {
   "settings.general.notifications.agent.title": "Agent",
   "settings.general.notifications.agent.description":
     "Afficher une notification système lorsque l'agent a terminé ou nécessite une attention",
-  "settings.general.notifications.permissions.title": "Permissions",
+  "settings.general.notifications.permissions.title": "Autorisations",
   "settings.general.notifications.permissions.description":
     "Afficher une notification système lorsqu'une permission est requise",
   "settings.general.notifications.errors.title": "Erreurs",
@@ -700,7 +700,7 @@ export const dict = {
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Jouer un son lorsque l'agent a terminé ou nécessite une attention",
-  "settings.general.sounds.permissions.title": "Permissions",
+  "settings.general.sounds.permissions.title": "Autorisations",
   "settings.general.sounds.permissions.description": "Jouer un son lorsqu'une permission est requise",
   "settings.general.sounds.errors.title": "Erreurs",
   "settings.general.sounds.errors.description": "Jouer un son lorsqu'une erreur se produit",
@@ -721,7 +721,7 @@ export const dict = {
   "settings.shortcuts.group.navigation": "Navigation",
   "settings.shortcuts.group.modelAndAgent": "Modèle et agent",
   "settings.shortcuts.group.terminal": "Terminal",
-  "settings.shortcuts.group.prompt": "Prompt",
+  "settings.shortcuts.group.prompt": "Invite",
 
   "settings.providers.title": "Fournisseurs",
   "settings.providers.description": "Les paramètres des fournisseurs seront configurables ici.",
@@ -805,7 +805,7 @@ export const dict = {
   "settings.mcp.title": "MCP",
   "settings.mcp.description": "Les paramètres MCP seront configurables ici.",
 
-  "settings.permissions.title": "Permissions",
+  "settings.permissions.title": "Autorisations",
   "settings.permissions.description": "Contrôlez les outils que le serveur peut utiliser par défaut.",
   "settings.permissions.section.tools": "Outils",
   "settings.permissions.toast.updateFailed.title": "Échec de la mise à jour des permissions",
@@ -1281,7 +1281,7 @@ export const dict = {
     "Les appels d'outils en parallèle et les sous-agents permettent à votre agent de traiter plus de tâches simultanément — vous passez moins de temps à attendre et plus de temps à livrer.",
   "migration.whatsNew.features.interface.title": "Interface simplifiée",
   "migration.whatsNew.features.interface.detail": "Moins de distractions, plus facile et plus rapide à lire.",
-  "migration.whatsNew.features.agentManager.title": "Agent Manager",
+  "migration.whatsNew.features.agentManager.title": "Gestionnaire d'agents",
   "migration.whatsNew.features.agentManager.detail":
     "Une interface unifiée pour exécuter plusieurs agents en parallèle, chacun sur son propre arbre de travail — surveillez la progression, changez de contexte et examinez les modifications depuis un seul endroit.",
   "migration.whatsNew.features.foundation.title": "Base partagée",

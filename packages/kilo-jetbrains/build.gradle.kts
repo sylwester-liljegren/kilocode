@@ -51,4 +51,10 @@ intellijPlatform {
     }
 }
 
+tasks.named<JavaExec>("runIde") {
+    jvmArgumentProviders += CommandLineArgumentProvider {
+        listOf("-Dnosplash=true")
+    }
+}
+
 

@@ -2,7 +2,7 @@
 build/
 .intellijPlatform/
 .ai/
-.kilo/
+**/.kilo
 .classpath
 .project
 .settings/

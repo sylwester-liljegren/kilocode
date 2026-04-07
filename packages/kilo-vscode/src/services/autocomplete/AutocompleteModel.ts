@@ -4,7 +4,7 @@ import type { KiloConnectionService } from "../cli-backend"
 const DEFAULT_MODEL = "mistralai/codestral-2508"
 
 const MODEL_PROVIDERS: Record<string, string> = {
-  "mistralai/codestral-2508": "Kilo Gateway",
+  "mistralai/codestral-2508": "Mistral AI",
   "inception/mercury-edit": "Inception",
 }
 

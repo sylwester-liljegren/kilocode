@@ -31,8 +31,6 @@ If you want to skip per-command approvals entirely, you can set the security pol
 Enabling **Allow Everything** removes all exec safety checks. Only use this in trusted environments where you are comfortable with your agent running arbitrary commands.
 {% /callout %}
 
-<!-- TODO: Replace this placeholder image with an actual screenshot of the Allow Everything setting in the KiloClaw Settings dashboard -->
-
 {% image src="/docs/img/kiloclaw/allow-everything-settings.png" alt="Allow Everything setting in KiloClaw Settings Dashboard" width="800" caption="The Allow Everything toggle in KiloClaw Settings" /%}
 
 ## Ask Behavior

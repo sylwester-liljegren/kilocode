@@ -30,7 +30,6 @@ import { Installation } from "@/installation"
 import { ConfigMarkdown } from "./markdown"
 import { constants, existsSync } from "fs"
 import { Bus } from "@/bus"
-import { BusEvent } from "@/bus/bus-event" // kilocode_change
 import { GlobalBus } from "@/bus/global"
 import { Event } from "../server/event"
 import { Glob } from "../util/glob"
@@ -471,10 +470,6 @@ export namespace Config {
   }
 
   // kilocode_change start
-  // Local event definition that matches Session.Event.Error's type string.
-  // Avoids importing @/session during config init (which causes a circular dependency).
-  const SessionError = BusEvent.define("session.error", z.object({ error: z.any() }))
-
   function detail(issues: z.core.$ZodIssue[]) {
     return issues
       .map((issue) => {
@@ -488,13 +483,12 @@ export namespace Config {
   async function invalid(kind: "agent" | "command", item: string, issues: z.core.$ZodIssue[], cause: Error) {
     const text = detail(issues)
     const message = text ? `Config file at ${item} is invalid: ${text}` : `Config file at ${item} is invalid`
-    Bus.publish(SessionError, { error: new NamedError.Unknown({ message }).toObject() })
     const err = new InvalidError({ path: item, issues }, { cause })
     if (kind === "command") {
-      log.error("failed to load command", { command: item, err })
+      log.error("failed to load command", { command: item, err, message })
       return
     }
-    log.error("failed to load agent", { agent: item, err })
+    log.error("failed to load agent", { agent: item, err, message })
   }
   // kilocode_change end
 

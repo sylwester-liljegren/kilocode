@@ -395,12 +395,11 @@ export namespace ProviderTransform {
     if (
       id.includes("deepseek") ||
       id.includes("minimax") ||
-      id.includes("glm") || // kilocode_change
+      // id.includes("glm") || // kilocode_change
       id.includes("mistral") ||
-      id.includes("kimi") || // kilocode_change
+      // id.includes("kimi") || // kilocode_change
       // TODO: Remove this after models.dev data is fixed to use "kimi-k2.5" instead of "k2p5"
-      id.includes("k2p5") ||
-      id.includes("qwen") // kilocode_change
+      id.includes("k2p5")
     )
       return {}
 

@@ -1375,5 +1375,15 @@ export const dict = {
     "Bu yerleşik bir moddur. Temel tanımı değiştirilemez, ancak aşağıdan geçersiz kılmaları yapılandırabilirsiniz.",
   "settings.agentBehaviour.editMode.prompt": "Sistem İstemi",
   "settings.agentBehaviour.editMode.promptOverride": "Bu yerleşik mod için özel sistem istemi geçersiz kılma",
+  "settings.agentBehaviour.badge.subagent": "alt ajan",
+  "settings.agentBehaviour.permissions.title": "Hesaplanan İzinler",
+  "settings.agentBehaviour.permissions.count": "{{count}} kural",
+  "settings.agentBehaviour.permissions.effective": "Geçerli (joker karakter):",
+  "settings.agentBehaviour.permissions.col.tool": "Araç",
+  "settings.agentBehaviour.permissions.col.pattern": "Desen",
+  "settings.agentBehaviour.permissions.col.action": "Eylem",
+  "settings.agentBehaviour.permissions.copy": "İzinleri JSON olarak kopyala",
+  "settings.agentBehaviour.permissions.hint":
+    "Kurallar sırayla değerlendirilir — son eşleşen kural kazanır. Bu, CLI arka ucundan çözümlenen kural kümesidir.",
   "settings.agentBehaviour.editMode.save": "Tamam",
 }

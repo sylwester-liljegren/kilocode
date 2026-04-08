@@ -90,11 +90,25 @@ import {
   saveCustomProvider as saveCustomProviderAction,
 } from "./provider-actions"
 import { fetchOpenAIModels, FetchModelsError } from "./shared/fetch-models"
+import type { Agent } from "@kilocode/sdk/v2/client"
 
 type KiloProviderOptions = {
   projectDirectory?: string | null
   slimEditMetadata?: boolean
 }
+
+// Helper to map agent data to the subset of fields sent to the webview
+const mapAgent = (a: Agent) => ({
+  name: a.name,
+  displayName: a.displayName,
+  description: a.description,
+  mode: a.mode,
+  native: a.native,
+  hidden: a.hidden,
+  color: a.color,
+  deprecated: a.deprecated,
+  permission: a.permission,
+})
 
 export class KiloProvider implements vscode.WebviewViewProvider, TelemetryPropertiesProvider {
   public static readonly viewType = "kilo-code.SidebarProvider"
@@ -1621,15 +1635,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
 
       const message = {
         type: "agentsLoaded",
-        agents: visible.map((a) => ({
-          name: a.name,
-          displayName: a.displayName,
-          description: a.description,
-          mode: a.mode,
-          native: a.native,
-          color: a.color,
-          deprecated: a.deprecated,
-        })),
+        agents: visible.map(mapAgent),
+        allAgents: agents.map(mapAgent),
         defaultAgent,
       }
       this.cachedAgentsMessage = message

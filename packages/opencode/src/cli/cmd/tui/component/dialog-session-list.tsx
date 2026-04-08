@@ -2,7 +2,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
-import { createMemo, createSignal, createResource, onMount } from "solid-js"
+import { createMemo, createSignal, createResource, onMount } from "solid-js" // kilocode_change
 import { Locale } from "@/util/locale"
 import { useKeybind } from "../context/keybind"
 import { useTheme } from "../context/theme"
@@ -108,9 +108,11 @@ export function DialogSessionList() {
           title: "delete",
           onTrigger: async (option) => {
             if (toDelete() === option.value) {
+              // kilocode_change start
               await sdk.client.session.delete({
                 sessionID: option.value,
               })
+              // kilocode_change end
               setToDelete(undefined)
               void searchActions.refetch() // kilocode_change
               return
@@ -120,7 +122,8 @@ export function DialogSessionList() {
         },
         {
           keybind: keybind.all.session_rename?.[0],
-          title: "rename",
+          title: "rename", // kilocode_change
+          // kilocode_change start
           onTrigger: async (option) => {
             const item = sessions().find((x) => x.id === option.value)
             dialog.replace(() => (
@@ -128,13 +131,12 @@ export function DialogSessionList() {
                 session={option.value}
                 title={item?.title}
                 onConfirm={() => {
-                  void searchActions.refetch() // kilocode_change
+                  void searchActions.refetch()
                 }}
               />
             ))
           },
         },
-        // kilocode_change start
         {
           keybind: { name: "a", ctrl: true, meta: false, shift: false, leader: false },
           title: global() ? "current" : "all",

@@ -1,3 +1,4 @@
+// kilocode_change - new file
 import { $ } from "bun"
 import { afterEach, describe, expect, mock, test } from "bun:test"
 import path from "path"

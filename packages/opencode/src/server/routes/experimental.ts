@@ -329,13 +329,14 @@ export const ExperimentalRoutes = lazy(() =>
       validator(
         "query",
         z.object({
-          // kilocode_change
+          // kilocode_change start
           projectID: z.string().optional().meta({ description: "Filter sessions by project ID" }),
           directory: z.string().optional().meta({ description: "Filter sessions by project directory" }),
           worktrees: z.coerce
             .boolean()
             .optional()
             .meta({ description: "Restrict sessions to the current repo worktree family or current directory" }),
+          // kilocode_change end
           roots: z.coerce.boolean().optional().meta({ description: "Only return root sessions (no parentID)" }),
           start: z.coerce
             .number()
@@ -352,11 +353,10 @@ export const ExperimentalRoutes = lazy(() =>
       ),
       async (c) => {
         const query = c.req.valid("query")
-        const limit = query.limit ?? 100
-        const projectID =
-          query.worktrees && !query.projectID
-            ? Instance.project.id // kilocode_change
-            : query.projectID
+        const limit = query.limit ?? 100 // kilocode_change
+        // kilocode_change start
+        const projectID = query.worktrees && !query.projectID ? Instance.project.id : query.projectID
+        // kilocode_change end
         const directories = query.worktrees ? await WorktreeFamily.list() : undefined // kilocode_change
         // kilocode_change start - sort longest-first so most specific worktree matches first
         const sorted = directories ? [...directories].sort((a, b) => b.length - a.length) : undefined

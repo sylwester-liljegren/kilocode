@@ -641,6 +641,7 @@ export namespace Session {
     }
   }
 
+  // kilocode_change start
   export function* listGlobal(input?: {
     projectID?: string
     directory?: string
@@ -652,7 +653,7 @@ export namespace Session {
     limit?: number
     archived?: boolean
   }) {
-    const conditions: SQL[] = []
+    const conditions: SQL[] = [] // kilocode_change
 
     // kilocode_change start
     if (input?.projectID) {
@@ -686,7 +687,8 @@ export namespace Session {
       conditions.push(isNull(SessionTable.time_archived))
     }
 
-    const limit = input?.limit ?? 100
+    const limit = input?.limit ?? 100 // kilocode_change
+    // kilocode_change start
     const dirs = [...new Set((input?.directories ?? []).map((dir) => Filesystem.resolve(dir)))]
 
     const rows = Database.use((db) => {
@@ -728,11 +730,14 @@ export namespace Session {
         })
       }
     }
+    // kilocode_change end
 
+    // kilocode_change start
     for (const row of list.slice(0, limit)) {
       const project = projects.get(row.project_id) ?? null
       yield { ...fromRow(row), project }
     }
+    // kilocode_change end
   }
 
   export const children = fn(Identifier.schema("session"), async (parentID) => {

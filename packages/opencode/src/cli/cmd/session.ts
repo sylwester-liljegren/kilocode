@@ -73,6 +73,7 @@ export const SessionListCommand = cmd({
   command: "list",
   describe: "list sessions",
   builder: (yargs: Argv) => {
+    // kilocode_change start
     return (
       yargs
         .option("max-count", {
@@ -86,6 +87,7 @@ export const SessionListCommand = cmd({
           choices: ["table", "json"],
           default: "table",
         })
+        // kilocode_change end
         // kilocode_change start
         .option("all", {
           alias: "a",
@@ -101,27 +103,29 @@ export const SessionListCommand = cmd({
     )
     // kilocode_change end
   },
+  // kilocode_change start
   handler: async (args) => {
     await bootstrap(process.cwd(), async () => {
+      // kilocode_change end
       // kilocode_change start
       const sessions = args.all
         ? [...Session.listGlobal({ roots: true, limit: args.maxCount, search: args.search })]
         : [...Session.list({ roots: true, limit: args.maxCount, search: args.search })]
       // kilocode_change end
 
+      // kilocode_change start
       if (sessions.length === 0) {
         return
       }
+      // kilocode_change end
 
+      // kilocode_change start
       let output: string
       if (args.format === "json") {
-        // kilocode_change start
         output = args.all
           ? formatGlobalSessionJSON(sessions as Session.GlobalInfo[])
           : formatSessionJSON(sessions as Session.Info[])
-        // kilocode_change end
       } else {
-        // kilocode_change start
         output = args.all
           ? formatGlobalSessionTable(sessions as Session.GlobalInfo[])
           : formatSessionTable(sessions as Session.Info[])
@@ -178,10 +182,10 @@ function formatSessionJSON(sessions: Session.Info[]): string {
     updated: session.time.updated,
     created: session.time.created,
     projectId: session.projectID,
-    directory: session.directory,
-  }))
-  return JSON.stringify(jsonData, null, 2)
-}
+    directory: session.directory, // kilocode_change
+  })) // kilocode_change
+  return JSON.stringify(jsonData, null, 2) // kilocode_change
+} // kilocode_change
 
 // kilocode_change start
 function formatGlobalSessionTable(sessions: Session.GlobalInfo[]): string {

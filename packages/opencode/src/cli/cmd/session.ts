@@ -175,6 +175,7 @@ function formatSessionTable(sessions: Session.Info[]): string {
   return lines.join(EOL)
 }
 
+// kilocode_change start
 function formatSessionJSON(sessions: Session.Info[]): string {
   const jsonData = sessions.map((session) => ({
     id: session.id,
@@ -182,10 +183,11 @@ function formatSessionJSON(sessions: Session.Info[]): string {
     updated: session.time.updated,
     created: session.time.created,
     projectId: session.projectID,
-    directory: session.directory, // kilocode_change
-  })) // kilocode_change
-  return JSON.stringify(jsonData, null, 2) // kilocode_change
-} // kilocode_change
+    directory: session.directory,
+  }))
+  return JSON.stringify(jsonData, null, 2)
+}
+// kilocode_change end
 
 // kilocode_change start
 function formatGlobalSessionTable(sessions: Session.GlobalInfo[]): string {

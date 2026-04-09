@@ -147,6 +147,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private cachedNotificationsMessage: unknown = null
   private pendingReviewComments: { comments: unknown[]; autoSend: boolean }[] = []
   private readyResolvers: (() => void)[] = []
+  private promptRecoveryQueued = false
+  private promptRecovery: Promise<void> | null = null
   private trackedSessionIds: Set<string> = new Set()
   private syncedChildSessions: Set<string> = new Set()
   /** Tracks the latest status for each session, used to warn before destructive config operations. */
@@ -463,6 +465,30 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     void this.handleLoadSessions()
   }
 
+  /** Recover permission/question prompts after sessions and directories are tracked. */
+  public recoverPendingPrompts(): void {
+    this.promptRecoveryQueued = true
+    if (!this.isWebviewReady) return
+    if (!this.client) return
+    if (this.promptRecovery) return
+
+    this.promptRecovery = this.flushPendingPrompts().finally(() => {
+      this.promptRecovery = null
+      if (this.promptRecoveryQueued && this.isWebviewReady && this.client) this.recoverPendingPrompts()
+    })
+  }
+
+  private async flushPendingPrompts(): Promise<void> {
+    while (this.promptRecoveryQueued && this.isWebviewReady) {
+      if (!this.client) return
+      this.promptRecoveryQueued = false
+      await Promise.all([
+        fetchAndSendPendingPermissions(this.permissionCtx),
+        fetchAndSendPendingQuestions(this.questionCtx),
+      ])
+    }
+  }
+
   public openCloudSession(sessionId: string): void {
     this.postMessage({ type: "openCloudSession", sessionId })
   }
@@ -518,6 +544,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
           this.isWebviewReady = true
           await this.syncWebviewState("webviewReady")
           this.flushPendingReviewComments()
+          this.recoverPendingPrompts()
           this.readyResolvers.splice(0).forEach((r) => r())
           break
         case "sendMessage": {
@@ -1122,8 +1149,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             }
             await this.syncWebviewState("sse-connected")
             await this.flushPendingSessionRefresh("sse-connected")
-            await fetchAndSendPendingPermissions(this.permissionCtx)
-            await fetchAndSendPendingQuestions(this.questionCtx)
+            this.recoverPendingPrompts()
           } catch (error) {
             console.error("[Kilo New] KiloProvider: ❌ Failed during connected state handling:", error)
             this.postMessage({
@@ -1198,6 +1224,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
 
       await this.syncWebviewState("initializeConnection")
       await this.flushPendingSessionRefresh("initializeConnection")
+      this.recoverPendingPrompts()
 
       // Fetch providers, agents, skills, config, notifications, and session statuses in parallel
       await Promise.all([
@@ -1362,9 +1389,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         messages,
       })
 
-      // Recover any permission.asked events that were missed while the webview
-      // was loading or during an SSE reconnection (fire-and-forget).
-      void fetchAndSendPendingPermissions(this.permissionCtx)
+      // Recover any prompts missed while the webview was loading or during an SSE reconnection.
+      this.recoverPendingPrompts()
     } catch (error) {
       // Silently ignore aborted requests — the user switched to a different session
       if (abort.signal.aborted) return
@@ -1421,11 +1447,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         messages,
       })
 
-      // Recover any missed permission/question prompts emitted by the child before
-      // we started tracking it.  Both run fire-and-forget after messagesLoaded so
-      // the webview isn't blocked.
-      void fetchAndSendPendingPermissions(this.permissionCtx)
-      void fetchAndSendPendingQuestions(this.questionCtx)
+      // Recover any prompts emitted by the child before we started tracking it.
+      this.recoverPendingPrompts()
     } catch (err) {
       this.syncedChildSessions.delete(sessionID)
       console.error("[Kilo New] KiloProvider: Failed to sync child session:", err)
@@ -3287,6 +3310,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.viewStateDisposable?.dispose()
     this.visibilityDisposable?.dispose()
     this.webviewMessageDisposable?.dispose()
+    this.isWebviewReady = false
+    this.promptRecoveryQueued = false
     this.trackedSessionIds.clear()
     this.syncedChildSessions.clear()
     this.sessionDirectories.clear()

@@ -30,6 +30,7 @@ import { LspTool } from "./lsp"
 import { Truncate } from "./truncation"
 
 import { ApplyPatchTool } from "./apply_patch"
+import { RecallTool } from "./recall" // kilocode_change
 import { Glob } from "../util/glob"
 import { pathToFileURL } from "url"
 
@@ -121,6 +122,7 @@ export namespace ToolRegistry {
       CodeSearchTool,
       ...(config.experimental?.codebase_search === true ? [CodebaseSearchTool] : []), // kilocode_change
       SkillTool,
+      RecallTool, // kilocode_change
       ApplyPatchTool,
       ...(Flag.KILO_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
@@ -155,7 +157,7 @@ export namespace ToolRegistry {
           const usePatch =
             model.modelID.includes("gpt-") && !model.modelID.includes("oss") && !model.modelID.includes("gpt-4")
           if (t.id === "apply_patch") return usePatch
-          if (t.id === "edit" || t.id === "write") return !usePatch
+          if (t.id === "edit") return !usePatch
 
           return true
         })

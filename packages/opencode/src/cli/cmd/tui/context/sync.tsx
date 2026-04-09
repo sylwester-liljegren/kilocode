@@ -412,6 +412,15 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           setStore("vcs", { branch: event.properties.branch })
           break
         }
+
+        // kilocode_change start
+        case "global.config.updated": {
+          sdk.client.config.get().then((x) => {
+            if (x.data) setStore("config", reconcile(x.data))
+          })
+          break
+        }
+        // kilocode_change end
       }
     })
 

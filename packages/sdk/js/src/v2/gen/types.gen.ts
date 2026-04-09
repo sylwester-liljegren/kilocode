@@ -1846,6 +1846,7 @@ export type GlobalSession = {
     diff?: string
   }
   project: ProjectSummary | null
+  worktreeName?: string
 }
 
 export type McpResource = {
@@ -2932,6 +2933,14 @@ export type ExperimentalSessionListData = {
      */
     directory?: string
     workspace?: string
+    /**
+     * Filter sessions by project ID
+     */
+    projectID?: string
+    /**
+     * Restrict sessions to the current repo worktree family or current directory
+     */
+    worktrees?: boolean
     /**
      * Only return root sessions (no parentID)
      */
@@ -4161,6 +4170,43 @@ export type PermissionListResponses = {
 }
 
 export type PermissionListResponse = PermissionListResponses[keyof PermissionListResponses]
+
+export type PermissionAllowEverythingData = {
+  body?: {
+    enable: boolean
+    requestID?: string
+    sessionID?: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/permission/allow-everything"
+}
+
+export type PermissionAllowEverythingErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type PermissionAllowEverythingError = PermissionAllowEverythingErrors[keyof PermissionAllowEverythingErrors]
+
+export type PermissionAllowEverythingResponses = {
+  /**
+   * Success
+   */
+  200: boolean
+}
+
+export type PermissionAllowEverythingResponse =
+  PermissionAllowEverythingResponses[keyof PermissionAllowEverythingResponses]
 
 export type QuestionListData = {
   body?: never

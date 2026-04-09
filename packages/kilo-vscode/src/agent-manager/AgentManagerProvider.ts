@@ -6,6 +6,7 @@ import { getErrorMessage } from "../kilo-provider-utils"
 import { isAbsolutePath } from "../path-utils"
 import { WorktreeManager, type CreateWorktreeResult } from "./WorktreeManager"
 import { WorktreeStateManager, remoteRef } from "./WorktreeStateManager"
+import { handleSection } from "./section-handler"
 import { chooseBaseBranch, normalizeBaseBranch } from "./base-branch"
 import { GitStatsPoller, type WorktreePresenceResult } from "./GitStatsPoller"
 import { PRStatusBridge } from "./pr-status-bridge"
@@ -341,6 +342,7 @@ export class AgentManagerProvider implements Disposable {
       this.state?.setSessionsCollapsed(m.collapsed)
       return null
     }
+    if (this.handleSection(m)) return null
     if (m.type === "agentManager.setReviewDiffStyle") {
       this.state?.setReviewDiffStyle(m.style)
       return null
@@ -1488,6 +1490,7 @@ export class AgentManagerProvider implements Disposable {
       type: "agentManager.state",
       worktrees,
       sessions: state.getSessions(),
+      sections: state.getSections(),
       staleWorktreeIds,
       tabOrder: state.getTabOrder(),
       worktreeOrder: state.getWorktreeOrder(),
@@ -1909,6 +1912,10 @@ export class AgentManagerProvider implements Disposable {
       sessionId,
       progress,
     )
+  }
+
+  private handleSection(m: AgentManagerInMessage): boolean {
+    return handleSection(this.state, m, () => this.pushState())
   }
 
   public postMessage(message: unknown): void {

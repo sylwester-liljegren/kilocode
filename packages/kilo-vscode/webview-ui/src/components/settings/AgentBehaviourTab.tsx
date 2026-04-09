@@ -82,7 +82,12 @@ const AgentBehaviourTab: Component = () => {
   })
 
   const agentNames = createMemo(() => {
-    const names = session.agents().map((a) => a.name)
+    // Exclude server-side hidden internal modes (compaction, title, summary)
+    // from the list. Config-only agents are still added below.
+    const names = session
+      .allAgents()
+      .filter((a) => !a.hidden)
+      .map((a) => a.name)
     // Also include any agents from config that might not be in the agent list
     const agents = Object.keys(config().agent ?? {})
     for (const name of agents) {
@@ -93,10 +98,15 @@ const AgentBehaviourTab: Component = () => {
     return names.sort()
   })
 
-  const defaultAgentOptions = createMemo<SelectOption[]>(() => [
-    { value: "", label: language.t("common.default") },
-    ...agentNames().map((name) => ({ value: name, label: name })),
-  ])
+  // Default-agent picker must only show visible primary agents (not subagents
+  // or hidden modes) since the CLI rejects those as default_agent values.
+  const defaultAgentOptions = createMemo<SelectOption[]>(() => {
+    const visible = session.agents().map((a) => a.name)
+    return [
+      { value: "", label: language.t("common.default") },
+      ...visible.map((name) => ({ value: name, label: name })),
+    ]
+  })
 
   const instructions = () => config().instructions ?? []
 
@@ -185,7 +195,7 @@ const AgentBehaviourTab: Component = () => {
     ))
   }
 
-  const removableModes = createMemo(() => session.agents().filter((a) => !a.native))
+  const removableModes = createMemo(() => session.allAgents().filter((a) => !a.native))
 
   const confirmRemoveMode = (agent: AgentInfo) => {
     dialog.show(() => (
@@ -354,7 +364,7 @@ const AgentBehaviourTab: Component = () => {
           <Card style={{ "margin-bottom": "12px" }}>
             <For each={agentNames()}>
               {(name, index) => {
-                const agent = () => session.agents().find((a) => a.name === name)
+                const agent = () => session.allAgents().find((a) => a.name === name)
                 const isCustom = () => !agent()?.native
                 const agentCfg = () => config().agent?.[name] ?? {}
                 const disabled = () => agentCfg().disable ?? false
@@ -394,6 +404,19 @@ const AgentBehaviourTab: Component = () => {
                             }}
                           >
                             custom
+                          </span>
+                        </Show>
+                        <Show when={agent()?.mode === "subagent"}>
+                          <span
+                            style={{
+                              "font-size": "10px",
+                              padding: "1px 5px",
+                              "border-radius": "3px",
+                              background: "var(--bg-subtle-base, var(--vscode-badge-background))",
+                              color: "var(--text-weak-base, var(--vscode-badge-foreground))",
+                            }}
+                          >
+                            {language.t("settings.agentBehaviour.badge.subagent")}
                           </span>
                         </Show>
                         <Show when={hidden()}>

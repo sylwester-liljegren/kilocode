@@ -9,12 +9,14 @@
  *   bun run script/check-opencode-annotations.ts --base <ref>     # diff against <ref>
  *
  * A line is "covered" if it:
- *   - contains // kilocode_change                        (inline annotation)
- *   - falls inside a // kilocode_change start/end block  (block annotation)
- *   - is in a file whose first non-empty line is         (whole-file annotation)
+ *   - contains a kilocode_change marker comment           (inline annotation)
+ *   - falls inside a kilocode_change start/end block      (block annotation)
+ *   - is in a file whose first non-empty line is          (whole-file annotation)
  *     // kilocode_change - new file
- *   - is empty / whitespace-only                         (skipped)
- *   - is itself a marker line                            (auto-covered)
+ *   - is empty / whitespace-only                          (skipped)
+ *   - is itself a marker line                             (auto-covered)
+ *
+ * Both JS (//) and JSX ({/ * ... * /}) comment styles are recognized.
  *
  * Exempt paths (no markers needed — entirely Kilo-specific):
  *   - packages/opencode/src/kilocode/**
@@ -35,6 +37,11 @@ const base = baseIdx !== -1 ? args[baseIdx + 1] : "origin/main"
 
 function run(cmd: string, args: string[]) {
   const result = spawnSync(cmd, args, { cwd: ROOT, encoding: "utf8" })
+  if (result.status !== 0) {
+    const msg = result.stderr?.trim() || result.stdout?.trim() || "unknown error"
+    console.error(`Command failed: ${cmd} ${args.join(" ")}\n${msg}`)
+    process.exit(1)
+  }
   return result.stdout?.trim() ?? ""
 }
 
@@ -65,13 +72,20 @@ function addedLines(file: string): Set<number> {
   return out
 }
 
+// Matches the start of a kilocode_change marker in both JS (//) and JSX ({/* */}) comments
+const MARKER_PREFIX = /(?:\/\/|\{?\s*\/\*)\s*kilocode_change\b/
+
+function hasMarker(line: string) {
+  return MARKER_PREFIX.test(line)
+}
+
 function coveredLines(text: string): { lines: string[]; covered: Set<number> } {
   const lines = text.split(/\r?\n/)
   const covered = new Set<number>()
 
   // Whole-file annotation: first non-empty line is "// kilocode_change - new file"
   const first = lines.find((x) => x.trim() !== "")
-  if (first?.match(/\/\/\s*kilocode_change\s*-\s*new\s*file\b/)) {
+  if (first?.match(/(?:\/\/|\{?\s*\/\*)\s*kilocode_change\s*-\s*new\s*file\b/)) {
     for (let i = 1; i <= lines.length; i++) covered.add(i)
     return { lines, covered }
   }
@@ -81,13 +95,13 @@ function coveredLines(text: string): { lines: string[]; covered: Set<number> } {
     const n = i + 1
     const line = lines[i] ?? ""
 
-    if (line.match(/\/\/\s*kilocode_change\s+start\b/)) {
+    if (line.match(/(?:\/\/|\{?\s*\/\*)\s*kilocode_change\s+start\b/)) {
       block = true
       covered.add(n)
       continue
     }
 
-    if (line.match(/\/\/\s*kilocode_change\s+end\b/)) {
+    if (line.match(/(?:\/\/|\{?\s*\/\*)\s*kilocode_change\s+end\b/)) {
       covered.add(n)
       block = false
       continue
@@ -98,7 +112,7 @@ function coveredLines(text: string): { lines: string[]; covered: Set<number> } {
       continue
     }
 
-    if (line.match(/\/\/\s*kilocode_change\b/)) covered.add(n)
+    if (hasMarker(line)) covered.add(n)
   }
 
   return { lines, covered }
@@ -127,7 +141,7 @@ for (const file of files) {
     const line = lines[n - 1] ?? ""
     const trim = line.trim()
     if (!trim) continue
-    if (trim.match(/\/\/\s*kilocode_change\b/)) continue
+    if (hasMarker(trim)) continue
     if (!covered.has(n)) violations.push(`  ${file}:${n}: ${trim}`)
   }
 }
@@ -152,6 +166,12 @@ console.error(
     "  // kilocode_change start",
     "  ...",
     "  // kilocode_change end",
+    "",
+    "JSX/TSX (inside JSX templates):",
+    "  {/* kilocode_change */}",
+    "  {/* kilocode_change start */}",
+    "  ...",
+    "  {/* kilocode_change end */}",
     "",
     "New file:",
     "  // kilocode_change - new file",

@@ -55,7 +55,8 @@ function isUpstreamMerge() {
   return out.split("\n").some((line) => {
     const [parents = "", subject = ""] = line.split("\t")
     if (!parents.includes(" ")) return false
-    return subject.startsWith("merge: upstream ") || subject.startsWith("Resolve merge conflict")
+    const s = subject.toLowerCase()
+    return s.startsWith("merge: upstream ") || s.startsWith("resolve merge conflict")
   })
 }
 

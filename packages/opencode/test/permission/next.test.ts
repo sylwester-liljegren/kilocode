@@ -1,8 +1,10 @@
 import { test, expect } from "bun:test"
 import os from "os"
 import { PermissionNext } from "../../src/permission/next"
+import { PermissionID } from "../../src/permission/schema"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
+import { SessionID } from "../../src/session/schema"
 
 // fromConfig tests
 
@@ -462,7 +464,7 @@ test("ask - resolves immediately when action is allow", async () => {
     directory: tmp.path,
     fn: async () => {
       const result = await PermissionNext.ask({
-        sessionID: "session_test",
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -481,7 +483,7 @@ test("ask - throws RejectedError when action is deny", async () => {
     fn: async () => {
       await expect(
         PermissionNext.ask({
-          sessionID: "session_test",
+          sessionID: SessionID.make("session_test"),
           permission: "bash",
           patterns: ["rm -rf /"],
           metadata: {},
@@ -499,7 +501,7 @@ test("ask - returns pending promise when action is ask", async () => {
     directory: tmp.path,
     fn: async () => {
       const promise = PermissionNext.ask({
-        sessionID: "session_test",
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -521,8 +523,8 @@ test("reply - once resolves the pending ask", async () => {
     directory: tmp.path,
     fn: async () => {
       const askPromise = PermissionNext.ask({
-        id: "permission_test1",
-        sessionID: "session_test",
+        id: PermissionID.make("per_test1"),
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -531,7 +533,7 @@ test("reply - once resolves the pending ask", async () => {
       })
 
       await PermissionNext.reply({
-        requestID: "permission_test1",
+        requestID: PermissionID.make("per_test1"),
         reply: "once",
       })
 
@@ -546,8 +548,8 @@ test("reply - reject throws RejectedError", async () => {
     directory: tmp.path,
     fn: async () => {
       const askPromise = PermissionNext.ask({
-        id: "permission_test2",
-        sessionID: "session_test",
+        id: PermissionID.make("per_test2"),
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -556,7 +558,7 @@ test("reply - reject throws RejectedError", async () => {
       })
 
       await PermissionNext.reply({
-        requestID: "permission_test2",
+        requestID: PermissionID.make("per_test2"),
         reply: "reject",
       })
 
@@ -571,8 +573,8 @@ test("reply - always persists approval and resolves", async () => {
     directory: tmp.path,
     fn: async () => {
       const askPromise = PermissionNext.ask({
-        id: "permission_test3",
-        sessionID: "session_test",
+        id: PermissionID.make("per_test3"),
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -581,7 +583,7 @@ test("reply - always persists approval and resolves", async () => {
       })
 
       await PermissionNext.reply({
-        requestID: "permission_test3",
+        requestID: PermissionID.make("per_test3"),
         reply: "always",
       })
 
@@ -594,7 +596,7 @@ test("reply - always persists approval and resolves", async () => {
     fn: async () => {
       // Stored approval should allow without asking
       const result = await PermissionNext.ask({
-        sessionID: "session_test2",
+        sessionID: SessionID.make("session_test2"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -613,8 +615,8 @@ test("allowEverything - session-scoped enable stays within one session", async (
     directory: tmp.path,
     fn: async () => {
       const first = PermissionNext.ask({
-        id: "permission_session_allow",
-        sessionID: "session_allowed",
+        id: PermissionID.make("permission_session_allow"),
+        sessionID: SessionID.make("session_allowed"),
         permission: "bash",
         patterns: ["pwd"],
         metadata: {},
@@ -631,7 +633,7 @@ test("allowEverything - session-scoped enable stays within one session", async (
       await expect(first).resolves.toBeUndefined()
 
       const allowed = await PermissionNext.ask({
-        sessionID: "session_allowed",
+        sessionID: SessionID.make("session_allowed"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -641,8 +643,8 @@ test("allowEverything - session-scoped enable stays within one session", async (
       expect(allowed).toBeUndefined()
 
       const blocked = PermissionNext.ask({
-        id: "permission_session_blocked",
-        sessionID: "session_blocked",
+        id: PermissionID.make("permission_session_blocked"),
+        sessionID: SessionID.make("session_blocked"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -651,7 +653,7 @@ test("allowEverything - session-scoped enable stays within one session", async (
       })
 
       await PermissionNext.reply({
-        requestID: "permission_session_blocked",
+        requestID: PermissionID.make("permission_session_blocked"),
         reply: "reject",
       })
 
@@ -667,8 +669,8 @@ test("reply - reject cancels all pending for same session", async () => {
     directory: tmp.path,
     fn: async () => {
       const askPromise1 = PermissionNext.ask({
-        id: "permission_test4a",
-        sessionID: "session_same",
+        id: PermissionID.make("per_test4a"),
+        sessionID: SessionID.make("session_same"),
         permission: "bash",
         patterns: ["ls"],
         metadata: {},
@@ -677,8 +679,8 @@ test("reply - reject cancels all pending for same session", async () => {
       })
 
       const askPromise2 = PermissionNext.ask({
-        id: "permission_test4b",
-        sessionID: "session_same",
+        id: PermissionID.make("per_test4b"),
+        sessionID: SessionID.make("session_same"),
         permission: "edit",
         patterns: ["foo.ts"],
         metadata: {},
@@ -692,7 +694,7 @@ test("reply - reject cancels all pending for same session", async () => {
 
       // Reject the first one
       await PermissionNext.reply({
-        requestID: "permission_test4a",
+        requestID: PermissionID.make("per_test4a"),
         reply: "reject",
       })
 
@@ -710,7 +712,7 @@ test("ask - checks all patterns and stops on first deny", async () => {
     fn: async () => {
       await expect(
         PermissionNext.ask({
-          sessionID: "session_test",
+          sessionID: SessionID.make("session_test"),
           permission: "bash",
           patterns: ["echo hello", "rm -rf /"],
           metadata: {},
@@ -731,7 +733,7 @@ test("ask - allows all patterns when all match allow rules", async () => {
     directory: tmp.path,
     fn: async () => {
       const result = await PermissionNext.ask({
-        sessionID: "session_test",
+        sessionID: SessionID.make("session_test"),
         permission: "bash",
         patterns: ["echo hello", "ls -la", "pwd"],
         metadata: {},

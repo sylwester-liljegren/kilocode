@@ -136,6 +136,8 @@ export const dict = {
   "ui.message.copyMessage": "Копіювати повідомлення",
   "ui.message.copyResponse": "Копіювати відповідь",
   "ui.message.copied": "Скопійовано",
+  "ui.message.forkMessage": "Fork to new session",
+  "ui.message.revertMessage": "Revert message",
   "ui.message.revert": "Повернутися до цього місця",
   "ui.message.interrupted": "Перервано",
   "ui.message.queued": "В черзі",

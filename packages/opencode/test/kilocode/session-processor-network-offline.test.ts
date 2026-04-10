@@ -14,6 +14,7 @@ mock.module("@/kilo-sessions/remote-sender", () => ({
 import type { Provider } from "../../src/provider/provider"
 import type { LLM as LLMType } from "../../src/session/llm"
 import type { MessageV2 } from "../../src/session/message-v2"
+import { MessageID } from "../../src/session/schema"
 import { Log } from "../../src/util/log"
 import { tmpdir } from "../fixture/fixture"
 
@@ -64,7 +65,7 @@ describe("session processor network offline", () => {
         const m = model()
         const session = await Session.create({})
         const user = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.make(Identifier.ascending("message")),
           role: "user",
           sessionID: session.id,
           time: { created: Date.now() },
@@ -73,7 +74,7 @@ describe("session processor network offline", () => {
           tools: {},
         })) as MessageV2.User
         const assistant = (await Session.updateMessage({
-          id: Identifier.ascending("message"),
+          id: MessageID.make(Identifier.ascending("message")),
           parentID: user.id,
           role: "assistant",
           mode: "code",

@@ -23,6 +23,8 @@ import { Flag } from "../flag/flag"
 import { Command } from "../command"
 import { Global } from "../global"
 import { WorkspaceContext } from "../control-plane/workspace-context"
+import { WorkspaceID } from "../control-plane/schema"
+import { ProviderID } from "../provider/schema"
 import { WorkspaceRouterMiddleware } from "../control-plane/workspace-router-middleware"
 import { ProjectRoutes } from "./routes/project"
 import { SessionRoutes } from "./routes/session"
@@ -38,7 +40,6 @@ import { Database } from "../storage/db" // kilocode_change
 import { Session } from "../session" // kilocode_change
 import { Identifier } from "../id/id" // kilocode_change
 import { SessionTable, MessageTable, PartTable } from "../session/session.sql" // kilocode_change
-import { lazy } from "../util/lazy"
 import { InstanceBootstrap } from "../project/bootstrap"
 import { NotFoundError } from "../storage/db"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
@@ -56,6 +57,7 @@ import { RemoteRoutes } from "./routes/remote" // kilocode_change
 import { GlobalRoutes } from "./routes/global"
 import { NetworkRoutes } from "./routes/network" // kilocode_change
 import { MDNS } from "./mdns"
+import { lazy } from "@/util/lazy"
 
 // @ts-ignore This global is needed to prevent ai-sdk from logging warnings to stdout https://github.com/vercel/ai/blob/2dc67e0ef538307f21368db32d5a12345d98831b/packages/ai/src/logger/log-warnings.ts#L85
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -63,17 +65,11 @@ globalThis.AI_SDK_LOG_WARNINGS = false
 export namespace Server {
   const log = Log.create({ service: "server" })
 
-  let _url: URL | undefined
-  let _corsWhitelist: string[] = []
+  export const Default = lazy(() => createApp({}))
 
-  export function url(): URL {
-    return _url ?? new URL("http://localhost:4096")
-  }
-
-  const app = new Hono()
-  export const App: () => Hono = lazy(
-    () =>
-      // TODO: Break server.ts into smaller route files to fix type inference
+  export const createApp = (opts: { cors?: string[] }): Hono => {
+    const app = new Hono()
+    return (
       app
         .onError((err, c) => {
           log.error("failed", {
@@ -97,7 +93,7 @@ export namespace Server {
           // Allow CORS preflight requests to succeed without auth.
           // Browser clients sending Authorization headers will preflight with OPTIONS.
           if (c.req.method === "OPTIONS") return next()
-          const password = Flag.KILO_SERVER_PASSWORD
+          const password = Flag.KILO_SERVER_PASSWORD // kilocode_change
           if (!password) return next()
           const username = Flag.KILO_SERVER_USERNAME ?? "kilo" // kilocode_change
           return basicAuth({ username, password })(c, next)
@@ -113,12 +109,10 @@ export namespace Server {
             return
           }
           // kilocode_change end
-          if (!skipLogging) {
-            log.info("request", {
-              method: c.req.method,
-              path: c.req.path,
-            })
-          }
+          log.info("request", {
+            method: c.req.method,
+            path: c.req.path,
+          })
           const timer = log.time("request", {
             method: c.req.method,
             path: c.req.path,
@@ -146,7 +140,7 @@ export namespace Server {
               if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) {
                 return input
               }
-              if (_corsWhitelist.includes(input)) {
+              if (opts?.cors?.includes(input)) {
                 return input
               }
 
@@ -155,7 +149,6 @@ export namespace Server {
           }),
         )
         .route("/global", GlobalRoutes())
-        .route("/remote", RemoteRoutes()) // kilocode_change
         .put(
           "/auth/:providerID",
           describeRoute({
@@ -177,7 +170,7 @@ export namespace Server {
           validator(
             "param",
             z.object({
-              providerID: z.string(),
+              providerID: ProviderID.zod,
             }),
           ),
           validator("json", Auth.Info),
@@ -212,7 +205,7 @@ export namespace Server {
           validator(
             "param",
             z.object({
-              providerID: z.string(),
+              providerID: ProviderID.zod,
             }),
           ),
           async (c) => {
@@ -226,8 +219,8 @@ export namespace Server {
         )
         .use(async (c, next) => {
           if (c.req.path === "/log") return next()
-          const workspaceID = c.req.query("workspace") || c.req.header("x-kilo-workspace")
-          const raw = c.req.query("directory") || c.req.header("x-kilo-directory") || process.cwd()
+          const rawWorkspaceID = c.req.query("workspace") || c.req.header("x-kilo-workspace") // kilocode_change
+          const raw = c.req.query("directory") || c.req.header("x-kilo-directory") || process.cwd() // kilocode_change
           const directory = Filesystem.resolve(
             (() => {
               try {
@@ -239,7 +232,7 @@ export namespace Server {
           )
 
           return WorkspaceContext.provide({
-            workspaceID,
+            workspaceID: rawWorkspaceID ? WorkspaceID.make(rawWorkspaceID) : undefined,
             async fn() {
               return Instance.provide({
                 directory,
@@ -285,6 +278,7 @@ export namespace Server {
         .route("/network", NetworkRoutes()) // kilocode_change
         .route("/provider", ProviderRoutes())
         .route("/telemetry", TelemetryRoutes()) // kilocode_change
+        .route("/remote", RemoteRoutes()) // kilocode_change
         .route("/commit-message", CommitMessageRoutes()) // kilocode_change
         .route("/enhance-prompt", EnhancePromptRoutes()) // kilocode_change
         .route("/kilocode", KilocodeRoutes()) // kilocode_change
@@ -541,7 +535,6 @@ export namespace Server {
             return c.json(await LSP.status())
           },
         )
-
         .get(
           "/formatter",
           describeRoute({
@@ -623,28 +616,15 @@ export namespace Server {
         )
         // kilocode_change start - disable external proxy to app.opencode.ai for privacy/security
         .all("/*", async (c) => {
-          // const path = c.req.path
-          //
-          // const response = await proxy(`https://app.opencode.ai${path}`, {
-          //   ...c.req,
-          //   headers: {
-          //     ...c.req.raw.headers,
-          //     host: "app.opencode.ai",
-          //   },
-          // })
-          // response.headers.set(
-          //   "Content-Security-Policy",
-          //   "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data:",
-          // )
-          // return response
           return c.notFound()
-        }) as unknown as Hono,
+        })
+    )
     // kilocode_change end
-  )
+  }
 
   export async function openapi() {
     // Cast to break excessive type recursion from long route chains
-    const result = await generateSpecs(App() as Hono, {
+    const result = await generateSpecs(Default(), {
       documentation: {
         info: {
           title: "kilo", // kilocode_change
@@ -657,6 +637,9 @@ export namespace Server {
     return result
   }
 
+  /** @deprecated do not use this dumb shit */
+  export let url: URL
+
   export function listen(opts: {
     port: number
     hostname: string
@@ -664,12 +647,12 @@ export namespace Server {
     mdnsDomain?: string
     cors?: string[]
   }) {
-    _corsWhitelist = opts.cors ?? []
-
+    url = new URL(`http://${opts.hostname}:${opts.port}`)
+    const app = createApp(opts)
     const args = {
       hostname: opts.hostname,
       idleTimeout: 0,
-      fetch: App().fetch,
+      fetch: app.fetch,
       websocket: websocket,
     } as const
     const tryServe = (port: number) => {
@@ -681,8 +664,6 @@ export namespace Server {
     }
     const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port)
     if (!server) throw new Error(`Failed to start server on port ${opts.port}`)
-
-    _url = server.url
 
     const shouldPublishMDNS =
       opts.mdns &&

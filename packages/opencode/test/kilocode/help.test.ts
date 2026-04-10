@@ -6,7 +6,7 @@ import { McpCommand } from "../../src/cli/cmd/mcp"
 import { RunCommand } from "../../src/cli/cmd/run"
 import { GenerateCommand } from "../../src/cli/cmd/generate"
 import { DebugCommand } from "../../src/cli/cmd/debug"
-import { AuthCommand } from "../../src/cli/cmd/auth"
+import { ProvidersCommand } from "../../src/cli/cmd/providers" // kilocode_change — upstream renamed auth → providers
 import { AgentCommand } from "../../src/cli/cmd/agent"
 import { UpgradeCommand } from "../../src/cli/cmd/upgrade"
 import { UninstallCommand } from "../../src/cli/cmd/uninstall"
@@ -44,7 +44,7 @@ const commands = [
   RunCommand,
   GenerateCommand,
   DebugCommand,
-  AuthCommand,
+  ProvidersCommand,
   AgentCommand,
   UpgradeCommand,
   UninstallCommand,

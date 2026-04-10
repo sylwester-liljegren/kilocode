@@ -4,6 +4,7 @@ import z from "zod"
 import { Config } from "@/config/config"
 import { PermissionNext } from "@/permission/next"
 import { Session } from "@/session"
+import { SessionID } from "@/session/schema" // kilocode_change
 import { errors } from "../../server/error"
 import { lazy } from "../../util/lazy"
 
@@ -40,14 +41,14 @@ export const PermissionKilocodeRoutes = lazy(() =>
 
       if (!body.enable) {
         if (body.sessionID) {
-          const session = await Session.get(body.sessionID)
+          const session = await Session.get(SessionID.make(body.sessionID))
           await Session.setPermission({
-            sessionID: body.sessionID,
+            sessionID: SessionID.make(body.sessionID),
             permission: (session.permission ?? []).filter(
               (rule) => !(rule.permission === "*" && rule.pattern === "*" && rule.action === "allow"),
             ),
           })
-          await PermissionNext.allowEverything({ enable: false, sessionID: body.sessionID })
+          await PermissionNext.allowEverything({ enable: false, sessionID: SessionID.make(body.sessionID) })
           return c.json(true)
         }
 
@@ -57,9 +58,9 @@ export const PermissionKilocodeRoutes = lazy(() =>
       }
 
       if (body.sessionID) {
-        const session = await Session.get(body.sessionID)
+        const session = await Session.get(SessionID.make(body.sessionID))
         await Session.setPermission({
-          sessionID: body.sessionID,
+          sessionID: SessionID.make(body.sessionID),
           permission: [...(session.permission ?? []), ...rules],
         })
       } else {
@@ -69,7 +70,7 @@ export const PermissionKilocodeRoutes = lazy(() =>
       await PermissionNext.allowEverything({
         enable: true,
         requestID: body.requestID,
-        sessionID: body.sessionID,
+        sessionID: body.sessionID ? SessionID.make(body.sessionID) : undefined,
       })
 
       return c.json(true)

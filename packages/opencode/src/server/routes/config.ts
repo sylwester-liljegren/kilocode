@@ -3,6 +3,7 @@ import { describeRoute, validator, resolver } from "hono-openapi"
 import z from "zod"
 import { Config } from "../../config/config"
 import { Provider } from "../../provider/provider"
+import { ModelID } from "../../provider/schema"
 import { mapValues } from "remeda"
 import { errors } from "../error"
 import { Log } from "../../util/log"
@@ -127,7 +128,7 @@ export const ConfigRoutes = lazy(() =>
         // kilocode_change start - Use API default for Kilo provider if valid
         const defaults = mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id)
         if (kiloApiDefault && providers["kilo"]?.models[kiloApiDefault]) {
-          defaults["kilo"] = kiloApiDefault
+          defaults["kilo"] = ModelID.make(kiloApiDefault)
         }
         // kilocode_change end
 

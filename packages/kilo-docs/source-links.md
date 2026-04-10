@@ -89,6 +89,8 @@
   <!-- packages/kilo-vscode/webview-ui/src/components/settings/CustomProviderDialog.tsx -->
 - <https://kilo.ai/gateway>
   <!-- packages/opencode/src/cli/cmd/tui/component/dialog-provider.tsx -->
+- <https://kilo.ai/install>
+  <!-- packages/opencode/src/installation/index.ts -->
 - <https://kilo.ai/kiloclaw>
   <!-- packages/opencode/src/kilocode/components/dialog-claw-setup.tsx -->
 - <https://kilo.ai/support>
@@ -103,7 +105,7 @@
 - <https://opencode.ai/>
   <!-- packages/opencode/src/cli/cmd/generate.ts -->
 - <https://opencode.ai/auth>
-  <!-- packages/opencode/src/cli/cmd/auth.ts -->
+  <!-- packages/opencode/src/cli/cmd/providers.ts -->
 - <https://opencode.ai/docs/agents>
   <!-- packages/opencode/src/config/config.ts -->
 - <https://opencode.ai/docs/commands>
@@ -111,9 +113,7 @@
 - <https://opencode.ai/docs/config#precedence-order>
   <!-- packages/opencode/src/config/config.ts -->
 - <https://opencode.ai/docs/providers/#cloudflare-ai-gateway>
-  <!-- packages/opencode/src/cli/cmd/auth.ts -->
-- <https://opencode.ai/install>
-  <!-- packages/opencode/src/installation/index.ts -->
+  <!-- packages/opencode/src/cli/cmd/providers.ts -->
 - <https://opencode.ai/tui.json>
   <!-- packages/opencode/src/config/migrate-tui-config.ts -->
 - <https://opencode.ai/zen>
@@ -161,7 +161,7 @@
 - <https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai>
   <!-- packages/opencode/src/provider/transform.ts -->
 - <https://vercel.link/ai-gateway-token>
-  <!-- packages/opencode/src/cli/cmd/auth.ts -->
+  <!-- packages/opencode/src/cli/cmd/providers.ts -->
 - <https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-latest.tar.gz>
   <!-- packages/opencode/src/lsp/server.ts -->
 - <https://www.morphllm.com/>

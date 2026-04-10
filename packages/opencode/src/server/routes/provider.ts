@@ -5,6 +5,7 @@ import { Config } from "../../config/config"
 import { Provider } from "../../provider/provider"
 import { ModelsDev } from "../../provider/models"
 import { ProviderAuth } from "../../provider/auth"
+import { ProviderID } from "../../provider/schema"
 import { mapValues, pickBy } from "remeda" // kilocode_change
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
@@ -108,7 +109,7 @@ export const ProviderRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          providerID: z.string().meta({ description: "Provider ID" }),
+          providerID: ProviderID.zod.meta({ description: "Provider ID" }),
         }),
       ),
       validator(
@@ -148,7 +149,7 @@ export const ProviderRoutes = lazy(() =>
       validator(
         "param",
         z.object({
-          providerID: z.string().meta({ description: "Provider ID" }),
+          providerID: ProviderID.zod.meta({ description: "Provider ID" }),
         }),
       ),
       validator(

@@ -12,6 +12,11 @@ export const SIDECAR_BINARIES: Array<{ rustTarget: string; ocBinary: string; ass
     assetExt: "zip",
   },
   {
+    rustTarget: "aarch64-pc-windows-msvc",
+    ocBinary: "@kilocode/cli-windows-arm64", // kilocode_change
+    assetExt: "zip",
+  },
+  {
     rustTarget: "x86_64-pc-windows-msvc",
     ocBinary: "@kilocode/cli-windows-x64", // kilocode_change
     assetExt: "zip",

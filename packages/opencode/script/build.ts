@@ -108,6 +108,12 @@ const allTargets: {
     arch: "x64",
     avx2: false,
   },
+  // kilocode_change start - Windows ARM64 target
+  {
+    os: "win32",
+    arch: "arm64",
+  },
+  // kilocode_change end
   {
     os: "win32",
     arch: "x64",
@@ -180,7 +186,6 @@ for (const item of targets) {
     conditions: ["browser"],
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
-    sourcemap: "external",
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

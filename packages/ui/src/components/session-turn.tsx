@@ -7,7 +7,7 @@ import { Binary } from "@opencode-ai/util/binary"
 import { getDirectory, getFilename } from "@opencode-ai/util/path"
 import { createEffect, createMemo, createSignal, For, on, ParentProps, Show } from "solid-js"
 import { Dynamic } from "solid-js/web"
-import { AssistantParts, Message, Part, PART_MAPPING } from "./message-part"
+import { AssistantParts, Message, Part, PART_MAPPING, type UserActions } from "./message-part"
 import { Card } from "./card"
 import { Accordion } from "./accordion"
 import { StickyAccordionHeader } from "./sticky-accordion-header"
@@ -141,11 +141,12 @@ export function SessionTurn(
   props: ParentProps<{
     sessionID: string
     messageID: string
+    actions?: UserActions
     showReasoningSummaries?: boolean
     shellToolDefaultOpen?: boolean
     editToolDefaultOpen?: boolean
     active?: boolean
-    queued?: boolean
+    queued?: boolean // kilocode_change
     status?: SessionStatus
     onUserInteracted?: () => void
     classes?: {
@@ -192,7 +193,7 @@ export function SessionTurn(
   })
 
   const pending = createMemo(() => {
-    if (typeof props.active === "boolean" && typeof props.queued === "boolean") return
+    if (typeof props.active === "boolean" && typeof props.queued === "boolean") return // kilocode_change
     const messages = allMessages() ?? emptyMessages
     return messages.findLast(
       (item): item is AssistantMessage => item.role === "assistant" && typeof item.time.completed !== "number",
@@ -217,6 +218,7 @@ export function SessionTurn(
     return parent.id === msg.id
   })
 
+  // kilocode_change start — restore queued feature
   const queued = createMemo(() => {
     if (typeof props.queued === "boolean") return props.queued
     const id = message()?.id
@@ -226,6 +228,7 @@ export function SessionTurn(
     if (!item) return false
     return id > item.id
   })
+  // kilocode_change end
 
   const parts = createMemo(() => {
     const msg = message()
@@ -366,7 +369,7 @@ export function SessionTurn(
   )
   const showThinking = createMemo(() => {
     if (!working() || !!error()) return false
-    if (queued()) return false
+    if (queued()) return false // kilocode_change
     if (status().type === "retry") return false
     if (showReasoningSummaries()) return assistantVisible() === 0
     return true
@@ -395,7 +398,15 @@ export function SessionTurn(
               class={props.classes?.container}
             >
               <div data-slot="session-turn-message-content" aria-live="off">
-                <Message message={message()!} parts={parts()} interrupted={interrupted()} queued={queued()} />
+                {/* kilocode_change start */}
+                <Message
+                  message={message()!}
+                  parts={parts()}
+                  actions={props.actions}
+                  interrupted={interrupted()}
+                  queued={queued()}
+                />
+                {/* kilocode_change end */}
               </div>
               <Show when={compaction()}>
                 <div data-slot="session-turn-compaction">

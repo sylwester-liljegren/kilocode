@@ -1,5 +1,4 @@
-import { semver } from "bun"
-import { text } from "node:stream/consumers"
+import semver from "semver"
 import { Log } from "../util/log"
 import { Process } from "../util/process"
 
@@ -11,26 +10,21 @@ export namespace PackageRegistry {
   }
 
   export async function info(pkg: string, field: string, cwd?: string): Promise<string | null> {
-    const result = Process.spawn([which(), "info", pkg, field], {
+    const { code, stdout, stderr } = await Process.run([which(), "info", pkg, field], {
       cwd,
-      stdout: "pipe",
-      stderr: "pipe",
       env: {
         ...process.env,
         BUN_BE_BUN: "1",
       },
+      nothrow: true,
     })
 
-    const code = await result.exited
-    const stdout = result.stdout ? await text(result.stdout) : ""
-    const stderr = result.stderr ? await text(result.stderr) : ""
-
     if (code !== 0) {
-      log.warn("bun info failed", { pkg, field, code, stderr })
+      log.warn("bun info failed", { pkg, field, code, stderr: stderr.toString() })
       return null
     }
 
-    const value = stdout.trim()
+    const value = stdout.toString().trim()
     if (!value) return null
     return value
   }
@@ -42,9 +36,20 @@ export namespace PackageRegistry {
       return false
     }
 
+    // kilocode_change start — guard against invalid semver (npm semver is stricter than Bun's built-in)
+    if (!cachedVersion || (!semver.valid(cachedVersion) && !semver.validRange(cachedVersion))) {
+      log.warn("cannot compare versions, skipping outdated check", { cachedVersion, latestVersion })
+      return false
+    }
+    if (!latestVersion || !semver.valid(latestVersion)) {
+      log.warn("cannot compare versions, skipping outdated check", { cachedVersion, latestVersion })
+      return false
+    }
+    // kilocode_change end
+
     const isRange = /[\s^~*xX<>|=]/.test(cachedVersion)
     if (isRange) return !semver.satisfies(latestVersion, cachedVersion)
 
-    return semver.order(cachedVersion, latestVersion) === -1
+    return semver.lt(cachedVersion, latestVersion)
   }
 }

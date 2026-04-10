@@ -515,12 +515,22 @@ Options:
 ## kilo auth
 
 ```
-manage credentials
+manage AI providers and credentials
 
 Commands:
+  kilo auth list         list providers  [aliases: ls]
   kilo auth login [url]  log in to a provider
   kilo auth logout       log out from a configured provider
-  kilo auth list         list providers  [aliases: ls]
+
+Options:
+  --help     Show help  [boolean]
+  --version  Show version number  [boolean]
+```
+
+### kilo auth list
+
+```
+list providers
 
 Options:
   --help     Show help  [boolean]
@@ -546,16 +556,6 @@ Options:
 
 ```
 log out from a configured provider
-
-Options:
-  --help     Show help  [boolean]
-  --version  Show version number  [boolean]
-```
-
-### kilo auth list
-
-```
-list providers
 
 Options:
   --help     Show help  [boolean]
@@ -736,6 +736,8 @@ Options:
       --version    Show version number  [boolean]
   -n, --max-count  limit to N most recent sessions  [number]
       --format     output format  [string] [choices: "table", "json"] [default: "table"]
+  -a, --all        list sessions from all projects  [boolean] [default: false]
+  -s, --search     filter sessions by title  [string]
 ```
 
 ### kilo session delete
@@ -800,6 +802,29 @@ Options:
   --version  Show version number  [boolean]
 ```
 
+## kilo config
+
+```
+configuration tools
+
+Commands:
+  kilo config check  check configuration for warnings and errors
+
+Options:
+  --help     Show help  [boolean]
+  --version  Show version number  [boolean]
+```
+
+### kilo config check
+
+```
+check configuration for warnings and errors
+
+Options:
+  --help     Show help  [boolean]
+  --version  Show version number  [boolean]
+```
+
 ## kilo help
 
 ```
@@ -813,4 +838,14 @@ Options:
   --version  Show version number  [boolean]
   --all      show help for all commands  [boolean] [default: false]
   --format   output format  [string] [choices: "md", "text"] [default: "md"]
+```
+
+## kilo completion
+
+```
+generate shell completion script
+
+Options:
+  --help     Show help  [boolean]
+  --version  Show version number  [boolean]
 ```

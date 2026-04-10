@@ -1,5 +1,8 @@
 import { Database } from "../../storage/db"
 import { SessionTable, MessageTable, PartTable } from "../../session/session.sql"
+import { SessionID, MessageID, PartID } from "../../session/schema"
+import { ProjectID } from "../../project/schema"
+import { WorkspaceID } from "../../control-plane/schema"
 import { SessionImportType } from "./types"
 import { Project } from "../../project/project"
 import { eq } from "drizzle-orm"
@@ -31,10 +34,10 @@ export namespace SessionImportService {
       // and non-forced calls remain idempotent if they reach the DB after the existence guard.
       db.insert(SessionTable)
         .values({
-          id: input.id,
-          project_id: input.projectID,
-          workspace_id: input.workspaceID,
-          parent_id: input.parentID,
+          id: SessionID.make(input.id),
+          project_id: ProjectID.make(input.projectID),
+          workspace_id: input.workspaceID ? WorkspaceID.make(input.workspaceID) : undefined,
+          parent_id: input.parentID ? SessionID.make(input.parentID) : undefined,
           slug: input.slug,
           directory: input.directory,
           title: input.title,
@@ -44,7 +47,7 @@ export namespace SessionImportService {
           summary_deletions: input.summary?.deletions,
           summary_files: input.summary?.files,
           summary_diffs: input.summary?.diffs as never,
-          revert: input.revert,
+          revert: input.revert ? { ...input.revert, messageID: MessageID.make(input.revert.messageID), partID: input.revert.partID ? PartID.make(input.revert.partID) : undefined } : undefined,
           permission: input.permission as never,
           time_created: input.timeCreated,
           time_updated: input.timeUpdated,
@@ -54,9 +57,9 @@ export namespace SessionImportService {
         .onConflictDoUpdate({
           target: key(SessionTable.id),
           set: {
-            project_id: input.projectID,
-            workspace_id: input.workspaceID,
-            parent_id: input.parentID,
+            project_id: ProjectID.make(input.projectID),
+            workspace_id: input.workspaceID ? WorkspaceID.make(input.workspaceID) : undefined,
+            parent_id: input.parentID ? SessionID.make(input.parentID) : undefined,
             slug: input.slug,
             directory: input.directory,
             title: input.title,
@@ -66,7 +69,7 @@ export namespace SessionImportService {
             summary_deletions: input.summary?.deletions,
             summary_files: input.summary?.files,
             summary_diffs: input.summary?.diffs as never,
-            revert: input.revert,
+            revert: input.revert ? { ...input.revert, messageID: MessageID.make(input.revert.messageID), partID: input.revert.partID ? PartID.make(input.revert.partID) : undefined } : undefined,
             permission: input.permission as never,
             time_created: input.timeCreated,
             time_updated: input.timeUpdated,
@@ -83,8 +86,8 @@ export namespace SessionImportService {
     Database.use((db) => {
       db.insert(MessageTable)
         .values({
-          id: input.id,
-          session_id: input.sessionID,
+          id: MessageID.make(input.id),
+          session_id: SessionID.make(input.sessionID),
           time_created: input.timeCreated,
           data: input.data as never,
         })
@@ -103,9 +106,9 @@ export namespace SessionImportService {
     Database.use((db) => {
       db.insert(PartTable)
         .values({
-          id: input.id,
-          message_id: input.messageID,
-          session_id: input.sessionID,
+          id: PartID.make(input.id),
+          message_id: MessageID.make(input.messageID),
+          session_id: SessionID.make(input.sessionID),
           time_created: input.timeCreated,
           data: input.data as never,
         })

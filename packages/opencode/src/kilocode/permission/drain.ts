@@ -9,7 +9,7 @@ import { ConfigProtection } from "@/kilocode/permission/config-paths"
  * pending permission for the same pattern resolves or rejects automatically.
  */
 export async function drainCovered(
-  pending: Record<
+  pending: Map<
     string,
     {
       info: PermissionNext.Request
@@ -24,7 +24,7 @@ export async function drainCovered(
   DeniedError: typeof PermissionNext.DeniedError,
   exclude?: string,
 ) {
-  for (const [id, entry] of Object.entries(pending)) {
+  for (const [id, entry] of pending) {
     if (id === exclude) continue
     // Never auto-resolve config file edit permissions
     if (ConfigProtection.isRequest(entry.info)) continue
@@ -34,7 +34,7 @@ export async function drainCovered(
     const denied = actions.some((r) => r.action === "deny")
     const allowed = !denied && actions.every((r) => r.action === "allow")
     if (!denied && !allowed) continue
-    delete pending[id]
+    pending.delete(id)
     if (denied) {
       Bus.publish(events.Replied, {
         sessionID: entry.info.sessionID,

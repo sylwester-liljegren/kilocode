@@ -8,7 +8,7 @@
 | `kilo attach <url>` | attach to a running kilo server |
 | `kilo run [message..]` | run kilo with a message |
 | `kilo debug` | debugging and troubleshooting tools |
-| `kilo auth` | manage credentials |
+| `kilo auth` | manage AI providers and credentials |
 | `kilo agent` | manage agents |
 | `kilo upgrade [target]` | upgrade kilo to the latest or a specific version |
 | `kilo uninstall` | uninstall kilo and remove all related files |
@@ -21,5 +21,6 @@
 | `kilo session` | manage sessions |
 | `kilo remote` | enable remote connection for real-time session relay |
 | `kilo db` | database tools |
+| `kilo config` | configuration tools |
 | `kilo help [command]` | show full CLI reference |
 | `kilo completion` | generate shell completion script |

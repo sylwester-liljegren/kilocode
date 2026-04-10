@@ -131,6 +131,8 @@ export const dict: Record<string, string> = {
   "ui.message.copyMessage": "Bericht kopiëren",
   "ui.message.copyResponse": "Antwoord kopiëren",
   "ui.message.copied": "Gekopieerd",
+  "ui.message.forkMessage": "Fork to new session",
+  "ui.message.revertMessage": "Revert message",
   "ui.message.revert": "Hiernaar terugdraaien",
   "ui.message.interrupted": "Onderbroken",
   "ui.message.queued": "In wachtrij",

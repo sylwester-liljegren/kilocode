@@ -20,6 +20,7 @@ import path from "path"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@kilocode/plugin"
 import z from "zod"
 import { Plugin } from "../plugin"
+import { ProviderID, type ModelID } from "../provider/schema"
 import { WebSearchTool } from "./websearch"
 import { CodeSearchTool } from "./codesearch"
 import { CodebaseSearchTool } from "./warpgrep" // kilocode_change
@@ -134,8 +135,8 @@ export namespace ToolRegistry {
 
   export async function tools(
     model: {
-      providerID: string
-      modelID: string
+      providerID: ProviderID
+      modelID: ModelID
     },
     agent?: Agent.Info,
   ) {

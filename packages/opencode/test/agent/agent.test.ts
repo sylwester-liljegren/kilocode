@@ -206,8 +206,8 @@ test("custom agent from config creates new agent", async () => {
     fn: async () => {
       const custom = await Agent.get("my_custom_agent")
       expect(custom).toBeDefined()
-      expect(custom?.model?.providerID).toBe("openai")
-      expect(custom?.model?.modelID).toBe("gpt-4")
+      expect(String(custom?.model?.providerID)).toBe("openai")
+      expect(String(custom?.model?.modelID)).toBe("gpt-4")
       expect(custom?.description).toBe("My custom agent")
       expect(custom?.temperature).toBe(0.5)
       expect(custom?.topP).toBe(0.9)
@@ -238,8 +238,8 @@ test("custom agent config overrides native agent properties", async () => {
       // kilocode_change start - renamed from "build" to "code"
       const code = await Agent.get("code")
       expect(code).toBeDefined()
-      expect(code?.model?.providerID).toBe("anthropic")
-      expect(code?.model?.modelID).toBe("claude-3")
+      expect(String(code?.model?.providerID)).toBe("anthropic")
+      expect(String(code?.model?.modelID)).toBe("claude-3")
       expect(code?.description).toBe("Custom code agent")
       expect(code?.temperature).toBe(0.7)
       expect(code?.color).toBe("#FF0000")

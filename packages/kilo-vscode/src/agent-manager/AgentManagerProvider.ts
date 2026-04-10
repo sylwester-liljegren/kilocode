@@ -381,28 +381,7 @@ export class AgentManagerProvider implements Disposable {
 
   private onStateMessage(m: AgentManagerInMessage): Record<string, unknown> | null | undefined {
     if (m.type === "agentManager.requestState") {
-      void this.stateReady
-        ?.then(() => {
-          if (!this.state) {
-            this.pushEmptyState()
-            return
-          }
-          this.pushState()
-          if (this.cachedWorktreeStats) this.postToWebview(this.cachedWorktreeStats)
-          if (this.cachedLocalStats) this.postToWebview(this.cachedLocalStats)
-          this.prBridge.replay()
-          if (this.state.getSessions().length > 0) {
-            this.panel?.sessions.refreshSessions()
-          }
-        })
-        .catch((err) => {
-          this.log("initializeState failed, pushing partial state:", err)
-          if (!this.state) {
-            this.pushEmptyState()
-            return
-          }
-          this.pushState()
-        })
+      this.onRequestState()
       return null
     }
 
@@ -416,7 +395,6 @@ export class AgentManagerProvider implements Disposable {
     }
     if (m.type === "agentManager.setWorktreeOrder") {
       this.state?.setWorktreeOrder(m.order)
-      this.pushState()
       return null
     }
     if (m.type === "agentManager.setSessionsCollapsed") {
@@ -498,6 +476,41 @@ export class AgentManagerProvider implements Disposable {
       this.openWorktreeFile(sessionId, m.filePath, m.line, m.column)
       return null
     }
+  }
+
+  private onRequestState(): void {
+    void this.stateReady
+      ?.then(() => {
+        // When the folder is not a git repo (or has no folder open),
+        // this.state is never created. pushState() silently returns in that
+        // case, so re-send the empty/non-git state explicitly.
+        if (!this.state) {
+          this.pushEmptyState()
+          return
+        }
+        this.pushState()
+        // Re-send cached stats so the webview gets them even if the poller
+        // already emitted before the webview was ready to receive messages.
+        if (this.cachedWorktreeStats) this.postToWebview(this.cachedWorktreeStats)
+        if (this.cachedLocalStats) this.postToWebview(this.cachedLocalStats)
+        this.prBridge.replay()
+        // Refresh sessions after pushState so the webview's sessionsLoaded
+        // handler is guaranteed to be registered (requestState fires from
+        // onMount). Without this, the initial refreshSessions() in
+        // initializeState() can race ahead of webview mount, causing
+        // sessionsLoaded to never flip to true.
+        if (this.state.getSessions().length > 0) {
+          this.panel?.sessions.refreshSessions()
+        }
+      })
+      .catch((err) => {
+        this.log("initializeState failed, pushing partial state:", err)
+        if (!this.state) {
+          this.pushEmptyState()
+          return
+        }
+        this.pushState()
+      })
   }
 
   // ---------------------------------------------------------------------------
@@ -1022,7 +1035,7 @@ export class AgentManagerProvider implements Disposable {
     }
 
     // Phase 2: Send the initial prompt to all sessions, or clear busy state if no text.
-    const messages = buildInitialMessages(created, models, { providerID, modelID }, text, agent, files)
+    const messages = buildInitialMessages(created, models, { providerID, modelID }, text, agent, msg.variant, files)
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]!
       if (text) {

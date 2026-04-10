@@ -313,20 +313,16 @@ describe("Agent Manager Provider — onMessage routing", () => {
    * call pushEmptyState() instead — otherwise the webview stays stuck on
    * loading skeletons forever.
    */
-  it("requestState handler calls pushEmptyState when state is falsy", () => {
-    const text = body("onStateMessage")
-    const start = text.indexOf('"agentManager.requestState"')
-    expect(start, "requestState branch must exist").toBeGreaterThan(-1)
-    const snippet = text.slice(start, start + 700)
-    expect(snippet, "must call pushEmptyState when state is absent").toContain("pushEmptyState")
-    expect(snippet, "must guard on this.state being falsy").toMatch(/!this\.state/)
+  it("requestState handler calls pushEmptyState when this.state is falsy", () => {
+    // onStateMessage delegates to onRequestState; verify the actual handler
+    const text = body("onRequestState")
+    expect(text, "must call pushEmptyState when state is absent").toContain("pushEmptyState")
+    expect(text, "must guard on this.state being falsy").toMatch(/!this\.state/)
   })
 
-  it("requestState handler calls pushState when state is truthy", () => {
-    const text = body("onStateMessage")
-    const start = text.indexOf('"agentManager.requestState"')
-    const snippet = text.slice(start, start + 700)
-    expect(snippet, "must call pushState for the normal path").toContain("this.pushState()")
+  it("requestState handler calls pushState when this.state is truthy", () => {
+    const text = body("onRequestState")
+    expect(text, "must call pushState for the normal path").toContain("this.pushState()")
   })
 
   it("worktree diff behavior lives in the cohesive diff controller", () => {

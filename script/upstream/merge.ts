@@ -271,7 +271,8 @@ async function main() {
   const kiloVersion = await version.getCurrentKiloVersion()
   const dirs = ["packages/ui/src/assets/icons/provider"]
 
-  logger.info("Cleaning untracked provider icons before checkout...")
+  logger.info("Resetting generated provider icons before checkout...")
+  await git.restoreDirectories(dirs)
   await git.cleanDirectories(dirs)
 
   // Create backup branch

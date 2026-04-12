@@ -18,6 +18,38 @@ plugins {
     alias(libs.plugins.openapi.generator)
 }
 
+/**
+ * Resolve the absolute path to `bun`. The Gradle daemon's PATH is often
+ * stripped down and doesn't include Homebrew or user-local bin dirs.
+ * Probe common install locations so the build works without manual PATH setup.
+ */
+fun findBun(): String {
+    // 1. Already on PATH?
+    val which = runCatching {
+        ProcessBuilder("which", "bun")
+            .redirectErrorStream(true)
+            .start()
+            .inputStream.bufferedReader().readLine()?.trim()
+    }.getOrNull()
+    if (which != null && File(which).isFile) return which
+
+    // 2. Common install locations
+    val home = System.getProperty("user.home")
+    val candidates = listOf(
+        "$home/.bun/bin/bun",
+        "/opt/homebrew/bin/bun",
+        "/usr/local/bin/bun",
+        "$home/.nvm/current/bin/bun",
+    )
+    for (path in candidates) {
+        val f = File(path)
+        if (f.isFile && f.canExecute()) return f.absolutePath
+    }
+
+    // 3. Fall back — let the OS resolve it (will fail with a clear message)
+    return "bun"
+}
+
 abstract class PrepareLocalCliTask : DefaultTask() {
     @get:InputFile
     abstract val script: RegularFileProperty
@@ -43,7 +75,7 @@ abstract class PrepareLocalCliTask : DefaultTask() {
         if (bin.exists()) return
         exec.exec {
             workingDir = root.get().asFile
-            commandLine("bun", "script/build.ts", "--prepare-cli")
+            commandLine(findBun(), "script/build.ts", "--prepare-cli")
         }
     }
 }
@@ -99,23 +131,26 @@ openApiGenerate {
 
 // Fix openapi-generator 3.1.1 codegen bugs in generated Kotlin sources.
 //
-// The OpenAPI spec uses `const: true` on boolean fields (e.g. `healthy`).
-// openapi-generator turns these into single-value enum classes:
+// 1) Boolean const enum fix:
+//    The OpenAPI spec uses `const: true` on boolean fields (e.g. `healthy`).
+//    openapi-generator turns these into single-value enum classes:
+//      val healthy: GlobalHealth200Response.Healthy
+//      enum class Healthy(val value: kotlin.Boolean) { @Json(name = "true") TRUE("true") }
+//    Moshi's EnumJsonAdapter calls nextString() for the value, but the server sends
+//    a JSON boolean `true`, not a JSON string `"true"`.
+//    Fix: replace the enum field type with kotlin.Boolean, remove the enum class.
 //
-//   val healthy: GlobalHealth200Response.Healthy
-//   enum class Healthy(val value: kotlin.Boolean) { @Json(name = "true") TRUE("true") }
-//
-// Moshi's EnumJsonAdapter calls nextString() for the value, but the server sends
-// a JSON boolean `true`, not a JSON string `"true"`, causing:
-//   JsonDataException: Expected a string but was BOOLEAN at path $.healthy
-//
-// Fix: replace the enum field type with kotlin.Boolean, remove the enum class.
+// 2) anyOf[string, null] fix:
+//    Fields like Config.model defined as `anyOf: [{type: string}, {type: null}]`
+//    get generated as empty wrapper classes (e.g. ConfigModel). Moshi then expects
+//    a JSON object but the server sends a plain string.
+//    Fix: replace the field type with kotlin.String?, delete the empty wrapper class file.
 val fixGeneratedApi by tasks.registering {
     dependsOn("openApiGenerate")
     val dir = generatedApi
     doLast {
-        // Regex to find boolean const enum declarations inside data classes.
-        // Captures the enum name so we can find and fix the corresponding field.
+        // ── Fix 1: boolean const enums ──────────────────────────────
+
         val enumDecl = Regex(
             """enum class (\w+)\(val value: kotlin\.Boolean\)"""
         )
@@ -134,12 +169,43 @@ val fixGeneratedApi by tasks.registering {
                     """\n\s*@JsonClass\(generateAdapter = false\)\s*\n\s*enum class $name\(val value: kotlin\.Boolean\)\s*\{[^}]*\}"""
                 ), "")
                 // Remove the orphaned KDoc block that preceded the enum (lines of ` *` ending with `*/`)
-                // These look like:  \n    /**\n     * \n     *\n     * Values: TRUE\n     */
                 text = text.replace(Regex(
                     """\n\s*/\*\*\s*\n(\s*\*[^\n]*\n)*\s*\*/\s*(?=\n\s*\n)"""
                 ), "")
             }
             file.writeText(text)
+        }
+
+        // ── Fix 2: anyOf[string, null] empty wrapper classes ────────
+        //
+        // These are classes generated from `anyOf: [{type: string}, {type: null}]`
+        // that should be kotlin.String? instead. The generated class is an empty
+        // `class FooBar () {}` and fields referencing it need to become String?.
+        val emptyWrappers = listOf("ConfigModel", "ConfigSmallModel")
+        for (wrapper in emptyWrappers) {
+            // Delete the empty wrapper class file
+            val wrapperFile = dir.get().file(
+                "ai/kilocode/jetbrains/api/model/$wrapper.kt"
+            ).asFile
+            if (wrapperFile.exists()) {
+                wrapperFile.delete()
+            }
+
+            // Replace all field references in other files:
+            //   `val model: ConfigModel? = null` → `val model: kotlin.String? = null`
+            dir.get().asFile.walkTopDown().filter { it.extension == "kt" }.forEach { file ->
+                val text = file.readText()
+                if (!text.contains(wrapper)) return@forEach
+                var patched = text
+                // Replace field type references
+                patched = patched.replace(Regex(""":\s*$wrapper\?"""), ": kotlin.String?")
+                patched = patched.replace(Regex(""":\s*$wrapper([^?\w])"""), ": kotlin.String?$1")
+                // Remove the import line
+                patched = patched.replace(Regex("""import [^\n]*\.$wrapper\n"""), "")
+                if (patched != text) {
+                    file.writeText(patched)
+                }
+            }
         }
     }
 }

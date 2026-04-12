@@ -231,7 +231,8 @@ class KiloBackendAppService(private val cs: CoroutineScope) : Disposable {
         return try {
             FetchResult.ok(client.globalConfigGet())
         } catch (e: Exception) {
-            LOG.warn("Global config fetch failed: ${e.message}")
+            LOG.warn("Global config fetch failed: ${e.message}", e)
+            logResponseBody("config", e)
             FetchResult.fail("config", e)
         }
     }
@@ -242,8 +243,26 @@ class KiloBackendAppService(private val cs: CoroutineScope) : Disposable {
         return try {
             FetchResult.ok(client.kiloNotifications())
         } catch (e: Exception) {
-            LOG.warn("Notifications fetch failed: ${e.message}")
+            LOG.warn("Notifications fetch failed: ${e.message}", e)
+            logResponseBody("notifications", e)
             FetchResult.fail("notifications", e)
+        }
+    }
+
+    /**
+     * Dump the HTTP response body from a failed API call for debugging.
+     * The generated client wraps the response in [ClientException.response]
+     * or [ServerException.response] as a [ClientError] / [ServerError] with
+     * a `body` field containing the raw response string.
+     */
+    private fun logResponseBody(resource: String, e: Exception) {
+        val body = when (e) {
+            is ClientException -> (e.response as? ai.kilocode.jetbrains.api.infrastructure.ClientError<*>)?.body
+            is ServerException -> (e.response as? ai.kilocode.jetbrains.api.infrastructure.ServerError<*>)?.body
+            else -> null
+        }
+        if (body != null) {
+            LOG.warn("$resource response body: $body")
         }
     }
 

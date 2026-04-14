@@ -110,7 +110,7 @@
     "@openauthjs/openauth": "catalog:",
     "@opencode-ai/script": "workspace:*",
     "@opencode-ai/util": "workspace:*",
-    "@openrouter/ai-sdk-provider": "2.3.3",
+    "@openrouter/ai-sdk-provider": "2.5.1",
     "@opentui/core": "0.1.96",
     "@opentui/solid": "0.1.96",
     "@parcel/watcher": "2.5.1",

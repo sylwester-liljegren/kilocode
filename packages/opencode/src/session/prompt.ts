@@ -1329,13 +1329,18 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
       const lastAssistant = (sessionID: SessionID) =>
         Effect.promise(async () => {
-          let latest: MessageV2.WithParts | undefined
-          for await (const item of MessageV2.stream(sessionID)) {
-            latest ??= item
-            if (item.info.role !== "user") return item
+          // kilocode_change start — retry when cancel races before shellImpl writes messages
+          for (let attempt = 0; attempt < 10; attempt++) {
+            let latest: MessageV2.WithParts | undefined
+            for await (const item of MessageV2.stream(sessionID)) {
+              latest ??= item
+              if (item.info.role !== "user") return item
+            }
+            if (latest) return latest
+            await new Promise((r) => setTimeout(r, 50))
           }
-          if (latest) return latest
           throw new Error("Impossible")
+          // kilocode_change end
         })
 
       // kilocode_change — mutable close-reason per session, set by runLoop and read by loop

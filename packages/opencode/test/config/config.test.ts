@@ -1619,48 +1619,61 @@ test("merges legacy tools with existing permission config", async () => {
   })
 })
 
+// kilocode_change start — isolate from global config to prevent cross-test contamination
+// (migrateBashPermission may write permission.bash to a global config file created by other
+// test files running in parallel, which mergeDeep then prepends to the project permission keys)
 test("permission config preserves key order", async () => {
-  await using tmp = await tmpdir({
-    init: async (dir) => {
-      await Filesystem.write(
-        path.join(dir, "kilo.json"),
-        JSON.stringify({
-          $schema: "https://app.kilo.ai/config.json",
-          permission: {
-            "*": "deny",
-            edit: "ask",
-            write: "ask",
-            external_directory: "ask",
-            read: "allow",
-            todowrite: "allow",
-            "thoughts_*": "allow",
-            "reasoning_model_*": "allow",
-            "tools_*": "allow",
-            "pr_comments_*": "allow",
-          },
-        }),
-      )
-    },
-  })
-  await Instance.provide({
-    directory: tmp.path,
-    fn: async () => {
-      const config = await Config.get()
-      expect(Object.keys(config.permission!)).toEqual([
-        "*",
-        "edit",
-        "write",
-        "external_directory",
-        "read",
-        "todowrite",
-        "thoughts_*",
-        "reasoning_model_*",
-        "tools_*",
-        "pr_comments_*",
-      ])
-    },
-  })
+  await using globalTmp = await tmpdir()
+  const prev = Global.Path.config
+  ;(Global.Path as { config: string }).config = globalTmp.path
+  await Config.invalidate(true)
+  try {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Filesystem.write(
+          path.join(dir, "kilo.json"),
+          JSON.stringify({
+            $schema: "https://app.kilo.ai/config.json",
+            permission: {
+              "*": "deny",
+              edit: "ask",
+              write: "ask",
+              external_directory: "ask",
+              read: "allow",
+              todowrite: "allow",
+              "thoughts_*": "allow",
+              "reasoning_model_*": "allow",
+              "tools_*": "allow",
+              "pr_comments_*": "allow",
+            },
+          }),
+        )
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const config = await Config.get()
+        expect(Object.keys(config.permission!)).toEqual([
+          "*",
+          "edit",
+          "write",
+          "external_directory",
+          "read",
+          "todowrite",
+          "thoughts_*",
+          "reasoning_model_*",
+          "tools_*",
+          "pr_comments_*",
+        ])
+      },
+    })
+  } finally {
+    ;(Global.Path as { config: string }).config = prev
+    await Config.invalidate(true)
+  }
 })
+// kilocode_change end
 
 // MCP config merging tests
 

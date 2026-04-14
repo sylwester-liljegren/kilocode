@@ -86,13 +86,17 @@ export namespace SessionProcessor {
       const status = yield* SessionStatus.Service
 
       const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
+        // Pre-capture snapshot before the LLM stream starts. The AI SDK
+        // may execute tools internally before emitting start-step events,
+        // so capturing inside the event handler can be too late.
+        const initialSnapshot = yield* snapshot.track()
         const ctx: ProcessorContext = {
           assistantMessage: input.assistantMessage,
           sessionID: input.sessionID,
           model: input.model,
           toolcalls: {},
           shouldBreak: false,
-          snapshot: undefined,
+          snapshot: initialSnapshot,
           blocked: false,
           needsCompaction: false,
           currentText: undefined,
@@ -201,7 +205,7 @@ export namespace SessionProcessor {
                 metadata: value.providerMetadata,
               } satisfies MessageV2.ToolPart)
 
-              const parts = yield* Effect.promise(() => MessageV2.parts(ctx.assistantMessage.id))
+              const parts = MessageV2.parts(ctx.assistantMessage.id)
               const recentParts = parts.slice(-DOOM_LOOP_THRESHOLD)
 
               if (
@@ -272,7 +276,7 @@ export namespace SessionProcessor {
 
             case "start-step":
               ctx.stepStart = performance.now() // kilocode_change
-              ctx.snapshot = yield* snapshot.track()
+              if (!ctx.snapshot) ctx.snapshot = yield* snapshot.track()
               yield* session.updatePart({
                 id: PartID.ascending(),
                 messageID: ctx.assistantMessage.id,
@@ -325,12 +329,10 @@ export namespace SessionProcessor {
                 }
                 ctx.snapshot = undefined
               }
-              yield* Effect.promise(() =>
-                SessionSummary.summarize({
-                  sessionID: ctx.sessionID,
-                  messageID: ctx.assistantMessage.parentID,
-                }),
-              ).pipe(Effect.ignoreCause({ log: true, message: "session summary failed" }), Effect.forkDetach)
+              SessionSummary.summarize({
+                sessionID: ctx.sessionID,
+                messageID: ctx.assistantMessage.parentID,
+              })
               if (
                 !ctx.assistantMessage.summary &&
                 isOverflow({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model })
@@ -425,7 +427,7 @@ export namespace SessionProcessor {
           }
           ctx.reasoningMap = {}
 
-          const parts = yield* Effect.promise(() => MessageV2.parts(ctx.assistantMessage.id))
+          const parts = MessageV2.parts(ctx.assistantMessage.id)
           for (const part of parts) {
             if (part.type !== "tool" || part.state.status === "completed" || part.state.status === "error") continue
             yield* session.updatePart({
@@ -550,7 +552,7 @@ export namespace SessionProcessor {
         Layer.provide(Snapshot.defaultLayer),
         Layer.provide(Agent.defaultLayer),
         Layer.provide(LLM.defaultLayer),
-        Layer.provide(Permission.layer),
+        Layer.provide(Permission.defaultLayer),
         Layer.provide(Plugin.defaultLayer),
         Layer.provide(SessionStatus.layer.pipe(Layer.provide(Bus.layer))),
         Layer.provide(Bus.layer),

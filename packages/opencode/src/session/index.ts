@@ -17,6 +17,7 @@ import { Log } from "../util/log"
 import { updateSchema } from "../util/update-schema"
 import { MessageV2 } from "./message-v2"
 import { Instance } from "../project/instance"
+import { InstanceState } from "@/effect/instance-state"
 import { SessionPrompt } from "./prompt"
 import { fn } from "@/util/fn"
 import { Command } from "../command"
@@ -24,7 +25,6 @@ import { Snapshot } from "@/snapshot"
 import { ProjectID } from "../project/schema"
 import { WorkspaceID } from "../control-plane/schema"
 import { SessionID, MessageID, PartID } from "./schema"
-import { Filesystem } from "../util/filesystem" // kilocode_change: normalize directory for Windows drive-letter casing
 import { KiloSession } from "@/kilocode/session" // kilocode_change
 
 import type { Provider } from "@/provider/provider"
@@ -293,7 +293,7 @@ export namespace Session {
     const tokens = {
       total,
       input: adjustedInputTokens,
-      output: outputTokens,
+      output: outputTokens - reasoningTokens,
       reasoning: reasoningTokens,
       cache: {
         write: cacheWriteInputTokens,
@@ -408,11 +408,12 @@ export namespace Session {
         directory: string
         permission?: Permission.Ruleset
       }) {
+        const ctx = yield* InstanceState.context
         const result: Info = {
           id: SessionID.descending(input.id),
           slug: Slug.create(),
           version: Installation.VERSION,
-          projectID: Instance.project.id,
+          projectID: ctx.project.id,
           directory: input.directory,
           workspaceID: input.workspaceID,
           parentID: input.parentID,
@@ -464,12 +465,12 @@ export namespace Session {
       })
 
       const children = Effect.fn("Session.children")(function* (parentID: SessionID) {
-        const project = Instance.project
+        const ctx = yield* InstanceState.context
         const rows = yield* db((d) =>
           d
             .select()
             .from(SessionTable)
-            .where(and(eq(SessionTable.project_id, project.id), eq(SessionTable.parent_id, parentID)))
+            .where(and(eq(SessionTable.project_id, ctx.project.id), eq(SessionTable.parent_id, parentID)))
             .all(),
         )
         return rows.map(fromRow)
@@ -534,9 +535,10 @@ export namespace Session {
         platform?: string // kilocode_change - per-session platform override for telemetry attribution
         workspaceID?: WorkspaceID
       }) {
+        const directory = yield* InstanceState.directory
         const session = yield* createNext({
           parentID: input?.parentID,
-          directory: Instance.directory,
+          directory,
           title: input?.title,
           permission: input?.permission,
           workspaceID: input?.workspaceID,
@@ -550,10 +552,11 @@ export namespace Session {
       })
 
       const fork = Effect.fn("Session.fork")(function* (input: { sessionID: SessionID; messageID?: MessageID }) {
+        const directory = yield* InstanceState.directory
         const original = yield* get(input.sessionID)
         const title = getForkedTitle(original.title)
         const session = yield* createNext({
-          directory: Instance.directory,
+          directory,
           workspaceID: original.workspaceID,
           title,
         })
@@ -633,15 +636,10 @@ export namespace Session {
       })
 
       const messages = Effect.fn("Session.messages")(function* (input: { sessionID: SessionID; limit?: number }) {
-        return yield* Effect.promise(async () => {
-          const result = [] as MessageV2.WithParts[]
-          for await (const msg of MessageV2.stream(input.sessionID)) {
-            if (input.limit && result.length >= input.limit) break
-            result.push(msg)
-          }
-          result.reverse()
-          return result
-        })
+        if (input.limit) {
+          return MessageV2.page({ sessionID: input.sessionID, limit: input.limit }).items
+        }
+        return Array.from(MessageV2.stream(input.sessionID)).reverse()
       })
 
       const removeMessage = Effect.fn("Session.removeMessage")(function* (input: {
@@ -791,15 +789,10 @@ export namespace Session {
     limit?: number
   }) {
     const project = Instance.project
-    const conditions = [eq(SessionTable.project_id, project.id)]
+    const conditions = KiloSession.filters({ projectID: project.id, directory: input?.directory }) // kilocode_change
 
     if (input?.workspaceID) {
       conditions.push(eq(SessionTable.workspace_id, input.workspaceID))
-    }
-    if (input?.directory) {
-      // kilocode_change start: vscode uri.fsPath gives lowercase drive letter on Windows; resolve() canonicalises to match stored path
-      conditions.push(eq(SessionTable.directory, Filesystem.resolve(input.directory)))
-      // kilocode_change end
     }
     if (input?.roots) {
       conditions.push(isNull(SessionTable.parent_id))

@@ -44,11 +44,13 @@ import { getBusySessionCount, seedSessionStatuses } from "./session-status"
 import { retry } from "./services/cli-backend/retry"
 import { slimPart, slimParts } from "./kilo-provider/slim-metadata"
 import { handleContinueInWorktree } from "./kilo-provider/continue-worktree"
-import { parseMessageFiles } from "./kilo-provider/message-files"
+import { parseMessageFiles, type MessageFile } from "./kilo-provider/message-files"
+import { getTerminalContents } from "./services/terminal/context"
 import { matchFollowup, recordFollowup, type Followup } from "./kilo-provider/followup-session"
 import { childID } from "./kilo-provider/task-session"
 import { handleNetworkEvent, clearNetworkWaits } from "./kilo-provider/network"
 import { retryable, backoff, MAX_RETRIES } from "./util/retry"
+import { hasGit } from "./kilo-provider/git-status"
 // legacy-migration start
 import {
   checkAndShowMigrationWizard,
@@ -115,6 +117,7 @@ const mapAgent = (a: Agent) => ({
   color: a.color,
   deprecated: a.deprecated,
   permission: a.permission,
+  model: a.model,
 })
 
 export class KiloProvider implements vscode.WebviewViewProvider, TelemetryPropertiesProvider {
@@ -200,6 +203,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private statsPoller: GitStatsPoller | null = null
   private statsGitOps: GitOps | null = null
   private cachedStats: unknown = null
+  private cachedGitRepo = false
 
   /** Optional interceptor called before the standard message handler.
    *  Return null to consume the message, or return a (possibly transformed) message. */
@@ -341,8 +345,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         data: profileData,
       })
 
-      // Re-send cached worktree stats so the badge renders immediately after webview reload.
+      // Re-send cached worktree stats and git status after webview reload.
       if (this.cachedStats) this.postMessage(this.cachedStats)
+      this.postMessage({ type: "gitStatus", repo: this.cachedGitRepo })
 
       // Seed session status map so the Settings panel knows about already-running sessions.
       // Must run after webview is ready (postMessage is a no-op before that).
@@ -391,7 +396,10 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.visibilityDisposable?.dispose()
     this.visibilityDisposable = webviewView.onDidChangeVisibility(() => {
       vscode.commands.executeCommand("setContext", "kilo-code.new.sidebarVisible", webviewView.visible)
-      this.statsPoller?.setEnabled(webviewView.visible)
+      if (this.statsPoller) {
+        this.statsPoller.setEnabled(webviewView.visible)
+        this.statsPoller.setVisible(webviewView.visible)
+      }
       this.focusSession(webviewView.visible ? this.currentSession?.id : undefined)
     })
     this.initializeConnection()
@@ -820,14 +828,11 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
           }
           break
         }
+        case "requestTerminalContext":
+          void this.handleTerminalContext(message.requestId)
+          break
         case "chatCompletionAccepted":
           this.chatAutocomplete?.telemetry.captureAcceptSuggestion(message.suggestionLength)
-          break
-        case "deleteSession":
-          await this.handleDeleteSession(message.sessionID)
-          break
-        case "renameSession":
-          await this.handleRenameSession(message.sessionID, message.title)
           break
         case "toggleRemote":
         case "setRemoteEnabled":
@@ -838,6 +843,12 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
               if (s) this.sendRemoteStatus()
             })
             .catch((err) => console.error("[Kilo New] remote message failed:", err))
+          break
+        case "deleteSession":
+          await this.handleDeleteSession(message.sessionID)
+          break
+        case "renameSession":
+          await this.handleRenameSession(message.sessionID, message.title)
           break
         case "updateSetting":
           await this.handleUpdateSetting(message.key, message.value)
@@ -1202,12 +1213,13 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         this.fetchAndSendNotifications(),
         this.seedSessionStatusMap(),
       ])
+      this.cachedGitRepo = await hasGit(this.client!, this.getWorkspaceDirectory())
+      this.postMessage({ type: "gitStatus", repo: this.cachedGitRepo })
       this.sendNotificationSettings()
       this.sendTimelineSetting()
       this.postMessage({ type: "extensionDataReady" })
 
-      // Start polling worktree diff stats for the sidebar badge
-      this.startStatsPolling()
+      if (this.cachedGitRepo) this.startStatsPolling()
 
       console.log("[Kilo New] KiloProvider: ✅ initializeConnection completed successfully")
     } catch (error) {
@@ -1471,6 +1483,25 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       })
     }
     this.pendingSessionRefresh = ctx.pendingSessionRefresh
+  }
+
+  private async handleTerminalContext(requestId: string): Promise<void> {
+    try {
+      const output = await getTerminalContents(-1)
+      this.postMessage({
+        type: "terminalContextResult",
+        requestId,
+        content: output.content,
+        truncated: output.truncated,
+      })
+    } catch (error) {
+      console.error("[Kilo New] Failed to capture terminal context:", error)
+      this.postMessage({
+        type: "terminalContextError",
+        requestId,
+        error: getErrorMessage(error) || "Failed to capture terminal output",
+      })
+    }
   }
 
   /**
@@ -2379,7 +2410,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     modelID?: string,
     agent?: string,
     variant?: string,
-    files?: Array<{ mime: string; url: string }>,
+    files?: MessageFile[],
   ): Promise<void> {
     if (!this.client) {
       this.postMessage({
@@ -2401,7 +2432,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       const parts: Array<TextPartInput | FilePartInput> = []
       if (files) {
         for (const f of files) {
-          parts.push({ type: "file", mime: f.mime, url: f.url })
+          parts.push({ type: "file", mime: f.mime, url: f.url, filename: f.filename, source: f.source })
         }
       }
       parts.push({ type: "text", text })
@@ -2455,7 +2486,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     modelID?: string,
     agent?: string,
     variant?: string,
-    files?: Array<{ mime: string; url: string }>,
+    files?: MessageFile[],
   ): Promise<void> {
     if (!this.client) {
       this.postMessage({
@@ -2478,7 +2509,13 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         this.connectionService.recordMessageSessionId(messageID, resolved!.sid)
       }
 
-      const parts = files?.map((f) => ({ type: "file" as const, mime: f.mime, url: f.url }))
+      const parts = files?.map((f) => ({
+        type: "file" as const,
+        mime: f.mime,
+        url: f.url,
+        filename: f.filename,
+        source: f.source,
+      }))
 
       const sid = resolved!.sid
       const dir = resolved!.dir
@@ -3261,8 +3298,10 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         this.postMessage(msg)
       },
       log: () => {},
+      hiddenIntervalMs: 60000,
     })
     this.statsPoller.setEnabled(true)
+    this.statsPoller.setVisible(true)
   }
 
   /**

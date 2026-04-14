@@ -560,20 +560,18 @@ export namespace MessageV2 {
 
   export function stripMessageMetadata(info: Info): Info {
     // kilocode_change - exported for testing
-    // Strip summary.diffs patch content from user messages (can be 20+ MB)
+    // Strip oversized summary.diffs patches from user messages to limit SSE payload.
+    // Small patches are preserved so the UI can render inline diffs.
     if (info.role !== "user") return info
     const user = info as User
     if (!user.summary?.diffs?.length) return info
-    const has = user.summary.diffs.some((d: Snapshot.FileDiff) => d.patch)
-    if (!has) return info
+    const oversized = (d: Snapshot.FileDiff) => d.patch && Buffer.byteLength(d.patch) > Snapshot.MAX_DIFF_SIZE
+    if (!user.summary.diffs.some(oversized)) return info
     return {
       ...user,
       summary: {
         ...user.summary,
-        diffs: user.summary.diffs.map(({ patch: _, ...rest }: Snapshot.FileDiff) => ({
-          ...rest,
-          patch: "",
-        })),
+        diffs: user.summary.diffs.map((d: Snapshot.FileDiff) => (oversized(d) ? { ...d, patch: "" } : d)),
       },
     } as Info
   }

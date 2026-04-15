@@ -92,7 +92,7 @@ function createFetch(log: Hit[]) {
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const req = new Request(input, init)
       const url = new URL(req.url)
-      const workspace = url.searchParams.get("workspace") ?? req.headers.get("x-opencode-workspace") ?? undefined
+      const workspace = url.searchParams.get("workspace") ?? req.headers.get("x-kilo-workspace") ?? undefined
       log.push({
         path: url.pathname,
         workspace,

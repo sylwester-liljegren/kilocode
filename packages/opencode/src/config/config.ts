@@ -69,7 +69,7 @@ export namespace Config {
   }
 
   export function managedConfigDir() {
-    return process.env.OPENCODE_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
+    return process.env.KILO_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
   }
 
   const managedDir = managedConfigDir()
@@ -1286,7 +1286,7 @@ export namespace Config {
           Effect.catch(() => Effect.succeed({} satisfies Package)),
           Effect.map((x): Package => (isRecord(x) ? (x as Package) : {})),
         )
-        const hasDep = json.dependencies?.["@opencode-ai/plugin"] === target
+        const hasDep = json.dependencies?.["@kilocode/plugin"] === target
         const hasIgnore = yield* fs.existsSafe(gitignore)
         const hasPkg = yield* fs.existsSafe(plugin)
 
@@ -1295,7 +1295,7 @@ export namespace Config {
             ...json,
             dependencies: {
               ...json.dependencies,
-              "@opencode-ai/plugin": target,
+              "@kilocode/plugin": target,
             },
           })
         }
@@ -1354,7 +1354,7 @@ export namespace Config {
 
         const scope = Effect.fnUntraced(function* (source: string) {
           if (source.startsWith("http://") || source.startsWith("https://")) return "global"
-          if (source === "OPENCODE_CONFIG_CONTENT") return "local"
+          if (source === "KILO_CONFIG_CONTENT") return "local"
           if (yield* InstanceRef.use((ctx) => Effect.succeed(Instance.containsPath(source, ctx)))) return "local"
           return "global"
         })
@@ -1400,12 +1400,12 @@ export namespace Config {
         const global = yield* getGlobal()
         yield* merge(Global.Path.config, global, "global")
 
-        if (Flag.OPENCODE_CONFIG) {
-          yield* merge(Flag.OPENCODE_CONFIG, yield* loadFile(Flag.OPENCODE_CONFIG))
-          log.debug("loaded custom config", { path: Flag.OPENCODE_CONFIG })
+        if (Flag.KILO_CONFIG) {
+          yield* merge(Flag.KILO_CONFIG, yield* loadFile(Flag.KILO_CONFIG))
+          log.debug("loaded custom config", { path: Flag.KILO_CONFIG })
         }
 
-        if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
+        if (!Flag.KILO_DISABLE_PROJECT_CONFIG) {
           for (const file of yield* Effect.promise(() =>
             ConfigPaths.projectFiles("opencode", ctx.directory, ctx.worktree),
           )) {
@@ -1419,14 +1419,14 @@ export namespace Config {
 
         const directories = yield* Effect.promise(() => ConfigPaths.directories(ctx.directory, ctx.worktree))
 
-        if (Flag.OPENCODE_CONFIG_DIR) {
-          log.debug("loading config from OPENCODE_CONFIG_DIR", { path: Flag.OPENCODE_CONFIG_DIR })
+        if (Flag.KILO_CONFIG_DIR) {
+          log.debug("loading config from KILO_CONFIG_DIR", { path: Flag.KILO_CONFIG_DIR })
         }
 
         const deps: Fiber.Fiber<void, never>[] = []
 
         for (const dir of unique(directories)) {
-          if (dir.endsWith(".opencode") || dir === Flag.OPENCODE_CONFIG_DIR) {
+          if (dir.endsWith(".opencode") || dir === Flag.KILO_CONFIG_DIR) {
             for (const file of ["opencode.json", "opencode.jsonc"]) {
               const source = path.join(dir, file)
               log.debug(`loading config from ${source}`)
@@ -1458,14 +1458,14 @@ export namespace Config {
           yield* track(dir, list)
         }
 
-        if (process.env.OPENCODE_CONFIG_CONTENT) {
-          const source = "OPENCODE_CONFIG_CONTENT"
-          const next = yield* loadConfig(process.env.OPENCODE_CONFIG_CONTENT, {
+        if (process.env.KILO_CONFIG_CONTENT) {
+          const source = "KILO_CONFIG_CONTENT"
+          const next = yield* loadConfig(process.env.KILO_CONFIG_CONTENT, {
             dir: ctx.directory,
             source,
           })
           yield* merge(source, next, "local")
-          log.debug("loaded custom config from OPENCODE_CONFIG_CONTENT")
+          log.debug("loaded custom config from KILO_CONFIG_CONTENT")
         }
 
         const activeOrg = Option.getOrUndefined(
@@ -1478,8 +1478,8 @@ export namespace Config {
               { concurrency: 2 },
             )
             if (Option.isSome(tokenOpt)) {
-              process.env["OPENCODE_CONSOLE_TOKEN"] = tokenOpt.value
-              yield* env.set("OPENCODE_CONSOLE_TOKEN", tokenOpt.value)
+              process.env["KILO_CONSOLE_TOKEN"] = tokenOpt.value
+              yield* env.set("KILO_CONSOLE_TOKEN", tokenOpt.value)
             }
 
             activeOrgName = activeOrg.org.name
@@ -1524,8 +1524,8 @@ export namespace Config {
           })
         }
 
-        if (Flag.OPENCODE_PERMISSION) {
-          result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.OPENCODE_PERMISSION))
+        if (Flag.KILO_PERMISSION) {
+          result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.KILO_PERMISSION))
         }
 
         if (result.tools) {
@@ -1547,10 +1547,10 @@ export namespace Config {
           result.share = "auto"
         }
 
-        if (Flag.OPENCODE_DISABLE_AUTOCOMPACT) {
+        if (Flag.KILO_DISABLE_AUTOCOMPACT) {
           result.compaction = { ...result.compaction, auto: false }
         }
-        if (Flag.OPENCODE_DISABLE_PRUNE) {
+        if (Flag.KILO_DISABLE_PRUNE) {
           result.compaction = { ...result.compaction, prune: false }
         }
 

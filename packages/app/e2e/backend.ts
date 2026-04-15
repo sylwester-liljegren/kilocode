@@ -74,16 +74,16 @@ export async function startBackend(label: string, input?: { llmUrl?: string }): 
   const opencodeDir = path.join(repoDir, "packages", "opencode")
   const env = {
     ...process.env,
-    OPENCODE_DISABLE_LSP_DOWNLOAD: "true",
-    OPENCODE_DISABLE_DEFAULT_PLUGINS: "true",
-    OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: "true",
-    OPENCODE_TEST_HOME: path.join(sandbox, "home"),
+    KILO_DISABLE_LSP_DOWNLOAD: "true",
+    KILO_DISABLE_DEFAULT_PLUGINS: "true",
+    KILO_EXPERIMENTAL_DISABLE_FILEWATCHER: "true",
+    KILO_TEST_HOME: path.join(sandbox, "home"),
     XDG_DATA_HOME: path.join(sandbox, "share"),
     XDG_CACHE_HOME: path.join(sandbox, "cache"),
     XDG_CONFIG_HOME: path.join(sandbox, "config"),
     XDG_STATE_HOME: path.join(sandbox, "state"),
-    OPENCODE_CLIENT: "app",
-    OPENCODE_STRICT_CONFIG_DEPS: "true",
+    KILO_CLIENT: "app",
+    KILO_STRICT_CONFIG_DEPS: "true",
     OPENCODE_E2E_LLM_URL: input?.llmUrl,
   } satisfies Record<string, string | undefined>
   const out: string[] = []

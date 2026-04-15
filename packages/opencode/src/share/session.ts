@@ -42,7 +42,7 @@ export namespace SessionShare {
         const result = yield* session.create(input)
         if (result.parentID) return result
         const conf = yield* cfg.get()
-        if (!(Flag.OPENCODE_AUTO_SHARE || conf.share === "auto")) return result
+        if (!(Flag.KILO_AUTO_SHARE || conf.share === "auto")) return result
         yield* share(result.id).pipe(Effect.ignore, Effect.forkIn(scope))
         return result
       })

@@ -9,7 +9,7 @@ import { Global } from "../../src/global"
 import { Filesystem } from "../../src/util/filesystem"
 import { AppRuntime } from "../../src/effect/app-runtime"
 
-const managedConfigDir = process.env.OPENCODE_TEST_MANAGED_CONFIG_DIR!
+const managedConfigDir = process.env.KILO_TEST_MANAGED_CONFIG_DIR!
 const wintest = process.platform === "win32" ? test : test.skip
 const clear = (wait = false) => AppRuntime.runPromise(Config.Service.use((svc) => svc.invalidate(wait)))
 const load = () => AppRuntime.runPromise(Config.Service.use((svc) => svc.get()))
@@ -19,8 +19,8 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  delete process.env.OPENCODE_CONFIG
-  delete process.env.OPENCODE_TUI_CONFIG
+  delete process.env.KILO_CONFIG
+  delete process.env.KILO_TUI_CONFIG
   await fs.rm(path.join(Global.Path.config, "opencode.json"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "opencode.jsonc"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "tui.json"), { force: true }).catch(() => {})
@@ -405,13 +405,13 @@ test("top-level keys in tui.json take precedence over nested tui key", async () 
   })
 })
 
-test("project config takes precedence over OPENCODE_TUI_CONFIG (matches OPENCODE_CONFIG)", async () => {
+test("project config takes precedence over KILO_TUI_CONFIG (matches KILO_CONFIG)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(path.join(dir, "tui.json"), JSON.stringify({ theme: "project", diff_style: "auto" }))
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "custom", diff_style: "stacked" }))
-      process.env.OPENCODE_TUI_CONFIG = custom
+      process.env.KILO_TUI_CONFIG = custom
     },
   })
 
@@ -492,12 +492,12 @@ wintest("ignores terminal suspend bindings on Windows", async () => {
   })
 })
 
-test("OPENCODE_TUI_CONFIG provides settings when no project config exists", async () => {
+test("KILO_TUI_CONFIG provides settings when no project config exists", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "from-env", diff_style: "stacked" }))
-      process.env.OPENCODE_TUI_CONFIG = custom
+      process.env.KILO_TUI_CONFIG = custom
     },
   })
 
@@ -511,14 +511,14 @@ test("OPENCODE_TUI_CONFIG provides settings when no project config exists", asyn
   })
 })
 
-test("does not derive tui path from OPENCODE_CONFIG", async () => {
+test("does not derive tui path from KILO_CONFIG", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const customDir = path.join(dir, "custom")
       await fs.mkdir(customDir, { recursive: true })
       await Bun.write(path.join(customDir, "opencode.json"), JSON.stringify({ model: "test/model" }))
       await Bun.write(path.join(customDir, "tui.json"), JSON.stringify({ theme: "should-not-load" }))
-      process.env.OPENCODE_CONFIG = path.join(customDir, "opencode.json")
+      process.env.KILO_CONFIG = path.join(customDir, "opencode.json")
     },
   })
 

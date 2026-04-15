@@ -22,7 +22,7 @@ describe("experimental question httpapi", () => {
     const app = Server.Default().app
     const headers = {
       "content-type": "application/json",
-      "x-opencode-directory": tmp.path,
+      "x-kilo-directory": tmp.path,
     }
     const questions: ReadonlyArray<Question.Info> = [
       {

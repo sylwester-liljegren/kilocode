@@ -47,12 +47,12 @@ test("code agent has correct default properties", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await load(tmp.path, (svc) => svc.get("build"))
-      expect(build).toBeDefined()
-      expect(build?.mode).toBe("primary")
-      expect(build?.native).toBe(true)
-      expect(evalPerm(build, "edit")).toBe("allow")
-      expect(evalPerm(build, "bash")).toBe("allow")
+      const code = await load(tmp.path, (svc) => svc.get("code"))
+      expect(code).toBeDefined()
+      expect(code?.mode).toBe("primary")
+      expect(code?.native).toBe(true)
+      expect(evalPerm(code, "edit")).toBe("allow")
+      expect(evalPerm(code, "bash")).toBe("ask") // kilocode_change - safe-bash default is ask
     },
   })
 })
@@ -249,7 +249,7 @@ test("custom agent config overrides native agent properties", async () => {
       expect(code).toBeDefined()
       expect(String(code?.model?.providerID)).toBe("anthropic")
       expect(String(code?.model?.modelID)).toBe("claude-3")
-      expect(code?.description).toBe("Custom build agent")
+      expect(code?.description).toBe("Custom code agent")
       expect(code?.temperature).toBe(0.7)
       expect(code?.color).toBe("#FF0000")
       expect(code?.native).toBe(true)
@@ -381,7 +381,7 @@ test("agent name can be overridden", async () => {
     fn: async () => {
       // kilocode_change start - renamed from "build" to "code"
       const code = await load(tmp.path, (svc) => svc.get("code"))
-      expect(code?.name).toBe("Builder")
+      expect(code?.name).toBe("Coder")
       // kilocode_change end
     },
   })

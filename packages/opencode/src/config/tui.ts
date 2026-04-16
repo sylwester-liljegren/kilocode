@@ -111,10 +111,16 @@ export namespace TuiConfig {
       await mergeFile(acc, file, ctx)
     }
 
-    const dirs = unique(directories).filter((dir) => dir.endsWith(".opencode") || dir === Flag.KILO_CONFIG_DIR)
+    // kilocode_change - also load tui.json from .kilo/.kilocode
+    const dirs = unique(directories).filter(
+      (dir) =>
+        dir.endsWith(".kilo") ||
+        dir.endsWith(".kilocode") ||
+        dir.endsWith(".opencode") ||
+        dir === Flag.KILO_CONFIG_DIR,
+    )
 
     for (const dir of dirs) {
-      if (!dir.endsWith(".kilo") && !dir.endsWith(".opencode") && dir !== Flag.KILO_CONFIG_DIR) continue // kilocode_change
       for (const file of ConfigPaths.fileInDirectory(dir, "tui")) {
         await mergeFile(acc, file, ctx)
       }

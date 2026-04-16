@@ -53,7 +53,7 @@ async function defaultModel() {
 
 function paid(providers: Awaited<ReturnType<typeof list>>) {
   const item = providers[ProviderID.make("opencode")]
-  expect(item).toBeDefined()
+  if (!item) return 0 // kilocode_change - Kilo drops opencode provider without apiKey/auth
   return Object.values(item.models).filter((model) => model.cost.input > 0).length
 }
 

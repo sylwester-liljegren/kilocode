@@ -437,8 +437,10 @@ test("validates config schema and reports warning on invalid fields", async () =
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      // Strict schema should throw an error for invalid fields
-      await expect(load()).rejects.toThrow()
+      // kilocode_change - invalid schema surfaces as warnings, not a throw
+      await load()
+      const warnings = await Config.warnings()
+      expect(warnings.length).toBeGreaterThan(0)
     },
   })
 })
@@ -452,7 +454,10 @@ test("reports warning for invalid JSON", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      await expect(load()).rejects.toThrow()
+      // kilocode_change - invalid JSON surfaces as a warning, not a throw
+      await load()
+      const warnings = await Config.warnings()
+      expect(warnings.length).toBeGreaterThan(0)
     },
   })
 })

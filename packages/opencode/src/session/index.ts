@@ -498,7 +498,15 @@ export namespace Session {
             Effect.catchCause(() => Effect.succeed(false)),
           )
 
-          yield* Effect.promise(() => KiloSession.cleanup(sessionID)).pipe(Effect.ignore) // kilocode_change
+          // kilocode_change start
+          yield* Effect.promise(() => KiloSession.removeSession(sessionID)).pipe(Effect.ignore)
+          KiloSession.clearPlatformOverride(sessionID)
+          if (hasInstance) {
+            void Promise.all([import("@/effect/app-runtime"), import("./run-state")]).then(([app, run]) =>
+              app.AppRuntime.runPromise(run.SessionRunState.Service.use((svc) => svc.cancel(sessionID))).catch(() => {}),
+            )
+          }
+          // kilocode_change end
           yield* Effect.sync(() => {
             SyncEvent.run(Event.Deleted, { sessionID, info: session }, { publish: hasInstance })
             SyncEvent.remove(sessionID)

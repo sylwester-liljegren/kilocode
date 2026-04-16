@@ -7,6 +7,7 @@ import { ExitProvider } from "../../../src/cli/cmd/tui/context/exit"
 import { ProjectProvider, useProject } from "../../../src/cli/cmd/tui/context/project"
 import { SDKProvider } from "../../../src/cli/cmd/tui/context/sdk"
 import { SyncProvider, useSync } from "../../../src/cli/cmd/tui/context/sync"
+import { ToastProvider } from "../../../src/cli/cmd/tui/ui/toast" // kilocode_change - SyncProvider calls useToast
 
 const sighup = new Set(process.listeners("SIGHUP"))
 
@@ -191,15 +192,17 @@ async function mount(log: Hit[]) {
       <ArgsProvider continue={false}>
         <ExitProvider>
           <ProjectProvider>
-            <SyncProvider>
-              <Probe
-                onReady={(ctx) => {
-                  project = ctx.project
-                  sync = ctx.sync
-                  done()
-                }}
-              />
-            </SyncProvider>
+            <ToastProvider>
+              <SyncProvider>
+                <Probe
+                  onReady={(ctx) => {
+                    project = ctx.project
+                    sync = ctx.sync
+                    done()
+                  }}
+                />
+              </SyncProvider>
+            </ToastProvider>
           </ProjectProvider>
         </ExitProvider>
       </ArgsProvider>

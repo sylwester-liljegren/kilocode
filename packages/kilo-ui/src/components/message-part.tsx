@@ -1026,6 +1026,7 @@ function ToolFileAccordion(props: { path: string; actions?: JSX.Element; childre
 // GenericTool (upstream) does not render output; this override does.
 // When hideDetails is true, render as a row (no content), otherwise as a panel with markdown output.
 function McpTool(props: ToolProps) {
+  const i18n = useI18n()
   const labelKeys = ["description", "query", "url", "filePath", "path", "pattern", "name"]
   const skipKeys = new Set(labelKeys)
 
@@ -1085,7 +1086,7 @@ function McpTool(props: ToolProps) {
         <Show when={formatted()}>
           {(text) => (
             <>
-              <div data-slot="mcp-section-label">Input</div>
+              <div data-slot="mcp-section-label">{i18n.t("ui.messagePart.mcp.input")}</div>
               <div data-component="tool-output" data-scrollable>
                 <Markdown text={text()} />
               </div>
@@ -1098,7 +1099,7 @@ function McpTool(props: ToolProps) {
               <Show when={formatted()}>
                 <div data-slot="mcp-tool-divider" />
               </Show>
-              <div data-slot="mcp-section-label">Output</div>
+              <div data-slot="mcp-section-label">{i18n.t("ui.messagePart.mcp.output")}</div>
               <div data-component="tool-output" data-scrollable>
                 <Markdown text={text()} />
               </div>

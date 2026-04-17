@@ -1291,11 +1291,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           }
 
           if (input.noReply === true) return message
-          // kilocode_change start — dismiss pending suggestions and cancel the session
-          // before enqueuing new work so the previous loop can settle instead of
-          // staying blocked on a pending suggestion
+          // kilocode_change start — dismiss pending suggestions so a previous loop
+          // blocked on a suggestion can settle before the queue runs the next prompt
           yield* Effect.promise(() => Suggestion.dismissAll(input.sessionID))
-          yield* state.cancel(input.sessionID)
           // kilocode_change end
           return yield* KiloSessionPromptQueue.enqueue(
             input.sessionID,

@@ -655,6 +655,12 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
             return `<code>${escaped}</code>`
           },
           code({ text, lang }) {
+            // kilocode_change: render mermaid blocks as placeholder divs so the
+            // markdown deferred phase can mount MermaidBlock Solid.js islands.
+            if (lang === "mermaid") {
+              const encoded = encodeURIComponent(text)
+              return `<div class="mermaid-container" data-mermaid-code="${encoded}"></div>`
+            }
             const escaped = text
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")

@@ -1498,9 +1498,12 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
     <Show when={text()}>
       <div data-component="text-part">
         <div data-slot="text-part-body">
-          <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
-            <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
-          </Show>
+          {/* kilocode_change: always use PacedMarkdown so the same Markdown instance
+              survives the streaming→complete transition. The Show pattern destroys and
+              recreates the component, wiping any mounted Solid.js islands (e.g. mermaid).
+              PacedMarkdown with live()=false immediately syncs the full text, matching
+              the former Markdown fallback behaviour exactly. */}
+          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
         </div>
         <Show when={showCopy()}>
           <div data-slot="text-part-copy-wrapper" data-interrupted={interrupted() ? "" : undefined}>
@@ -1540,9 +1543,8 @@ PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
   return (
     <Show when={text()}>
       <div data-component="reasoning-part">
-        <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
-          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
-        </Show>
+        {/* kilocode_change: same fix as text-part — always use PacedMarkdown */}
+        <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
       </div>
     </Show>
   )

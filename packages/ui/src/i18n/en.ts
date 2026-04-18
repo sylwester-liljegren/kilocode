@@ -169,4 +169,21 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Select all answers that apply",
   "ui.question.singleHint": "Select one answer",
   "ui.question.custom.placeholder": "Type your answer...",
+
+  // kilocode_change start: Mermaid diagram rendering
+  "ui.mermaid.loading": "Rendering diagram...",
+  "ui.mermaid.renderError": "Diagram render error",
+  "ui.mermaid.fixSyntax": "Apply syntax fixes",
+  "ui.mermaid.fixing": "Fixing diagram...",
+  "ui.mermaid.zoom": "Zoom diagram",
+  "ui.mermaid.viewCode": "View code",
+  "ui.mermaid.copyCode": "Copy code",
+  "ui.mermaid.copyDiagram": "Copy diagram",
+  "ui.mermaid.save": "Save as PNG",
+  "ui.mermaid.close": "Close",
+  "ui.mermaid.tabDiagram": "Diagram",
+  "ui.mermaid.tabCode": "Code",
+  "ui.mermaid.zoomIn": "Zoom in",
+  "ui.mermaid.zoomOut": "Zoom out",
+  // kilocode_change end
 }

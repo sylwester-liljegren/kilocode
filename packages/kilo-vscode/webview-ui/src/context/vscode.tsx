@@ -5,6 +5,7 @@
 
 import { createContext, useContext, onCleanup, ParentComponent } from "solid-js"
 import type { VSCodeAPI, WebviewMessage, ExtensionMessage } from "../types/messages"
+import { configureMermaid } from "@opencode-ai/ui/mermaid" // kilocode_change
 
 // Get the VS Code API (only available in webview context)
 let vscodeApi: VSCodeAPI | undefined
@@ -40,6 +41,33 @@ const VSCodeContext = createContext<VSCodeContextValue>()
 export const VSCodeProvider: ParentComponent = (props) => {
   const api = getVSCodeAPI()
   const handlers = new Set<(message: ExtensionMessage) => void>()
+
+  // kilocode_change: register mermaid AI fix using the existing enhancePrompt
+  // endpoint (already in the binary) — no new backend route required.
+  configureMermaid({
+    fixSyntax: (code, error) =>
+      new Promise((resolve, reject) => {
+        const requestId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+        const text =
+          `Fix the following invalid Mermaid diagram and return ONLY the corrected Mermaid code ` +
+          `without any explanation or markdown formatting.\n\nError: ${error}\n\nCode:\n${code}`
+        let timeout: ReturnType<typeof setTimeout>
+        const listener = (event: MessageEvent) => {
+          const msg = event.data
+          if (msg?.requestId !== requestId) return
+          clearTimeout(timeout)
+          window.removeEventListener("message", listener)
+          if (msg.type === "enhancePromptResult" && msg.text) resolve(msg.text as string)
+          else reject(new Error((msg.error as string | undefined) || "Failed to fix Mermaid syntax"))
+        }
+        timeout = setTimeout(() => {
+          window.removeEventListener("message", listener)
+          reject(new Error("Mermaid fix timed out"))
+        }, 30000)
+        window.addEventListener("message", listener)
+        api.postMessage({ type: "enhancePrompt", text, requestId } as WebviewMessage)
+      }),
+  })
 
   // Listen for messages from the extension
   const messageListener = (event: MessageEvent) => {

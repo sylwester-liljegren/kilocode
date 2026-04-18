@@ -720,6 +720,15 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         case "previewImage":
           this.handlePreviewImage(message.dataUrl, message.filename)
           break
+        // kilocode_change start: Mermaid diagram image handling
+        case "openImage":
+          // Reuse preview infrastructure to open mermaid PNG in VS Code viewer
+          this.handlePreviewImage(message.text, "mermaid-diagram.png")
+          break
+        case "saveImage":
+          void this.handleSaveMermaidImage(message.dataUri)
+          break
+        // kilocode_change end
         case "openFile":
           if (message.filePath) {
             this.handleOpenFile(message.filePath, message.line, message.column)
@@ -2764,6 +2773,27 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       .then(() => clean())
       .then(open, (err) => console.error("[Kilo New] KiloProvider: Failed to preview image:", err))
   }
+
+  // kilocode_change start: Save mermaid diagram as PNG via a save dialog
+  private async handleSaveMermaidImage(dataUri: string): Promise<void> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: workspaceFolder
+        ? vscode.Uri.joinPath(workspaceFolder, "mermaid-diagram.png")
+        : undefined,
+      filters: { Images: ["png"] },
+      saveLabel: "Save Diagram",
+    })
+    if (!uri) return
+    const base64 = dataUri.replace(/^data:image\/png;base64,/, "")
+    const buffer = Buffer.from(base64, "base64")
+    try {
+      await vscode.workspace.fs.writeFile(uri, buffer)
+    } catch (err) {
+      console.error("[Kilo New] KiloProvider: Failed to save mermaid image:", err)
+    }
+  }
+  // kilocode_change end
 
   /**
    * Handle openFile request from the webview — open a file in the VS Code editor.

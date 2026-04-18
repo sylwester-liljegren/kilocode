@@ -2325,6 +2325,21 @@ export interface PreviewImageRequest {
   filename: string
 }
 
+// kilocode_change start: Mermaid diagram image messages
+// Open a PNG in VS Code's built-in image viewer (webview → extension)
+export interface OpenMermaidImageRequest {
+  type: "openImage"
+  text: string
+}
+
+// Save a PNG to disk (webview → extension)
+export interface SaveMermaidImageRequest {
+  type: "saveImage"
+  dataUri: string
+}
+
+// kilocode_change end
+
 // Set default base branch (webview → extension)
 export interface SetDefaultBaseBranchRequest {
   type: "agentManager.setDefaultBaseBranch"
@@ -2628,6 +2643,8 @@ export type WebviewMessage =
   | SetRemoteEnabledMessage
   | RequestRemoteStatusMessage
   | ContinueInWorktreeRequest
+  | OpenMermaidImageRequest // kilocode_change
+  | SaveMermaidImageRequest // kilocode_change
   | CreateSectionRequest
   | RenameSectionRequest
   | DeleteSectionRequest

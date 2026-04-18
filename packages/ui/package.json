@@ -21,7 +21,8 @@
     "./icons/file-type": "./src/components/file-icons/types.ts",
     "./icons/app": "./src/components/app-icons/types.ts",
     "./fonts/*": "./src/assets/fonts/*",
-    "./audio/*": "./src/assets/audio/*"
+    "./audio/*": "./src/assets/audio/*",
+    "./mermaid": "./src/components/mermaid.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
@@ -59,6 +60,7 @@
     "katex": "0.16.27",
     "luxon": "catalog:",
     "marked": "catalog:",
+    "mermaid": "11.4.1",
     "marked-katex-extension": "5.1.6",
     "marked-shiki": "catalog:",
     "morphdom": "2.7.8",

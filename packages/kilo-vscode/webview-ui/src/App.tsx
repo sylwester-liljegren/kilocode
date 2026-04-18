@@ -32,6 +32,7 @@ import HistoryView from "./components/history/HistoryView"
 import { MigrationWizard } from "./components/migration" // legacy-migration
 import { NotificationsProvider } from "./context/notifications"
 import type { Message as SDKMessage, Part as SDKPart } from "@kilocode/sdk/v2"
+import { configureMermaid } from "@opencode-ai/ui/mermaid" // kilocode_change
 import "./styles/chat.css"
 
 type ViewType = "newTask" | "marketplace" | "history" | "profile" | "settings" | "subAgentViewer"
@@ -183,6 +184,13 @@ const AppContent: Component = () => {
   }
 
   onMount(() => {
+    // kilocode_change start: wire up VS Code API for mermaid diagram images
+    configureMermaid({
+      openImage: (dataUrl) => vscode.postMessage({ type: "openImage", text: dataUrl }),
+      saveImage: (dataUrl) => vscode.postMessage({ type: "saveImage", dataUri: dataUrl }),
+    })
+    // kilocode_change end
+
     const handler = (event: MessageEvent) => {
       const message = event.data
       if (message?.type === "action" && message.action) {

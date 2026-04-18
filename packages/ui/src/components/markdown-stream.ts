@@ -27,7 +27,12 @@ function heal(text: string) {
 }
 
 export function stream(text: string, live: boolean) {
-  if (!live) return [{ raw: text, src: text, mode: "full" }] satisfies Block[]
+  // kilocode_change: apply heal() in full mode so the parsed HTML is
+  // identical to the final live-mode render. Without this, the streaming→
+  // complete transition triggers a morphdom diff with a different src string
+  // (heal(text) vs text), which can shift element positions and destroy
+  // any Solid.js islands (e.g. mermaid) mounted inside the container.
+  if (!live) return [{ raw: text, src: heal(text), mode: "full" }] satisfies Block[]
   const src = heal(text)
   if (refs(text)) return [{ raw: text, src, mode: "live" }] satisfies Block[]
   const tokens = marked.lexer(text)

@@ -1,4 +1,5 @@
 import { useMarked, deferredHighlight, fnv1a } from "../context/marked"
+import { mountMermaidBlock } from "./mermaid-block" // kilocode_change
 import { useI18n } from "../context/i18n"
 import DOMPurify from "dompurify"
 import morphdom from "morphdom"
@@ -294,6 +295,14 @@ export function Markdown(
   const highlightState = { gen: 0, signal: { aborted: false } }
   // kilocode_change end
 
+  // kilocode_change start: track Solid.js disposers for mounted MermaidBlock islands.
+  const mermaidDisposers = new Map<HTMLElement, () => void>()
+  onCleanup(() => {
+    mermaidDisposers.forEach((dispose) => dispose())
+    mermaidDisposers.clear()
+  })
+  // kilocode_change end
+
   createEffect(() => {
     const container = root()
     const content = local.text ? (html.latest ?? html() ?? "") : ""
@@ -301,6 +310,8 @@ export function Markdown(
     if (isServer) return
 
     if (!content) {
+      mermaidDisposers.forEach((dispose) => dispose()) // kilocode_change
+      mermaidDisposers.clear() // kilocode_change
       container.innerHTML = ""
       return
     }
@@ -315,6 +326,7 @@ export function Markdown(
     if (fast.handled) {
       copyCleanup = fast.copyCleanup
       kickHighlight(container, labels)
+      kickMermaid(container) // kilocode_change
       return
     }
     // kilocode_change end
@@ -362,13 +374,47 @@ export function Markdown(
           // the stale highlighted block with the updated plain block, which will
           // be re-highlighted on the next deferredHighlight pass.
         }
+        // kilocode_change start: preserve already-mounted MermaidBlock islands.
+        // When streaming updates the mermaid code, sync only the data attribute
+        // so the MermaidBlock's MutationObserver can pick up the change without
+        // unmounting and remounting the entire Solid.js component.
+        if (
+          fromEl instanceof HTMLElement &&
+          fromEl.getAttribute("data-mermaid-rendered") === "true" &&
+          toEl instanceof HTMLElement &&
+          toEl.classList.contains("mermaid-container")
+        ) {
+          const fromCode = fromEl.getAttribute("data-mermaid-code")
+          const toCode = toEl.getAttribute("data-mermaid-code")
+          if (fromCode !== toCode) {
+            fromEl.setAttribute("data-mermaid-code", toCode ?? "")
+          }
+          return false
+        }
+        // kilocode_change end
         return true
       },
     })
     // kilocode_change end
 
     kickHighlight(container, labels)
+    kickMermaid(container) // kilocode_change
   })
+
+  // kilocode_change start: mount Solid.js MermaidBlock islands for mermaid code blocks.
+  // Finds .mermaid-container elements that haven't been rendered yet and mounts
+  // a MermaidBlock component into each. Uses data-mermaid-rendered to track
+  // which blocks are already mounted so we don't double-mount during re-renders.
+  function kickMermaid(container: HTMLDivElement) {
+    const blocks = container.querySelectorAll<HTMLElement>(".mermaid-container:not([data-mermaid-rendered])")
+    for (const block of blocks) {
+      block.setAttribute("data-mermaid-rendered", "true")
+      const encoded = block.getAttribute("data-mermaid-code") ?? ""
+      const code = decodeURIComponent(encoded)
+      mermaidDisposers.set(block, mountMermaidBlock(block, code))
+    }
+  }
+  // kilocode_change end
 
   // kilocode_change start: progressive Shiki highlighting (issue #6221, PR #7102).
   // Parser emits plain <pre><code data-lang="..."> blocks; we upgrade them to

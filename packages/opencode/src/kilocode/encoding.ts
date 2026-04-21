@@ -88,6 +88,12 @@ export namespace Encoding {
   }
 
   export function encode(text: string, encoding: string): Buffer {
+    // iconv-lite's utf-16le/utf-16be do not emit a BOM, but UTF-16 without a
+    // BOM is unsupported in this codebase. Prepend the appropriate BOM so the
+    // next detection pass can still recognise the encoding.
+    const lower = encoding.toLowerCase()
+    if (lower === "utf-16le") return Buffer.concat([Buffer.from([0xff, 0xfe]), iconv.encode(text, encoding)])
+    if (lower === "utf-16be") return Buffer.concat([Buffer.from([0xfe, 0xff]), iconv.encode(text, encoding)])
     return iconv.encode(text, encoding)
   }
 

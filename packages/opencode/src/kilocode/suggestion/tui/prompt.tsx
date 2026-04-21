@@ -2,17 +2,12 @@
 
 import { useKeyboard } from "@opentui/solid"
 import type { SuggestionRequest } from "@kilocode/sdk/v2"
-import { createMemo, createSignal, For } from "solid-js"
+import { createMemo, createSignal, For, Show } from "solid-js"
 import { SplitBorder } from "../../../cli/cmd/tui/component/border"
 import { useKeybind } from "../../../cli/cmd/tui/context/keybind"
 import { useSDK } from "../../../cli/cmd/tui/context/sdk"
 import { tint, useTheme } from "../../../cli/cmd/tui/context/theme"
 import { useDialog } from "../../../cli/cmd/tui/ui/dialog"
-
-const dismiss = {
-  label: "Dismiss",
-  description: "Dismiss this suggestion and continue",
-}
 
 export function SuggestPrompt(props: {
   request: SuggestionRequest
@@ -24,7 +19,7 @@ export function SuggestPrompt(props: {
   const keybind = useKeybind()
   const dialog = useDialog()
 
-  const options = createMemo(() => [...props.request.actions, dismiss])
+  const options = createMemo(() => props.request.actions)
   const [selected, setSelected] = createSignal(0)
   const [busy, setBusy] = createSignal(false)
 
@@ -54,16 +49,21 @@ export function SuggestPrompt(props: {
   }
 
   function choose(index: number) {
-    if (index >= props.request.actions.length) {
-      reject()
-      return
-    }
     accept(index)
   }
 
   useKeyboard((evt) => {
     if (dialog.stack.length > 0) return
-    if (props.nonBlocking && props.inputFocused?.()) return
+    if (evt.defaultPrevented) return
+    const suppressed = props.nonBlocking && props.inputFocused?.()
+
+    if (evt.name === "escape") {
+      evt.preventDefault()
+      reject()
+      return
+    }
+
+    if (suppressed) return
 
     const total = options().length
     const max = Math.min(total, 9)
@@ -95,7 +95,7 @@ export function SuggestPrompt(props: {
       return
     }
 
-    if (evt.name === "escape" || keybind.match("app_exit", evt)) {
+    if (keybind.match("app_exit", evt)) {
       evt.preventDefault()
       reject()
     }
@@ -119,7 +119,6 @@ export function SuggestPrompt(props: {
           <For each={options()}>
             {(opt, i) => {
               const active = () => i() === selected()
-              const muted = () => i() === props.request.actions.length
               return (
                 <box
                   onMouseOver={() => setSelected(i())}
@@ -133,7 +132,7 @@ export function SuggestPrompt(props: {
                       </text>
                     </box>
                     <box backgroundColor={active() ? theme.backgroundElement : undefined}>
-                      <text fg={active() ? theme.secondary : muted() ? theme.textMuted : theme.text}>{opt.label}</text>
+                      <text fg={active() ? theme.secondary : theme.text}>{opt.label}</text>
                     </box>
                   </box>
 
@@ -156,12 +155,23 @@ export function SuggestPrompt(props: {
         justifyContent="space-between"
       >
         <box flexDirection="row" gap={2}>
-          <text fg={theme.text}>
-            {"↑↓"} <span style={{ fg: theme.textMuted }}>select</span>
-          </text>
-          <text fg={theme.text}>
-            enter <span style={{ fg: theme.textMuted }}>choose</span>
-          </text>
+          <Show
+            when={props.nonBlocking && props.inputFocused?.()}
+            fallback={
+              <>
+                <text fg={theme.text}>
+                  {"↑↓"} <span style={{ fg: theme.textMuted }}>select</span>
+                </text>
+                <text fg={theme.text}>
+                  enter <span style={{ fg: theme.textMuted }}>choose</span>
+                </text>
+              </>
+            }
+          >
+            <text fg={theme.text}>
+              click <span style={{ fg: theme.textMuted }}>choose</span>
+            </text>
+          </Show>
           <text fg={theme.text}>
             esc <span style={{ fg: theme.textMuted }}>dismiss</span>
           </text>

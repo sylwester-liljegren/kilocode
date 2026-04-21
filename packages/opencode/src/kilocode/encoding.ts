@@ -1,4 +1,3 @@
-// kilocode_change - new file
 import { readFile, writeFile, mkdir } from "fs/promises"
 import { readFileSync } from "fs"
 import { dirname } from "path"

@@ -1,4 +1,3 @@
-// kilocode_change - new file
 // Integration tests verifying that the agent file tools (read, write, edit,
 // apply_patch) detect and preserve the original encoding of files on disk.
 // Tests exercise the real tool pipeline rather than the Encoding helper

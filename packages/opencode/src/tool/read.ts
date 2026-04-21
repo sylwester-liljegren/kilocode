@@ -2,6 +2,8 @@ import z from "zod"
 import { Effect, Scope } from "effect"
 import { open } from "fs/promises"
 import * as path from "path"
+import { Readable } from "stream" // kilocode_change
+import { createInterface } from "readline"
 import { Tool } from "./tool"
 import { AppFileSystem } from "../filesystem"
 import { LSP } from "../lsp"
@@ -233,45 +235,53 @@ export const ReadTool = Tool.define(
   }),
 )
 
-// kilocode_change start - encoding-aware file reading
+// kilocode_change start
 export async function lines(filepath: string, opts: { limit: number; offset: number }) {
   const encoded = await Encoding.read(filepath)
-  const all = encoded.text.split(/\r\n|\r|\n/)
-  // Remove trailing empty element from split when file ends with newline
-  if (all.length > 0 && all[all.length - 1] === "") all.pop()
+  const rl = createInterface({
+    input: Readable.from([encoded.text]),
+    // Note: we use the crlfDelay option to recognize all instances of CR LF
+    // ('\r\n') in file as a single line break.
+    crlfDelay: Infinity,
+  })
 
   const start = opts.offset - 1
   const raw: string[] = []
   let bytes = 0
+  let count = 0
   let cut = false
   let more = false
+  try {
+    for await (const text of rl) {
+      count += 1
+      if (count <= start) continue
 
-  for (let i = start; i < all.length; i++) {
-    if (raw.length >= opts.limit) {
-      more = true
-      break
+      if (raw.length >= opts.limit) {
+        more = true
+        continue
+      }
+
+      const line = text.length > MAX_LINE_LENGTH ? text.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX : text
+      const size = Buffer.byteLength(line, "utf-8") + (raw.length > 0 ? 1 : 0)
+      if (bytes + size > MAX_BYTES) {
+        cut = true
+        more = true
+        break
+      }
+
+      raw.push(line)
+      bytes += size
     }
-
-    const text = all[i]!
-    const line = text.length > MAX_LINE_LENGTH ? text.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX : text
-    const size = Buffer.byteLength(line, "utf-8") + (raw.length > 0 ? 1 : 0)
-    if (bytes + size > MAX_BYTES) {
-      cut = true
-      more = true
-      break
-    }
-
-    raw.push(line)
-    bytes += size
+  } finally {
+    rl.close()
   }
 
-  return { raw, count: all.length, cut, more, offset: opts.offset }
+  return { raw, count, cut, more, offset: opts.offset }
 }
 // kilocode_change end
 
 // kilocode_change start
 export async function isBinaryFile(filepath: string, fileSize: number): Promise<boolean> {
-  // kilocode_change end
   const ext = path.extname(filepath).toLowerCase()
   // binary check for common non-text extensions
   switch (ext) {
@@ -317,7 +327,6 @@ export async function isBinaryFile(filepath: string, fileSize: number): Promise<
     const result = await fh.read(bytes, 0, sampleSize, 0)
     if (result.bytesRead === 0) return false
 
-    // kilocode_change start - encoding-aware binary detection
     // If encoding detection identifies a known text encoding (including UTF-16
     // LE/BE with BOM or CJK), it's text — not binary. This prevents UTF-16
     // files with legitimate null bytes from being falsely rejected.
@@ -334,8 +343,8 @@ export async function isBinaryFile(filepath: string, fileSize: number): Promise<
     }
     // If >30% non-printable characters, consider it binary
     return nonPrintableCount / result.bytesRead > 0.3
-    // kilocode_change end
   } finally {
     await fh.close()
   }
 }
+// kilocode_change end

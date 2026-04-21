@@ -2,15 +2,8 @@
 "@kilocode/cli": minor
 ---
 
-Preserve the original text encoding when reading and editing files. The read, edit, write, and apply_patch tools now detect each file's encoding and write it back unchanged, so non-UTF-8 source trees no longer get corrupted when the agent touches them.
+Detect and preserve the original text encoding of files when the agent reads or edits them. Source trees in Japanese, Chinese, Korean, Cyrillic, or Western European encodings no longer get mangled when Kilo touches them, and non-UTF-8 files are displayed correctly to the model instead of as garbled text.
 
-Supported:
+Supported: UTF-8, UTF-16 with BOM, and common legacy Latin and CJK encodings (Shift_JIS, EUC-JP, GB2312, Big5, EUC-KR, Windows-1251, KOI8-R, ISO-8859, and others).
 
-- UTF-8
-- UTF-16 with BOM
-- Legacy Latin and CJK encodings (Shift_JIS, EUC-JP, GB2312, Big5, EUC-KR, Windows-1251, KOI8-R, ISO-8859 family, and others)
-
-Not supported:
-
-- UTF-16 without BOM
-- UTF-32
+Not supported: UTF-16 without BOM, UTF-32.

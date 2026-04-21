@@ -1,4 +1,3 @@
-// kilocode_change - new file
 import { Effect } from "effect"
 import { Encoding } from "../encoding"
 

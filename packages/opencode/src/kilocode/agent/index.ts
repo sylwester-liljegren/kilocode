@@ -1,6 +1,6 @@
 // kilocode_change - new file
 import { Permission } from "@/permission"
-import { NamedError } from "@opencode-ai/util/error"
+import { NamedError } from "@opencode-ai/shared/util/error"
 import { Glob } from "../../util/glob"
 import { Truncate } from "../../tool/truncate"
 import { Config } from "../../config/config"

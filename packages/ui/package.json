@@ -72,7 +72,6 @@
     "solid-list": "catalog:",
     "strip-ansi": "7.1.2",
     "virtua": "catalog:",
-    "@opencode-ai/util": "workspace:*",
     "@typescript/native-preview": "catalog:"
   },
   "peerDependencies": {}

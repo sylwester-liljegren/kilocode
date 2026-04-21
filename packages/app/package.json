@@ -73,7 +73,6 @@
     "tailwindcss": "catalog:",
     "virtua": "catalog:",
     "zod": "catalog:",
-    "@opencode-ai/util": "workspace:*",
     "@kilocode/kilo-ui": "workspace:*",
     "@kilocode/kilo-i18n": "workspace:*"
   },

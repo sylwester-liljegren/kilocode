@@ -182,8 +182,6 @@
     "@kilocode/kilo-gateway": "workspace:*",
     "@kilocode/kilo-telemetry": "workspace:*",
     "@morphllm/morphsdk": "0.2.166",
-    "@opencode-ai/server": "workspace:*",
-    "@opencode-ai/util": "workspace:*",
     "rotating-file-stream": "3.2.9",
     "simple-git": "3.35.2",
     "stream-chat": "9.38.0"

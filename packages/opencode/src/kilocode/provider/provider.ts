@@ -54,6 +54,7 @@ export function patchModelsDevModel(providerID: string, source: any) {
     prompt: source.prompt,
     isFree: source.isFree,
     ai_sdk_provider: source.ai_sdk_provider,
+    options: source.options ?? {},
   }
 }
 

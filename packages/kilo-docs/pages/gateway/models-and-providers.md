@@ -84,11 +84,11 @@ The mappings below reflect the current routing. The underlying models behind eac
 
 Highest performance and capability for any task. Frontier requests are sent with medium reasoning effort and medium verbosity.
 
-| Mode                                                                   | Resolved Model                |
-| ---------------------------------------------------------------------- | ----------------------------- |
-| `claw`, `plan`, `general`, `architect`, `orchestrator`, `ask`, `debug` | `anthropic/claude-opus-4.7`   |
-| `build`, `explore`, `code`                                             | `anthropic/claude-sonnet-4.6` |
-| Default (no / unknown mode)                                            | `anthropic/claude-sonnet-4.6` |
+| Mode                                                           | Resolved Model                |
+| -------------------------------------------------------------- | ----------------------------- |
+| `plan`, `general`, `architect`, `orchestrator`, `ask`, `debug` | `anthropic/claude-opus-4.7`   |
+| `build`, `explore`, `code`                                     | `anthropic/claude-sonnet-4.6` |
+| Default (no / unknown mode)                                    | `anthropic/claude-sonnet-4.6` |
 
 ### `kilo-auto/balanced`
 

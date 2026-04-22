@@ -42,7 +42,7 @@ Free models on OpenRouter appear and disappear based on promotional periods. A m
 
 **Who it's for**: Users who want the best available models and are willing to pay for them.
 
-**What it does**: Routes between the best paid models based on the task — stronger reasoning models for planning and architecture, faster models for code generation and editing. This includes the `claw` mode for agentic coding tasks. Optimizes for the best balance of capability, speed, and token efficiency.
+**What it does**: Routes between the best paid models based on the task — stronger reasoning models for planning and architecture, faster models for code generation and editing. Optimizes for the best balance of capability, speed, and token efficiency.
 
 **Pricing**: Paid. Uses credits.
 

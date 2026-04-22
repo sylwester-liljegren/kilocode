@@ -1343,6 +1343,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           // kilocode_change — cache environment details per turn (prompt caching)
           const envCache: KiloSessionPrompt.EnvCache = {}
           closeReasons.delete(sessionID) // kilocode_change
+          let compactionAttempts = 0 // kilocode_change - cap compaction attempts per turn to avoid infinite loops
           const ctx = yield* InstanceState.context
           const slog = elog.with({ sessionID })
           let structured: unknown | undefined
@@ -1424,7 +1425,13 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                 auto: task.auto,
                 overflow: task.overflow,
               })
-              if (result === "stop") break
+              // kilocode_change start - compaction.process only returns "stop" after
+              // setting ContextOverflowError on the summary message; surface as turn error
+              if (result === "stop") {
+                closeReasons.set(sessionID, "error")
+                break
+              }
+              // kilocode_change end
               continue
             }
 
@@ -1433,6 +1440,22 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               lastFinished.summary !== true &&
               (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
             ) {
+              // kilocode_change start
+              const guard = KiloSessionPrompt.guardCompactionAttempt({
+                sessionID,
+                attempts: compactionAttempts,
+                closeReasons,
+                message: lastFinished,
+              })
+              if (guard.exhausted) {
+                // lastFinished is a prior turn's assistant — record exhaustion on the
+                // message whose size tipped us past the compaction cap.
+                yield* sessions.updateMessage(lastFinished)
+                yield* bus.publish(Session.Event.Error, { sessionID, error: guard.error })
+                break
+              }
+              compactionAttempts++
+              // kilocode_change end
               yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
               continue
             }
@@ -1570,6 +1593,20 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               }
               // kilocode_change end
               if (result === "compact") {
+                // kilocode_change start
+                const guard = KiloSessionPrompt.guardCompactionAttempt({
+                  sessionID,
+                  attempts: compactionAttempts,
+                  closeReasons,
+                  message: handle.message,
+                })
+                if (guard.exhausted) {
+                  yield* sessions.updateMessage(handle.message)
+                  yield* bus.publish(Session.Event.Error, { sessionID, error: guard.error })
+                  return "break" as const
+                }
+                compactionAttempts++
+                // kilocode_change end
                 yield* compaction.create({
                   sessionID,
                   agent: lastUser.agent,

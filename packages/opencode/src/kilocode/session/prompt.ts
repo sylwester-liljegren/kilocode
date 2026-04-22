@@ -165,4 +165,37 @@ export namespace KiloSessionPrompt {
     }
     return "completed"
   }
+
+  /**
+   * Maximum number of compactions attempted within a single turn before we
+   * surface an exhaustion error. Three is enough to cover a normal overflow
+   * compaction plus a summary-self-overflow retry without spinning forever.
+   */
+  export const MAX_COMPACTION_ATTEMPTS = 3
+
+  /**
+   * Guards a compaction attempt. When the attempt count has already reached
+   * `MAX_COMPACTION_ATTEMPTS`, marks the close reason as `"error"`, attaches a
+   * `ContextOverflowError` to the assistant message (if provided), and returns
+   * `{ exhausted: true }` so callers can break out of the loop. Otherwise
+   * returns `{ exhausted: false }`.
+   */
+  export function guardCompactionAttempt(input: {
+    sessionID: string
+    attempts: number
+    closeReasons: Map<string, KiloSession.CloseReason>
+    message?: MessageV2.Assistant
+  }) {
+    if (input.attempts < MAX_COMPACTION_ATTEMPTS) return { exhausted: false as const }
+    const error = new MessageV2.ContextOverflowError({
+      message: `Compaction exhausted: context still exceeds model limits after ${MAX_COMPACTION_ATTEMPTS} attempts`,
+    }).toObject()
+    input.closeReasons.set(input.sessionID, "error")
+    if (input.message) {
+      // Preserve any pre-existing error/finish the caller already set; only fill in blanks.
+      input.message.error ??= error
+      input.message.finish ??= "error"
+    }
+    return { exhausted: true as const, error }
+  }
 }

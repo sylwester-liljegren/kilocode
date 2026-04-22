@@ -12,6 +12,7 @@ import { Config } from "../config/config"
 import { Global } from "../global"
 import { Hash } from "../util/hash"
 import { Log } from "../util/log"
+import { DiffFull } from "../kilocode/snapshot/diff-full" // kilocode_change
 
 export namespace Snapshot {
   export const Patch = z.object({
@@ -717,6 +718,30 @@ export namespace Snapshot {
                 const step = 100
                 const patch = (file: string, before: string, after: string) =>
                   formatPatch(structuredPatch(file, file, before, after, "", "", { context: Number.MAX_SAFE_INTEGER }))
+
+                // kilocode_change start — route patches through git (DiffFull.batch) instead of the
+                // JS Myers implementation. Upstream Myers loop below is kept as dead code so our
+                // diff from upstream stays minimal and future merges don't conflict.
+                for (let i = 0; i < rows.length; i += step) {
+                  const run = rows.slice(i, i + step)
+                  const patches = yield* DiffFull.batch(
+                    (cmd) => git([...quote, ...args(cmd)], { cwd: state.directory }),
+                    from,
+                    to,
+                    run.filter((r) => !r.binary).map((r) => r.file),
+                  )
+                  for (const row of run) {
+                    result.push({
+                      file: row.file,
+                      patch: row.binary ? "" : (patches.get(row.file) ?? ""),
+                      additions: row.additions,
+                      deletions: row.deletions,
+                      status: row.status,
+                    })
+                  }
+                }
+                return result
+                // kilocode_change end
 
                 for (let i = 0; i < rows.length; i += step) {
                   const run = rows.slice(i, i + step)

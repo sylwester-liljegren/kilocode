@@ -1100,7 +1100,7 @@ export function Prompt(props: PromptProps) {
 
                 const lineCount = (pastedContent.match(/\n/g)?.length ?? 0) + 1
                 if (
-                  (lineCount >= 3 || pastedContent.length > 150) &&
+                  (lineCount >= 5 || pastedContent.length > 800) && // kilocode_change #7252 delay paste summary
                   !sync.data.config.experimental?.disable_paste_summary
                 ) {
                   pasteText(pastedContent, `[Pasted ~${lineCount} lines]`)
@@ -1143,7 +1143,8 @@ export function Prompt(props: PromptProps) {
                         {/* kilocode_change start */}
                         {store.mode === "shell"
                           ? "Shell"
-                          : (local.agent.current()?.displayName ?? Locale.titlecase(local.agent.current()?.name ?? ""))}{" "}
+                          : (local.agent.current()?.displayName ??
+                            Locale.titlecase(local.agent.current()?.name ?? ""))}{" "}
                         {/* kilocode_change end */}
                       </text>
                       <Show when={store.mode === "normal"}>

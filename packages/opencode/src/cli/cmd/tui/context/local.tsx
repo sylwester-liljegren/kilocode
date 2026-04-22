@@ -413,10 +413,12 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
     // Automatically update model when agent changes
     createEffect(() => {
+      // kilocode_change start - wait for persistence load and skip when a per-agent pick already exists (#9050)
       if (!model.ready) return
       const value = agent.current()
-      if (!value) return
-      if (model.saved(value.name)) return // kilocode_change
+      if (!value) return // guard against empty agent list during org switch
+      if (model.saved(value.name)) return
+      // kilocode_change end
       if (value.model) {
         if (isModelValid(value.model))
           model.set({

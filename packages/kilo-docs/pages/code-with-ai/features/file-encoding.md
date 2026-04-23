@@ -1,55 +1,50 @@
 ---
 title: "File Encoding"
-description: "How Kilo detects and preserves file encodings when reading and editing files"
+description: "How Kilo handles text file encodings when reading and editing files"
 ---
 
-# File Encoding Preservation
+# File Encoding
 
-Kilo detects the text encoding of files before reading or editing them, so non-UTF-8 files are displayed correctly to the model and written back in their original encoding.
-
-Previously every tool assumed UTF-8. Reading a Shift_JIS or Windows-1251 file would surface garbled text to the model, and editing it would corrupt the file on disk.
-
-## How It Works
-
-1. Files are read as raw bytes.
-2. UTF-8 is tried first — if the bytes decode as valid UTF-8, the file is treated as UTF-8 (with the BOM tracked separately when present).
-3. Otherwise, [jschardet](https://github.com/aadsm/jschardet) runs a statistical analysis to identify the encoding.
-4. The detected encoding flows through `read_file`, `edit`, `write_to_file`, and `apply_patch`.
-5. On write, [iconv-lite](https://github.com/ashtuchkin/iconv-lite) re-encodes to the original encoding and restores the BOM if one was present.
-6. New files are created as UTF-8 without BOM. Detection only applies when reading or overwriting an existing file.
-
-The binary-file heuristic also skips UTF-16 BOM files, so files containing legitimate null bytes are no longer rejected as binary.
+Kilo automatically detects the text encoding of each file it reads and preserves that encoding when writing changes back. You can work with source files in any supported encoding without worrying about Kilo corrupting them or showing the model garbled text.
 
 ## Supported Encodings
 
-- UTF-8 (with or without BOM)
-- UTF-16 LE/BE **with BOM**
+- UTF-8, with or without BOM
+- UTF-16 LE and UTF-16 BE, **with a BOM**
 - Shift_JIS, EUC-JP, GB2312, Big5, EUC-KR
 - Windows-1251, KOI8-R
-- ISO-8859 family
-- Other legacy encodings recognized by jschardet
+- The ISO-8859 family
+- Other common legacy Latin and CJK encodings
+
+New files Kilo creates are always UTF-8 without a BOM. Encoding detection only runs when Kilo reads or overwrites an existing file.
 
 ## Not Supported
 
-- UTF-16 without BOM (ambiguous with other byte-oriented encodings)
-- UTF-32
+- **UTF-16 without a BOM.** The byte pattern is ambiguous and cannot be distinguished reliably from other encodings. Save the file with a BOM or convert it to UTF-8.
+- **UTF-32.** Extremely rare in practice; convert to UTF-8 if you need Kilo to work with it.
 
 {% callout type="info" %}
-Detection is statistical. Very short files, or files whose byte distribution is ambiguous, may be detected as a different encoding than the one they were saved with.
+Encoding detection is statistical. Very short files, or files whose byte patterns happen to look like a different encoding, may occasionally be misidentified. If that happens, converting the file to UTF-8 is the most reliable workaround.
 {% /callout %}
 
 ## Reporting Issues
 
-If Kilo reads a file as garbled text or writes it back in a different encoding, please open an issue at [github.com/Kilo-Org/kilocode/issues](https://github.com/Kilo-Org/kilocode/issues) and include:
+If Kilo displays a file as garbled text, or writes it back in a different encoding than it was saved in, please open an issue at [github.com/Kilo-Org/kilocode/issues](https://github.com/Kilo-Org/kilocode/issues) and include all of the following:
 
-- **A file that reproduces the issue.** Attach the actual file; don't paste its contents into the issue body, since that will change the encoding.
-- **The exact name of the encoding** the file is saved in (for example `Shift_JIS`, `windows-1251`, `UTF-16 LE with BOM`).
-- **A hash of the file** so we can verify it wasn't corrupted in transit. On macOS and Linux:
+- **A file that reproduces the issue.** Attach the actual file to the issue — do not paste its contents into the issue body, since the web form will re-encode the text.
+- **The exact name of the encoding** the file is saved in, for example `Shift_JIS`, `windows-1251`, or `UTF-16 LE with BOM`.
+- **A SHA-256 hash of the attached file** so we can confirm it wasn't corrupted when uploaded.
+
+  On macOS or Linux:
+
   ```bash
   shasum -a 256 path/to/file
   ```
+
   On Windows:
+
   ```powershell
   Get-FileHash path\to\file -Algorithm SHA256
   ```
-- **The model and provider** you were using when the issue occurred (for example `anthropic/claude-sonnet-4.5` via Kilo Gateway, or `gpt-4o` via OpenAI).
+
+- **The model and provider** you were using when the issue occurred, for example `claude-sonnet-4.5` via Kilo Gateway, or `gpt-4o` via OpenAI.

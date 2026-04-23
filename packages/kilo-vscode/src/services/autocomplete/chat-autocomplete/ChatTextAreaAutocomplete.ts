@@ -7,6 +7,7 @@ import { postprocessAutocompleteSuggestion } from "../classic-auto-complete/usel
 import { VisibleCodeTracker } from "../context/VisibleCodeTracker"
 import { FileIgnoreController } from "../shims/FileIgnoreController"
 import type { KiloConnectionService } from "../../cli-backend"
+import { DEFAULT_AUTOCOMPLETE_MODEL } from "../../../shared/autocomplete-models"
 import { finalizeChatSuggestion, buildChatPrefix } from "./chat-autocomplete-utils"
 
 interface ChatCompletionRequestMessage {
@@ -76,7 +77,7 @@ export class ChatTextAreaAutocomplete {
 
   async getCompletion(userText: string, visibleCodeContext?: VisibleCodeContext): Promise<{ suggestion: string }> {
     const cfg = vscode.workspace.getConfiguration("kilo-code.new.autocomplete")
-    this.model.setModel(cfg.get<string>("model") ?? "mistralai/codestral-2508")
+    this.model.setModel(cfg.get<string>("model") ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
     const startTime = Date.now()
 
     // Build context for telemetry

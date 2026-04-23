@@ -6,16 +6,10 @@ import { useLanguage } from "../../context/language"
 import { useSession } from "../../context/session"
 import { useVSCode } from "../../context/vscode"
 import { parseModelString } from "../../../../src/shared/provider-model"
+import { AUTOCOMPLETE_MODELS, DEFAULT_AUTOCOMPLETE_MODEL } from "../../../../src/shared/autocomplete-models"
 import { ModelSelectorBase } from "../shared/ModelSelector"
 import SettingsRow from "./SettingsRow"
 import type { ExtensionMessage } from "../../types/messages"
-
-const AUTOCOMPLETE_MODELS = [
-  { id: "mistralai/codestral-2508", label: "Codestral (Mistral AI)" },
-  { id: "inception/mercury-edit", label: "Mercury Edit (Inception)" },
-] as const
-
-type AutocompleteModelId = (typeof AUTOCOMPLETE_MODELS)[number]["id"]
 
 const ModelsTab: Component = () => {
   const { config, updateConfig } = useConfig()
@@ -23,7 +17,7 @@ const ModelsTab: Component = () => {
   const session = useSession()
   const vscode = useVSCode()
 
-  const [autocompleteModel, setAutocompleteModel] = createSignal<string>("mistralai/codestral-2508")
+  const [autocompleteModel, setAutocompleteModel] = createSignal<string>(DEFAULT_AUTOCOMPLETE_MODEL.id)
 
   const unsubscribe = vscode.onMessage((message: ExtensionMessage) => {
     if (message.type === "autocompleteSettingsLoaded") {
@@ -90,9 +84,9 @@ const ModelsTab: Component = () => {
         >
           <Select
             options={AUTOCOMPLETE_MODELS.map((m) => m.id)}
-            current={autocompleteModel() as AutocompleteModelId}
-            label={(opt: AutocompleteModelId) => AUTOCOMPLETE_MODELS.find((m) => m.id === opt)?.label ?? opt}
-            value={(opt: AutocompleteModelId) => opt}
+            current={autocompleteModel()}
+            label={(opt: string) => AUTOCOMPLETE_MODELS.find((m) => m.id === opt)?.label ?? opt}
+            value={(opt: string) => opt}
             onSelect={(opt) => {
               if (opt !== undefined) {
                 setAutocompleteModel(opt)

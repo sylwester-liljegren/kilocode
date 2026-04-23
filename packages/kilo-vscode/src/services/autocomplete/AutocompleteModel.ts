@@ -1,16 +1,10 @@
 import { ResponseMetaData } from "./types"
 import type { KiloConnectionService } from "../cli-backend"
-
-const DEFAULT_MODEL = "mistralai/codestral-2508"
-
-const MODEL_PROVIDERS: Record<string, string> = {
-  "mistralai/codestral-2508": "Mistral AI",
-  "inception/mercury-edit": "Inception",
-}
+import { DEFAULT_AUTOCOMPLETE_MODEL, getAutocompleteModel } from "../../shared/autocomplete-models"
 
 export class AutocompleteModel {
   private connectionService: KiloConnectionService | null = null
-  private currentModel: string = DEFAULT_MODEL
+  private currentModel: string = DEFAULT_AUTOCOMPLETE_MODEL.id
   public profileName: string | null = null
   public profileType: string | null = null
 
@@ -58,7 +52,7 @@ export class AutocompleteModel {
     // ends the stream. Without this, errors never reach ErrorBackoff.
     let sseError: Error | undefined
 
-    const temp = this.currentModel === "inception/mercury-edit" ? 0 : 0.2
+    const temp = getAutocompleteModel(this.currentModel).temperature
 
     const { stream } = await client.kilo.fim(
       {
@@ -104,7 +98,7 @@ export class AutocompleteModel {
   }
 
   public getProviderDisplayName(): string {
-    return MODEL_PROVIDERS[this.currentModel] ?? "Kilo Gateway"
+    return getAutocompleteModel(this.currentModel).provider
   }
 
   /**

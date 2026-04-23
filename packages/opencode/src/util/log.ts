@@ -71,7 +71,7 @@ export async function init(options: Options) {
   const stream = createStream(path.basename(logpath), {
     size: "50M",
     maxFiles: 10,
-    history: path.join(dir, ".log-history"),
+    history: ".log-history",
     path: dir,
   })
   stream.on("error", (err: Error) => {

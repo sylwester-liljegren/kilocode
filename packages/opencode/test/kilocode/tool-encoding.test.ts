@@ -223,6 +223,35 @@ describe("tool encoding preservation", () => {
         }),
       ),
     )
+
+    // Guard against double-BOM regressions: if the model ever hands back content
+    // that already starts with U+FEFF (e.g. by round-tripping literal bytes),
+    // writing it to a BOM-encoded file must still produce exactly one BOM.
+    const bomCases: Array<[string, string, Buffer]> = [
+      ["UTF-8 with BOM", UTF8_BOM, Buffer.from([0xef, 0xbb, 0xbf])],
+      ["UTF-16 LE", "utf-16le", Buffer.from([0xff, 0xfe])],
+      ["UTF-16 BE", "utf-16be", Buffer.from([0xfe, 0xff])],
+    ]
+    for (const [label, encoding, bom] of bomCases) {
+      it.live(`does not emit a double BOM for ${label} when content starts with U+FEFF`, () =>
+        provideTmpdirInstance((dir) =>
+          Effect.gen(function* () {
+            const filepath = path.join(dir, "file.txt")
+            yield* putEncoded(filepath, "hello", encoding)
+            yield* markRead(filepath)
+
+            yield* runWrite({ filePath: filepath, content: "\uFEFFgoodbye" })
+
+            const bytes = yield* loadBytes(filepath)
+            // Exactly one BOM prefix, immediately followed by encoded payload.
+            expect(bytes.subarray(0, bom.length).equals(bom)).toBe(true)
+            expect(bytes.subarray(bom.length, bom.length * 2).equals(bom)).toBe(false)
+            const decoded = yield* loadDecoded(filepath, encoding)
+            expect(decoded).toBe("goodbye")
+          }),
+        ),
+      )
+    }
   })
 
   describe("EditTool preserves existing file encoding across edits", () => {

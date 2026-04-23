@@ -109,11 +109,14 @@ export namespace Encoding {
   export function encode(text: string, encoding: string): Buffer {
     // iconv-lite's UTF codecs strip/ignore BOMs, but we support "UTF-X with BOM"
     // as a distinct variant. Prepend the BOM manually so round-tripping keeps
-    // the original byte signature intact.
-    if (encoding === UTF8_BOM) return Buffer.concat([UTF8_BOM_BYTES, iconv.encode(text, "utf-8")])
+    // the original byte signature intact. Strip a leading U+FEFF from `text`
+    // first so we never emit a double BOM when the decoded text already
+    // contains one (e.g. if a tool round-trips content verbatim).
+    const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
+    if (encoding === UTF8_BOM) return Buffer.concat([UTF8_BOM_BYTES, iconv.encode(body, "utf-8")])
     const lower = encoding.toLowerCase()
-    if (lower === "utf-16le") return Buffer.concat([Buffer.from([0xff, 0xfe]), iconv.encode(text, encoding)])
-    if (lower === "utf-16be") return Buffer.concat([Buffer.from([0xfe, 0xff]), iconv.encode(text, encoding)])
+    if (lower === "utf-16le") return Buffer.concat([Buffer.from([0xff, 0xfe]), iconv.encode(body, encoding)])
+    if (lower === "utf-16be") return Buffer.concat([Buffer.from([0xfe, 0xff]), iconv.encode(body, encoding)])
     return iconv.encode(text, encoding)
   }
 

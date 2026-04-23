@@ -1,5 +1,7 @@
 package ai.kilocode.client.session
 
+import ai.kilocode.log.ChatLogSummary
+import ai.kilocode.log.KiloLog
 import ai.kilocode.rpc.dto.ChatEventDto
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -9,7 +11,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-internal const val EVENT_FLUSH_MS = 250L
+internal const val EVENT_FLUSH_MS = 150L
 
 internal class SessionUpdateQueue(
     parent: Disposable,
@@ -17,8 +19,14 @@ internal class SessionUpdateQueue(
     private val flushMs: Long = EVENT_FLUSH_MS,
     private val fire: (List<ChatEventDto>) -> Unit,
     hold: Boolean,
+    private val sid: () -> String,
 ) : Disposable {
+    companion object {
+        private val LOG = KiloLog.create(SessionUpdateQueue::class.java)
+    }
+
     private val app = ApplicationManager.getApplication()
+    private val condenser = SessionQueueCondenser()
     private val pending = mutableListOf<ChatEventDto>()
     private val exec: ScheduledExecutorService? = if (flushMs == Long.MAX_VALUE) null else Executors.newSingleThreadScheduledExecutor()
     private var last = 0L
@@ -27,7 +35,7 @@ internal class SessionUpdateQueue(
     init {
         Disposer.register(parent, this)
         exec?.scheduleAtFixedRate(
-            { requestFlush(false) },
+            { requestFlush(false, "tick") },
             flushMs,
             flushMs,
             TimeUnit.MILLISECONDS,
@@ -36,20 +44,25 @@ internal class SessionUpdateQueue(
 
     fun enqueue(event: ChatEventDto) {
         edt {
+            LOG.debug { "${ChatLogSummary.sid(sid())} enqueue pending=${pending.size + 1}" }
             pending.add(event)
-            flushNow(false)
+            flushNow(false, "enqueue")
         }
     }
 
     fun holdFlush(hold: Boolean) {
-        edt { this.hold = hold }
+        edt {
+            LOG.debug { "${ChatLogSummary.sid(sid())} hold=$hold" }
+            this.hold = hold
+        }
     }
 
-    fun requestFlush(forced: Boolean) {
-        edt { flushNow(forced) }
+    fun requestFlush(forced: Boolean, source: String = "api") {
+        edt { flushNow(forced, source) }
     }
 
     override fun dispose() {
+        LOG.debug { "${ChatLogSummary.sid(sid())} dispose pending=${pending.size}" }
         exec?.shutdownNow()
         if (app.isDispatchThread) {
             pending.clear()
@@ -58,15 +71,19 @@ internal class SessionUpdateQueue(
         app.invokeLater { pending.clear() }
     }
 
-    private fun flushNow(forced: Boolean) {
+    private fun flushNow(forced: Boolean, source: String) {
         if (hold) return
         if (!showing()) return
         if (pending.isEmpty()) return
         val now = System.currentTimeMillis()
         if (!forced && now - last < flushMs) return
-        val batch = condense(pending.toList())
+        val before = pending.size
+        val types = pending.groupBy { it::class.simpleName }
+            .entries.joinToString(",") { (k, v) -> "$k:${v.size}" }
+        val batch = condenser.condense(pending.toList())
         pending.clear()
         last = now
+        LOG.debug { "${ChatLogSummary.sid(sid())} flush source=$source forced=$forced pending=$before condensed=${batch.size} saved=${before - batch.size} types=$types" }
         fire(batch)
     }
 
@@ -81,37 +98,4 @@ internal class SessionUpdateQueue(
     }
 }
 
-private fun condense(events: List<ChatEventDto>): List<ChatEventDto> {
-    if (events.size < 2) return events
-    val out = mutableListOf<ChatEventDto>()
-    val deltas = LinkedHashMap<String, ChatEventDto.PartDelta>()
 
-    fun drain() {
-        if (deltas.isEmpty()) return
-        out.addAll(deltas.values)
-        deltas.clear()
-    }
-
-    for (event in events) {
-        val delta = event as? ChatEventDto.PartDelta
-        val key = delta?.key()
-        if (key == null) {
-            drain()
-            out.add(event)
-            continue
-        }
-        val prev = deltas[key]
-        deltas[key] = if (prev != null) prev.merge(delta) else delta
-    }
-
-    drain()
-    return out
-}
-
-private fun ChatEventDto.PartDelta.key(): String? {
-    if (field != "text") return null
-    return "$sessionID:$messageID:$partID:$field"
-}
-
-private fun ChatEventDto.PartDelta.merge(next: ChatEventDto.PartDelta): ChatEventDto.PartDelta =
-    ChatEventDto.PartDelta(next.sessionID, next.messageID, next.partID, next.field, delta + next.delta)

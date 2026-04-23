@@ -8,9 +8,7 @@ import { Log } from "@/util"
 import { withStatics } from "@/util/schema"
 import { QuestionID } from "./schema"
 import { makeRuntime } from "@/effect/run-service" // kilocode_change
-// kilocode_change start
-import { KiloSessionPromptQueue } from "@/kilocode/session/prompt-queue"
-// kilocode_change end
+import { KiloQuestion } from "@/kilocode/question" // kilocode_change
 
 export namespace Question {
   const log = Log.create({ service: "question" })
@@ -199,13 +197,7 @@ export namespace Question {
           tool: input.tool,
         })
 
-        // kilocode_change start — auto-dismiss when a newer prompt is queued on this session,
-        // otherwise a tool that calls Question.ask after the queue event would block the run.
-        if (KiloSessionPromptQueue.hasFollowup(input.sessionID)) {
-          log.info("auto-dismissed — followup queued", { sessionID: input.sessionID })
-          return yield* Effect.fail(new RejectedError())
-        }
-        // kilocode_change end
+        yield* KiloQuestion.guardFollowup(input.sessionID, () => new RejectedError()) // kilocode_change
 
         pending.set(id, { info, deferred })
         yield* bus.publish(Event.Asked, info)
@@ -259,21 +251,12 @@ export namespace Question {
         return Array.from(pending.values(), (x) => x.info)
       })
 
-      // kilocode_change start - dismiss every pending question on a session so a new
-      // prompt can unblock an in-flight tool waiting on user input. Mirrors
-      // Suggestion.dismissAll so both read the same way at the callsite.
-      const dismissAll = Effect.fn("Question.dismissAll")(function* (sessionID: SessionID) {
-        const pending = (yield* InstanceState.get(state)).pending
-        const matches = Array.from(pending.entries()).filter(([, entry]) => entry.info.sessionID === sessionID)
-        for (const [id, entry] of matches) {
-          pending.delete(id)
-          log.info("dismissed", { requestID: id })
-          yield* bus.publish(Event.Rejected, {
-            sessionID: entry.info.sessionID,
-            requestID: entry.info.id,
-          })
-          yield* Deferred.fail(entry.deferred, new RejectedError())
-        }
+      // kilocode_change start - body lives in @/kilocode/question/KiloQuestion.makeDismissAll
+      const dismissAll = KiloQuestion.makeDismissAll({
+        state,
+        publishRejected: (entry) =>
+          bus.publish(Event.Rejected, { sessionID: entry.info.sessionID, requestID: entry.info.id }),
+        makeError: () => new RejectedError(),
       })
       // kilocode_change end
 

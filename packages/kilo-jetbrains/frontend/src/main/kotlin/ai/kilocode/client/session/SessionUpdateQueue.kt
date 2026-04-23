@@ -18,6 +18,7 @@ internal class SessionUpdateQueue(
     private val comp: Component?,
     private val flushMs: Long = EVENT_FLUSH_MS,
     private val fire: (List<ChatEventDto>) -> Unit,
+    private val condense: Boolean = true,
     hold: Boolean,
     private val sid: () -> String,
 ) : Disposable {
@@ -80,7 +81,7 @@ internal class SessionUpdateQueue(
         val before = pending.size
         val types = pending.groupBy { it::class.simpleName }
             .entries.joinToString(",") { (k, v) -> "$k:${v.size}" }
-        val batch = condenser.condense(pending.toList())
+        val batch = if (condense) condenser.condense(pending.toList()) else pending.toList()
         pending.clear()
         last = now
         LOG.debug { "${ChatLogSummary.sid(sid())} flush source=$source forced=$forced pending=$before condensed=${batch.size} saved=${before - batch.size} types=$types" }
@@ -97,5 +98,4 @@ internal class SessionUpdateQueue(
         app.invokeLater(block)
     }
 }
-
 

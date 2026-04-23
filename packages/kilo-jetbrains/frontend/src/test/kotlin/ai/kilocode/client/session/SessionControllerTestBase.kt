@@ -4,6 +4,7 @@ import ai.kilocode.client.app.KiloAppService
 import ai.kilocode.client.app.KiloSessionService
 import ai.kilocode.client.session.model.SessionModel
 import ai.kilocode.client.session.model.SessionModelEvent
+import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.testing.FakeAppRpcApi
 import ai.kilocode.client.testing.FakeWorkspaceRpcApi
 import ai.kilocode.client.testing.FakeSessionRpcApi
@@ -40,6 +41,24 @@ import kotlinx.coroutines.runBlocking
  * real frontend services wired to fake RPC backends, and shared helpers.
  */
 abstract class SessionControllerTestBase : BasePlatformTestCase() {
+
+    protected data class Snapshot(
+        val body: String,
+        val turns: String,
+        val state: SessionState,
+        val diff: List<ai.kilocode.rpc.dto.DiffFileDto>,
+        val todos: List<ai.kilocode.rpc.dto.TodoDto>,
+        val compacted: Int,
+    ) {
+        override fun toString(): String = buildString {
+            appendLine("state=$state")
+            appendLine("turns=$turns")
+            appendLine("diff=$diff")
+            appendLine("todos=$todos")
+            appendLine("compacted=$compacted")
+            append("body=\n$body")
+        }
+    }
 
     private class Root : javax.swing.JPanel() {
         private var shown = true
@@ -93,8 +112,12 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     protected fun controller(id: String? = null) = controller(id, Long.MAX_VALUE)
 
     protected fun controller(id: String? = null, flushMs: Long): SessionController {
+        return controller(id, flushMs, true)
+    }
+
+    protected fun controller(id: String? = null, flushMs: Long, condense: Boolean): SessionController {
         val root = Root()
-        val m = SessionController(parent, id, sessions, workspace, app, scope, root, flushMs)
+        val m = SessionController(parent, id, sessions, workspace, app, scope, root, flushMs, condense)
         controllers.add(m)
         roots[m] = root
         return m
@@ -197,6 +220,15 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     protected fun assertModelEvents(expected: String, events: List<SessionModelEvent>) {
         assertEquals(expected.trimIndent().trim(), events.joinToString("\n"))
     }
+
+    protected fun snapshot(c: SessionController) = Snapshot(
+        body = c.model.toString().trim(),
+        turns = c.model.toTurnsString().trim(),
+        state = c.model.state,
+        diff = c.model.diff.toList(),
+        todos = c.model.todos.toList(),
+        compacted = c.model.compactionCount,
+    )
 
     // ------ DTO factories ------
 

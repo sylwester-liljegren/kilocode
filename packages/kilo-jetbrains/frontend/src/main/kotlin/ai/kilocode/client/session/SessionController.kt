@@ -57,6 +57,7 @@ class SessionController(
     private val cs: CoroutineScope,
     comp: java.awt.Component? = null,
     private val flushMs: Long = EVENT_FLUSH_MS,
+    private val condense: Boolean = true,
 ) : Disposable {
 
     companion object {
@@ -72,7 +73,7 @@ class SessionController(
     private val listeners = mutableListOf<SessionControllerListener>()
     private var sessionId: String? = id
     private val directory: String get() = workspace.directory
-    private val updates = SessionUpdateQueue(parent, comp, flushMs, ::handle, id != null) { sessionId ?: "pending" }
+    private val updates = SessionUpdateQueue(parent, comp, flushMs, ::handle, condense, id != null) { sessionId ?: "pending" }
 
     private var partType: String? = null
     private var tool: String? = null

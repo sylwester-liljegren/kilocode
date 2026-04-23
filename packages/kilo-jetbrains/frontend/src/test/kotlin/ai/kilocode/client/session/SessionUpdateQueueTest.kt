@@ -5,6 +5,9 @@ import ai.kilocode.client.session.model.ToolExecState
 import ai.kilocode.client.session.model.SessionModelEvent
 import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.rpc.dto.ChatEventDto
+import ai.kilocode.rpc.dto.DiffFileDto
+import ai.kilocode.rpc.dto.SessionStatusDto
+import ai.kilocode.rpc.dto.TodoDto
 
 class SessionUpdateQueueTest : SessionControllerTestBase() {
 
@@ -176,5 +179,75 @@ class SessionUpdateQueueTest : SessionControllerTestBase() {
             ContentUpdated msg1/prt1
         """, modelEvents)
         assertEquals(SessionState.Idle, m.model.state)
+    }
+
+    fun `test condensed and raw controller end with same final state on large corpus`() {
+        appRpc.state.value = ai.kilocode.rpc.dto.KiloAppStateDto(ai.kilocode.rpc.dto.KiloAppStatusDto.READY)
+        projectRpc.state.value = workspaceReady()
+
+        val events = corpus()
+        val condensed = runCorpus(events, true)
+        val raw = runCorpus(events, false)
+        val a = snapshot(condensed)
+        val b = snapshot(raw)
+
+        if (a != b) fail("condensed=\n$a\nraw=\n$b")
+        assertEquals(SessionState.Idle, a.state)
+        assertTrue(a.body.contains("assistant#msg1"))
+        assertTrue(a.body.contains("assistant#msg2"))
+        assertTrue(a.body.contains("diff: src/A.kt src/B.kt"))
+        assertTrue(a.body.contains("todo: [completed] ship feature"))
+        assertEquals(4, a.compacted)
+    }
+
+    private fun corpus(): List<ChatEventDto> = buildList {
+        add(ChatEventDto.TurnOpen("ses_test"))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg1", "ses_test", "assistant")))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg1", "ses_test", "assistant").copy(cost = 0.01)))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg1", "ses_test", "assistant").copy(cost = 0.02)))
+        add(ChatEventDto.PartUpdated("ses_test", part("tool1", "ses_test", "msg1", "tool", tool = "read", state = "running")))
+        add(ChatEventDto.PartUpdated("ses_test", part("tool1", "ses_test", "msg1", "tool", tool = "read", state = "running", title = "Read files")))
+        add(ChatEventDto.PartUpdated("ses_test", part("tool1", "ses_test", "msg1", "tool", tool = "read", state = "completed", title = "Read files")))
+        add(ChatEventDto.PartUpdated("ses_test", part("snap1", "ses_test", "msg1", "text", text = "he")))
+        repeat(8) { i ->
+            add(ChatEventDto.PartDelta("ses_test", "msg1", "txt1", "text", " chunk$i"))
+        }
+        add(ChatEventDto.PartUpdated("ses_test", part("snap1", "ses_test", "msg1", "text", text = "hello")))
+        add(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("busy")))
+        add(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("retry", message = "retrying", attempt = 2, next = 10L)))
+        add(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("offline", message = "offline", requestID = "req1")))
+        add(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("idle")))
+        add(ChatEventDto.SessionDiffChanged("ses_test", listOf(DiffFileDto("src/A.kt", 1, 0))))
+        add(ChatEventDto.SessionDiffChanged("ses_test", emptyList()))
+        add(ChatEventDto.SessionDiffChanged("ses_test", listOf(DiffFileDto("src/A.kt", 2, 1), DiffFileDto("src/B.kt", 4, 0))))
+        add(ChatEventDto.TodoUpdated("ses_test", listOf(TodoDto("draft plan", "in_progress", "high"))))
+        add(ChatEventDto.TodoUpdated("ses_test", listOf(TodoDto("ship feature", "completed", "high"))))
+        add(ChatEventDto.SessionCompacted("ses_test"))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg2", "ses_test", "assistant")))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg2", "ses_test", "assistant").copy(cost = 0.02)))
+        add(ChatEventDto.PartUpdated("ses_test", part("tool2", "ses_test", "msg2", "tool", tool = "edit", state = "running")))
+        add(ChatEventDto.PartUpdated("ses_test", part("tool2", "ses_test", "msg2", "tool", tool = "edit", state = "completed", title = "Patch file")))
+        repeat(6) { i ->
+            add(ChatEventDto.PartDelta("ses_test", "msg2", "txt2", "text", " body$i"))
+        }
+        add(ChatEventDto.TurnClose("ses_test", "completed"))
+        add(ChatEventDto.TurnOpen("ses_test"))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg3", "ses_test", "assistant")))
+        add(ChatEventDto.MessageUpdated("ses_test", msg("msg3", "ses_test", "assistant").copy(cost = 0.03)))
+        add(ChatEventDto.PartUpdated("ses_test", part("tail", "ses_test", "msg3", "text", text = "tail start")))
+        repeat(5) { i ->
+            add(ChatEventDto.PartDelta("ses_test", "msg3", "tail", "text", " extra$i"))
+        }
+        add(ChatEventDto.SessionCompacted("ses_test"))
+        add(ChatEventDto.SessionIdle("ses_test"))
+    }
+
+    private fun runCorpus(events: List<ChatEventDto>, condense: Boolean): SessionController {
+        val m = controller("ses_test", flushMs = Long.MAX_VALUE, condense = condense)
+        flush()
+        for (event in events) emit(event, flush = false)
+        settle()
+        flush()
+        return m
     }
 }

@@ -130,7 +130,7 @@ export const Info = z
         additions: z.number(),
         deletions: z.number(),
         files: z.number(),
-        diffs: Snapshot.FileDiff.zod.array().optional(),
+        diffs: Snapshot.SummaryFileDiff.zod.array().optional(), // kilocode_change
       })
       .optional(),
     share: z
@@ -837,7 +837,7 @@ export const messages = fn(MessagesInput, (input) => runPromise((svc) => svc.mes
 export const children = fn(ChildrenInput, (id) => runPromise((svc) => svc.children(id)))
 export const remove = fn(RemoveInput, (id) => runPromise((svc) => svc.remove(id)))
 export async function updateMessage<T extends MessageV2.Info>(msg: T): Promise<T> {
-  MessageV2.Info.parse(msg)
+  MessageV2.Info.zod.parse(msg) // kilocode_change
   return runPromise((svc) => svc.updateMessage(msg))
 }
 
@@ -851,7 +851,7 @@ export const removePart = fn(
 )
 
 export async function updatePart<T extends MessageV2.Part>(part: T): Promise<T> {
-  MessageV2.Part.parse(part)
+  MessageV2.Part.zod.parse(part) // kilocode_change
   return runPromise((svc) => svc.updatePart(part))
 }
 

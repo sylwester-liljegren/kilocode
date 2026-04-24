@@ -1,4 +1,4 @@
-import { Cause, Duration, Effect, Layer, Schedule, Schema, Semaphore, Context, Stream } from "effect"
+import { Cause, Duration, Effect, Layer, Schedule, Schema, Semaphore, Struct, Context, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { formatPatch, structuredPatch } from "diff"
 import path from "path"
@@ -32,6 +32,13 @@ export const FileDiff = Schema.Struct({
   .annotate({ identifier: "SnapshotFileDiff" })
   .pipe(withStatics((s) => ({ zod: zod(s) })))
 export type FileDiff = typeof FileDiff.Type
+
+// kilocode_change start - lightweight FileDiff without `patch` for session.summary.diffs (keeps DB payload small)
+export const SummaryFileDiff = FileDiff.mapFields(Struct.omit(["patch"]))
+  .annotate({ identifier: "SnapshotSummaryFileDiff" })
+  .pipe(withStatics((s) => ({ zod: zod(s) })))
+export type SummaryFileDiff = typeof SummaryFileDiff.Type
+// kilocode_change end
 
 const log = Log.create({ service: "snapshot" })
 const prune = "7.days"

@@ -58,7 +58,7 @@ const InputSchema = Schema.Union([Action, InputObject])
 // Normalise the Action shorthand into `{ "*": action }`. Object inputs pass
 // through untouched.
 const normalizeInput = (input: Schema.Schema.Type<typeof InputSchema>): Schema.Schema.Type<typeof InputObject> =>
-  typeof input === "string" ? { "*": input } : input
+  input === null || typeof input === "string" ? { "*": input } : input // kilocode_change
 
 export const Info = InputSchema.pipe(
   Schema.decodeTo(InputObject, {

@@ -166,14 +166,20 @@ function defaultRc(shell: Shell): string {
   if (shell === "powershell") {
     // PowerShell 7+ uses Documents\PowerShell; Windows PowerShell 5.1 uses
     // Documents\WindowsPowerShell. Prefer whichever profile already exists;
-    // on fresh installs, fall back based on whether pwsh is available.
-    // On *nix, pwsh users should pass --rc explicitly (XDG path varies).
+    // on fresh installs, key off the active host via PSModulePath (each
+    // PowerShell version prepends its own user module dir on startup) and
+    // fall back to WPS when the signal is absent, since WPS ships on every
+    // Windows install. On *nix, pwsh users should pass --rc explicitly.
     if (process.platform === "win32") {
       const ps7 = path.join(home, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1")
       const wps = path.join(home, "Documents", "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1")
       if (existsSync(ps7)) return ps7
       if (existsSync(wps)) return wps
-      return Bun.which("pwsh") ? ps7 : wps
+      const psmp = process.env.PSMODULEPATH ?? process.env.PSModulePath ?? ""
+      const first = (psmp.split(";")[0] ?? "").toLowerCase()
+      if (first.includes("\\windowspowershell\\")) return wps
+      if (first.includes("\\powershell\\")) return ps7
+      return wps
     }
     return path.join(home, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1")
   }

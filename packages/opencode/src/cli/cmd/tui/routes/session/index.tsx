@@ -1277,7 +1277,8 @@ export function Session() {
                 <NetworkPrompt request={network()[0]} />
               </Show>
               {/* kilocode_change end */}
-              <Show when={visible()}>
+              {/* kilocode_change start */}
+              <Show when={!session()?.parentID}>
                 <TuiPluginRuntime.Slot
                   name="session_prompt"
                   mode="replace"
@@ -1299,6 +1300,7 @@ export function Session() {
                   />
                 </TuiPluginRuntime.Slot>
               </Show>
+              {/* kilocode_change end */}
             </box>
           </Show>
           <Toast />

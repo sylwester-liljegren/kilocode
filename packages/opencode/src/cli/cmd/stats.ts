@@ -1,8 +1,9 @@
 import type { Argv } from "yargs"
+import type { MessageV2 } from "../../session/message-v2" // kilocode_change
 import { cmd } from "./cmd"
 import { Session } from "../../session"
 import { bootstrap } from "../bootstrap"
-import { Database, isNull } from "../../storage" // kilocode_change - isNull for root session filter
+import { Database } from "../../storage"
 import { SessionTable } from "../../session/session.sql"
 import { Project } from "../../project"
 import { Instance } from "../../project/instance"
@@ -89,10 +90,7 @@ async function getCurrentProject(): Promise<Project.Info> {
 }
 
 async function getAllSessions(): Promise<Session.Info[]> {
-  // kilocode_change start - exclude subagent (child) sessions; their cost is already propagated into the
-  // parent's tool-wrapper assistant message, so summing both would double-count (#6321)
-  const rows = Database.use((db) => db.select().from(SessionTable).where(isNull(SessionTable.parent_id)).all())
-  // kilocode_change end
+  const rows = Database.use((db) => db.select().from(SessionTable).all())
   return rows.map((row) => Session.fromRow(row))
 }
 
@@ -196,7 +194,16 @@ export async function aggregateSessionStats(days?: number, projectFilter?: strin
 
       for (const message of messages) {
         if (message.info.role === "assistant") {
-          sessionCost += message.info.cost || 0
+          // kilocode_change start - count propagated subagent cost once but keep child model stats (#6321)
+          const cost = (() => {
+            const parts = message.parts.filter(
+              (part: MessageV2.Part): part is MessageV2.StepFinishPart => part.type === "step-finish",
+            )
+            if (parts.length === 0) return message.info.cost || 0
+            return parts.reduce((sum: number, part: MessageV2.StepFinishPart) => sum + part.cost, 0)
+          })()
+          if (!session.parentID) sessionCost += message.info.cost || 0
+          // kilocode_change end
 
           const modelKey = `${message.info.providerID}/${message.info.modelID}`
           if (!sessionModelUsage[modelKey]) {
@@ -207,7 +214,7 @@ export async function aggregateSessionStats(days?: number, projectFilter?: strin
             }
           }
           sessionModelUsage[modelKey].messages++
-          sessionModelUsage[modelKey].cost += message.info.cost || 0
+          sessionModelUsage[modelKey].cost += cost
 
           if (message.info.tokens) {
             sessionTokens.input += message.info.tokens.input || 0

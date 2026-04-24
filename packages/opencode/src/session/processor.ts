@@ -410,6 +410,14 @@ export const layer: Layer.Layer<
             })
             // kilocode_change end
             ctx.assistantMessage.finish = value.finishReason
+            // kilocode_change start - capture any subagent cost propagated by tool calls during this step (#6321)
+            const fresh = yield* Effect.sync(() =>
+              MessageV2.get({ sessionID: ctx.assistantMessage.sessionID, messageID: ctx.assistantMessage.id }),
+            )
+            if (fresh.info.role === "assistant" && fresh.info.cost > ctx.assistantMessage.cost) {
+              ctx.assistantMessage.cost = fresh.info.cost
+            }
+            // kilocode_change end
             ctx.assistantMessage.cost += usage.cost
             ctx.assistantMessage.tokens = usage.tokens
             yield* session.updatePart({
@@ -567,6 +575,14 @@ export const layer: Layer.Layer<
         ctx.toolcalls = {}
         KiloSessionProcessor.guardEmptyToolCalls(ctx.assistantMessage, MessageV2.parts(ctx.assistantMessage.id)) // kilocode_change
         ctx.assistantMessage.time.completed = Date.now()
+        // kilocode_change start - reconcile cost with any subagent propagation written during tool calls (#6321)
+        const fresh = yield* Effect.sync(() =>
+          MessageV2.get({ sessionID: ctx.assistantMessage.sessionID, messageID: ctx.assistantMessage.id }),
+        )
+        if (fresh.info.role === "assistant" && fresh.info.cost > ctx.assistantMessage.cost) {
+          ctx.assistantMessage.cost = fresh.info.cost
+        }
+        // kilocode_change end
         yield* session.updateMessage(ctx.assistantMessage)
       })
 

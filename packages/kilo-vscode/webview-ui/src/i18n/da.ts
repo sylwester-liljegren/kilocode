@@ -536,7 +536,37 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "Hovedgren ({{branch}})",
   "session.new.worktree.create": "Opret nyt worktree",
   "session.new.lastModified": "Sidst ændret",
-
+  "sidebar.session.newSession": "Ny Session",
+  "sidebar.session.newSession.tooltip": "Start en frisk samtale, mens den nuværende session holdes intakt.",
+  "sidebar.session.newSession.disabled":
+    "Denne session er allerede ny. Start med at chatte eller opret et worktree i stedet.",
+  "sidebar.session.newWorktree": "Nyt Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "Opret et isoleret git worktree for at eksperimentere sikkert, holde ændringer adskilt og køre parallelle sessioner uden at forstyrre din nuværende branch.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Åbn Agent Manager worktree-dialogen for at konfigurere et nyt worktree før oprettelse.",
+  "sidebar.session.newWorktree.from": "Nyt Worktree fra",
+  "sidebar.session.currentBranch": "nuværende branch",
+  "sidebar.session.moveToWorktree": "Flyt til Worktree",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "Flyt denne samtale og dine nuværende lokale ændringer til et dedikeret worktree for isoleret opfølgningsarbejde.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "Flyt denne samtale og 1 ændret fil til et dedikeret worktree for isoleret opfølgende arbejde.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "Flyt denne samtale og {{files}} ændrede filer til et dedikeret worktree for isoleret opfølgende arbejde.",
+  "sidebar.session.showChanges.tooltip.empty": "Åbn ændringsvisningen for at inspicere det nuværende worktree.",
+  "sidebar.session.showChanges.tooltip.one": "1 fil ændret · +{{additions}} -{{deletions}}. Åbn ændringsvisningen.",
+  "sidebar.session.showChanges.tooltip.other":
+    "{{files}} filer ændret · +{{additions}} -{{deletions}}. Åbn ændringsvisningen.",
+  "sidebar.session.agentManager.tooltip":
+    "Åbn Agent Manager for et komplet overblik over parallelle sessioner og worktrees, så du kan koordinere langvarige opgaver ét sted.",
+  "sidebar.session.openAgentManager": "Åbn Agent Manager",
+  "sidebar.session.progress.capturing": "Fanger ændringer...",
+  "sidebar.session.progress.creating": "Opretter worktree...",
+  "sidebar.session.progress.setup": "Kører opsætning...",
+  "sidebar.session.progress.transferring": "Overfører ændringer...",
+  "sidebar.session.progress.forking": "Starter session...",
+  "sidebar.session.progress.failed": "Kunne ikke fortsætte i worktree",
   "session.header.search.placeholder": "Søg {{project}}",
   "session.header.searchFiles": "Søg efter filer",
   "session.header.openIn": "Åbn i",

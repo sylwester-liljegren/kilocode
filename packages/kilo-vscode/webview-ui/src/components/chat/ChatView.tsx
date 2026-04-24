@@ -103,11 +103,11 @@ export const ChatView: Component<ChatViewProps> = (props) => {
   // Listen for "Continue in Worktree" progress messages
   {
     const labels: Record<string, string> = {
-      capturing: "Capturing changes...",
-      creating: "Creating worktree...",
-      setup: "Running setup...",
-      transferring: "Transferring changes...",
-      forking: "Starting session...",
+      capturing: language.t("sidebar.session.progress.capturing"),
+      creating: language.t("sidebar.session.progress.creating"),
+      setup: language.t("sidebar.session.progress.setup"),
+      transferring: language.t("sidebar.session.progress.transferring"),
+      forking: language.t("sidebar.session.progress.forking"),
     }
     const cleanup = vscode.onMessage((msg) => {
       if (msg.type === "agentManager.repoInfo") {
@@ -124,10 +124,10 @@ export const ChatView: Component<ChatViewProps> = (props) => {
       if (m.status === "error") {
         setTransferring(false)
         setTransferDetail("")
-        showToast({ title: m.error ?? "Failed to continue in worktree" })
+        showToast({ title: m.error ?? language.t("sidebar.session.progress.failed") })
         return
       }
-      setTransferDetail(labels[m.status] ?? "Working...")
+      setTransferDetail(labels[m.status] ?? language.t("session.status.working"))
     })
     onCleanup(cleanup)
   }
@@ -154,26 +154,35 @@ export const ChatView: Component<ChatViewProps> = (props) => {
     const sid = id()
     if (!sid) return
     setTransferring(true)
-    setTransferDetail("Capturing changes...")
+    setTransferDetail(language.t("sidebar.session.progress.capturing"))
     vscode.postMessage({ type: "continueInWorktree", sessionId: sid })
   }
 
-  const worktreeTooltip =
-    "Create an isolated git worktree to experiment safely, keep changes separated, and run parallel sessions without disrupting your current branch."
+  const worktreeTooltip = language.t("sidebar.session.newWorktree.tooltip")
 
-  const advancedTooltip = "Open the Agent Manager worktree dialog to configure a new worktree before creating it."
+  const advancedTooltip = language.t("sidebar.session.configureWorktree.tooltip")
 
   const moveTooltip = () => {
     const stats = session.worktreeStats()
-    if (!stats?.files)
-      return "Move this conversation and your current local changes into a dedicated worktree for isolated follow-up work."
-    return `Move this conversation and ${stats.files} changed file${stats.files > 1 ? "s" : ""} into a dedicated worktree for isolated follow-up work.`
+    if (!stats?.files) return language.t("sidebar.session.moveToWorktree.tooltip.empty")
+    if (stats.files === 1) return language.t("sidebar.session.moveToWorktree.tooltip.one")
+    return language.t("sidebar.session.moveToWorktree.tooltip.other", { files: stats.files })
   }
 
   const changesTooltip = () => {
     const stats = session.worktreeStats()
-    if (!stats?.files) return "Open the changes view to inspect the current working tree."
-    return `${stats.files} file${stats.files > 1 ? "s" : ""} changed · +${stats.additions} -${stats.deletions}. Open the changes view.`
+    if (!stats?.files) return language.t("sidebar.session.showChanges.tooltip.empty")
+    if (stats.files === 1) {
+      return language.t("sidebar.session.showChanges.tooltip.one", {
+        additions: stats.additions,
+        deletions: stats.deletions,
+      })
+    }
+    return language.t("sidebar.session.showChanges.tooltip.other", {
+      files: stats.files,
+      additions: stats.additions,
+      deletions: stats.deletions,
+    })
   }
 
   const showAdvancedWorktree = () => vscode.postMessage({ type: "openAdvancedWorktree" })
@@ -189,8 +198,8 @@ export const ChatView: Component<ChatViewProps> = (props) => {
         <Tooltip
           value={
             hasChat
-              ? "Start a fresh conversation while keeping the current session intact."
-              : "This session is already new. Start chatting or create a worktree instead."
+              ? language.t("sidebar.session.newSession.tooltip")
+              : language.t("sidebar.session.newSession.disabled")
           }
           placement="top"
         >
@@ -200,9 +209,9 @@ export const ChatView: Component<ChatViewProps> = (props) => {
             class="session-new-button"
             onClick={startSession}
             disabled={!hasChat}
-            aria-label="New Session"
+            aria-label={language.t("sidebar.session.newSession")}
           >
-            New Session
+            {language.t("sidebar.session.newSession")}
           </Button>
         </Tooltip>
         <Show when={isSidebar() && server.gitInstalled()}>
@@ -213,14 +222,17 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                 size="small"
                 class="session-worktree-main"
                 onClick={startWorktree}
-                aria-label="New Worktree"
+                aria-label={language.t("sidebar.session.newWorktree")}
               >
-                New Worktree
+                {language.t("sidebar.session.newWorktree")}
               </Button>
             </Tooltip>
             <DropdownMenu gutter={4} placement="top-start" getAnchorRect={() => worktreeRef?.getBoundingClientRect()}>
               <Tooltip value={advancedTooltip} placement="top">
-                <DropdownMenu.Trigger class="session-worktree-split-arrow" aria-label="Advanced worktree options">
+                <DropdownMenu.Trigger
+                  class="session-worktree-split-arrow"
+                  aria-label={language.t("agentManager.worktree.advancedOptions")}
+                >
                   <Icon name="chevron-down" size="small" />
                 </DropdownMenu.Trigger>
               </Tooltip>
@@ -229,10 +241,10 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                   <DropdownMenu.Item onSelect={startWorktreeFromBranch}>
                     <span class="session-worktree-menu-gap" aria-hidden="true" />
                     <DropdownMenu.ItemLabel class="session-worktree-menu-label">
-                      <span>New Worktree from</span>
+                      <span>{language.t("sidebar.session.newWorktree.from")}</span>
                       <span class="session-worktree-menu-branch">
                         <Icon name="branch" size="small" />
-                        <strong>{repoBranch() ?? "current branch"}</strong>
+                        <strong>{repoBranch() ?? language.t("sidebar.session.currentBranch")}</strong>
                       </span>
                     </DropdownMenu.ItemLabel>
                   </DropdownMenu.Item>
@@ -256,12 +268,14 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                 class="session-move-action"
                 aria-disabled={transferring()}
                 onClick={moveToWorktree}
-                aria-label="Move to Worktree"
+                aria-label={language.t("sidebar.session.moveToWorktree")}
               >
                 <Show when={transferring()} fallback={<Icon name="branch" size="small" />}>
                   <Spinner class="chat-spinner-small" />
                 </Show>
-                <span class="session-move-label">{transferring() ? transferDetail() : "Move to Worktree"}</span>
+                <span class="session-move-label">
+                  {transferring() ? transferDetail() : language.t("sidebar.session.moveToWorktree")}
+                </span>
               </Button>
             </Tooltip>
             <Tooltip value={changesTooltip()} placement="top">
@@ -286,16 +300,13 @@ export const ChatView: Component<ChatViewProps> = (props) => {
           </div>
         </Show>
         <div class="session-agent-manager-slot">
-          <Tooltip
-            value="Open Agent Manager for a full overview of parallel sessions and worktrees, so you can coordinate long-running tasks in one place."
-            placement="top"
-          >
+          <Tooltip value={language.t("sidebar.session.agentManager.tooltip")} placement="top">
             <Button
               variant="secondary"
               size="small"
               class="session-agent-manager"
               onClick={openAgentManager}
-              aria-label="Open Agent Manager"
+              aria-label={language.t("sidebar.session.openAgentManager")}
             >
               <Icon name="circuit-board" size="small" />
             </Button>

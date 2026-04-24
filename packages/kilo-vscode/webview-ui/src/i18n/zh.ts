@@ -529,7 +529,35 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "主分支（{{branch}}）",
   "session.new.worktree.create": "创建新的 worktree",
   "session.new.lastModified": "最后修改",
-
+  "sidebar.session.newSession": "新会话",
+  "sidebar.session.newSession.tooltip": "在保持当前会话完整的同时开始全新的对话。",
+  "sidebar.session.newSession.disabled": "此会话已经是新的。请开始聊天或创建一个 worktree。",
+  "sidebar.session.newWorktree": "新 Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "创建一个隔离的 git worktree 以安全地进行实验、保持更改分离并在不中断当前分支的情况下运行并行会话。",
+  "sidebar.session.configureWorktree.tooltip":
+    "打开 Agent Manager 的 worktree 对话框，以便在创建之前配置新的 worktree。",
+  "sidebar.session.newWorktree.from": "新 Worktree 来源：",
+  "sidebar.session.currentBranch": "当前分支",
+  "sidebar.session.moveToWorktree": "移动到 Worktree",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "将此对话和您当前的本地更改移动到专用的 worktree 中，以便进行隔离的后续工作。",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "将此对话和 1 个更改的文件移动到专用的 worktree 中，以便进行隔离的后续工作。",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "将此对话和 {{files}} 个更改的文件移动到专用的 worktree 中，以便进行隔离的后续工作。",
+  "sidebar.session.showChanges.tooltip.empty": "打开更改视图以检查当前工作树。",
+  "sidebar.session.showChanges.tooltip.one": "1 个文件已更改 · +{{additions}} -{{deletions}}。打开更改视图。",
+  "sidebar.session.showChanges.tooltip.other": "{{files}} 个文件已更改 · +{{additions}} -{{deletions}}。打开更改视图。",
+  "sidebar.session.agentManager.tooltip":
+    "打开 Agent Manager 以全面了解并行会话和 worktree，让您可以在一个地方协调长期运行的任务。",
+  "sidebar.session.openAgentManager": "打开 Agent Manager",
+  "sidebar.session.progress.capturing": "正在捕获更改...",
+  "sidebar.session.progress.creating": "正在创建 worktree...",
+  "sidebar.session.progress.setup": "正在运行设置...",
+  "sidebar.session.progress.transferring": "正在传输更改...",
+  "sidebar.session.progress.forking": "正在启动会话...",
+  "sidebar.session.progress.failed": "在 worktree 中继续失败",
   "session.header.search.placeholder": "搜索 {{project}}",
   "session.header.searchFiles": "搜索文件",
   "session.header.openIn": "打开方式",

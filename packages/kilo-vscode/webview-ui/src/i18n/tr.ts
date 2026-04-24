@@ -541,7 +541,38 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "Ana dal ({{branch}})",
   "session.new.worktree.create": "Yeni çalışma ağacı oluştur",
   "session.new.lastModified": "Son değişiklik",
-
+  "sidebar.session.newSession": "Yeni Oturum",
+  "sidebar.session.newSession.tooltip": "Mevcut oturumu koruyarak yeni bir konuşma başlatın.",
+  "sidebar.session.newSession.disabled":
+    "Bu oturum zaten yeni. Sohbet etmeye başlayın veya bunun yerine bir worktree oluşturun.",
+  "sidebar.session.newWorktree": "Yeni Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "Güvenli bir şekilde deneme yapmak, değişiklikleri ayrı tutmak ve mevcut dalınızı kesintiye uğratmadan paralel oturumlar çalıştırmak için izole bir git worktree oluşturun.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Oluşturmadan önce yeni bir worktree yapılandırmak için Agent Manager worktree iletişim kutusunu açın.",
+  "sidebar.session.newWorktree.from": "Şuradan Yeni Worktree:",
+  "sidebar.session.currentBranch": "mevcut dal",
+  "sidebar.session.moveToWorktree": "Worktree'ye Taşı",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "İzole bir takip çalışması için bu konuşmayı ve mevcut yerel değişikliklerinizi özel bir worktree'ye taşıyın.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "Bu konuşmayı ve değiştirilen 1 dosyayı, izole edilmiş takip çalışmaları için özel bir worktree'ye taşıyın.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "Bu konuşmayı ve değiştirilen {{files}} dosyayı, izole edilmiş takip çalışmaları için özel bir worktree'ye taşıyın.",
+  "sidebar.session.showChanges.tooltip.empty": "Mevcut çalışma ağacını incelemek için değişiklikler görünümünü açın.",
+  "sidebar.session.showChanges.tooltip.one":
+    "1 dosya değiştirildi · +{{additions}} -{{deletions}}. Değişiklikler görünümünü aç.",
+  "sidebar.session.showChanges.tooltip.other":
+    "{{files}} dosya değiştirildi · +{{additions}} -{{deletions}}. Değişiklikler görünümünü aç.",
+  "sidebar.session.agentManager.tooltip":
+    "Paralel oturumların ve worktree'lerin tam bir genel görünümü için Agent Manager'ı açın, böylece uzun süren görevleri tek bir yerden koordine edebilirsiniz.",
+  "sidebar.session.openAgentManager": "Agent Manager'ı Aç",
+  "sidebar.session.progress.capturing": "Değişiklikler yakalanıyor...",
+  "sidebar.session.progress.creating": "Worktree oluşturuluyor...",
+  "sidebar.session.progress.setup": "Kurulum çalıştırılıyor...",
+  "sidebar.session.progress.transferring": "Değişiklikler aktarılıyor...",
+  "sidebar.session.progress.forking": "Oturum başlatılıyor...",
+  "sidebar.session.progress.failed": "Worktree'de devam edilemedi",
   "session.header.search.placeholder": "{{project}} ara",
   "session.header.searchFiles": "Dosya ara",
   "session.header.openIn": "Aç",

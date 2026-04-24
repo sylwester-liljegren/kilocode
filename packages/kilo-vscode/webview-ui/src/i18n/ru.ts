@@ -538,7 +538,37 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "Основная ветка ({{branch}})",
   "session.new.worktree.create": "Создать новый worktree",
   "session.new.lastModified": "Последнее изменение",
-
+  "sidebar.session.newSession": "Новая сессия",
+  "sidebar.session.newSession.tooltip": "Начать новую беседу, сохранив текущую сессию нетронутой.",
+  "sidebar.session.newSession.disabled": "Эта сессия уже новая. Начните чат или создайте worktree.",
+  "sidebar.session.newWorktree": "Новое Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "Создайте изолированное git worktree для безопасных экспериментов, разделения изменений и запуска параллельных сессий без прерывания вашей текущей ветки.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Откройте диалоговое окно worktree в Agent Manager, чтобы настроить новое worktree перед созданием.",
+  "sidebar.session.newWorktree.from": "Новое Worktree из",
+  "sidebar.session.currentBranch": "текущей ветки",
+  "sidebar.session.moveToWorktree": "Перенести в Worktree",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "Перенесите эту беседу и ваши текущие локальные изменения в выделенное worktree для изолированной последующей работы.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "Переместить этот разговор и 1 измененный файл в выделенный worktree для изолированной дальнейшей работы.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "Переместить этот разговор и {{files}} измененных файлов в выделенный worktree для изолированной дальнейшей работы.",
+  "sidebar.session.showChanges.tooltip.empty": "Откройте просмотр изменений, чтобы изучить текущее рабочее дерево.",
+  "sidebar.session.showChanges.tooltip.one":
+    "1 файл изменен · +{{additions}} -{{deletions}}. Открыть просмотр изменений.",
+  "sidebar.session.showChanges.tooltip.other":
+    "{{files}} файлов изменено · +{{additions}} -{{deletions}}. Открыть просмотр изменений.",
+  "sidebar.session.agentManager.tooltip":
+    "Откройте Agent Manager для полного обзора параллельных сессий и worktree, чтобы координировать длительные задачи в одном месте.",
+  "sidebar.session.openAgentManager": "Открыть Agent Manager",
+  "sidebar.session.progress.capturing": "Захват изменений...",
+  "sidebar.session.progress.creating": "Создание worktree...",
+  "sidebar.session.progress.setup": "Выполнение настройки...",
+  "sidebar.session.progress.transferring": "Перенос изменений...",
+  "sidebar.session.progress.forking": "Запуск сессии...",
+  "sidebar.session.progress.failed": "Не удалось продолжить в worktree",
   "session.header.search.placeholder": "Поиск {{project}}",
   "session.header.searchFiles": "Поиск файлов",
   "session.header.openIn": "Открыть в",

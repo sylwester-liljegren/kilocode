@@ -543,7 +543,39 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "Haupt-Branch ({{branch}})",
   "session.new.worktree.create": "Neuen Worktree erstellen",
   "session.new.lastModified": "Zuletzt geändert",
-
+  "sidebar.session.newSession": "Neue Sitzung",
+  "sidebar.session.newSession.tooltip": "Starte eine neue Unterhaltung, während die aktuelle Sitzung intakt bleibt.",
+  "sidebar.session.newSession.disabled":
+    "Diese Sitzung ist bereits neu. Beginne zu chatten oder erstelle stattdessen einen Worktree.",
+  "sidebar.session.newWorktree": "Neuer Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "Erstelle einen isolierten Git-Worktree, um sicher zu experimentieren, Änderungen getrennt zu halten und parallele Sitzungen auszuführen, ohne deinen aktuellen Branch zu stören.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Öffne den Agent Manager Worktree-Dialog, um einen neuen Worktree vor der Erstellung zu konfigurieren.",
+  "sidebar.session.newWorktree.from": "Neuer Worktree von",
+  "sidebar.session.currentBranch": "aktueller Branch",
+  "sidebar.session.moveToWorktree": "In Worktree verschieben",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "Verschiebe diese Unterhaltung und deine aktuellen lokalen Änderungen in einen dedizierten Worktree für isolierte Folgearbeiten.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "Diese Unterhaltung und 1 geänderte Datei in einen dedizierten Worktree für isolierte Folgearbeiten verschieben.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "Diese Unterhaltung und {{files}} geänderte Dateien in einen dedizierten Worktree für isolierte Folgearbeiten verschieben.",
+  "sidebar.session.showChanges.tooltip.empty":
+    "Öffne die Änderungsansicht, um den aktuellen Working Tree zu überprüfen.",
+  "sidebar.session.showChanges.tooltip.one":
+    "1 Datei geändert · +{{additions}} -{{deletions}}. Änderungsansicht öffnen.",
+  "sidebar.session.showChanges.tooltip.other":
+    "{{files}} Dateien geändert · +{{additions}} -{{deletions}}. Änderungsansicht öffnen.",
+  "sidebar.session.agentManager.tooltip":
+    "Öffne den Agent Manager für einen vollständigen Überblick über parallele Sitzungen und Worktrees, damit du langlaufende Aufgaben an einem Ort koordinieren kannst.",
+  "sidebar.session.openAgentManager": "Agent Manager öffnen",
+  "sidebar.session.progress.capturing": "Änderungen werden erfasst...",
+  "sidebar.session.progress.creating": "Worktree wird erstellt...",
+  "sidebar.session.progress.setup": "Setup wird ausgeführt...",
+  "sidebar.session.progress.transferring": "Änderungen werden übertragen...",
+  "sidebar.session.progress.forking": "Sitzung wird gestartet...",
+  "sidebar.session.progress.failed": "Fortsetzen im Worktree fehlgeschlagen",
   "session.header.search.placeholder": "{{project}} durchsuchen",
   "session.header.searchFiles": "Dateien suchen",
   "session.header.openIn": "Öffnen in",

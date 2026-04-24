@@ -536,7 +536,36 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "메인 브랜치 ({{branch}})",
   "session.new.worktree.create": "새 작업 트리 생성",
   "session.new.lastModified": "최근 수정",
-
+  "sidebar.session.newSession": "새 세션",
+  "sidebar.session.newSession.tooltip": "현재 세션을 그대로 유지하면서 새로운 대화를 시작합니다.",
+  "sidebar.session.newSession.disabled": "이 세션은 이미 새 세션입니다. 채팅을 시작하거나 대신 worktree를 만드세요.",
+  "sidebar.session.newWorktree": "새 Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "격리된 git worktree를 만들어 안전하게 실험하고, 변경 사항을 분리하며, 현재 브랜치를 방해하지 않고 병렬 세션을 실행합니다.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Agent Manager worktree 대화상자를 열어 생성하기 전에 새 worktree를 구성합니다.",
+  "sidebar.session.newWorktree.from": "다음에서 새 Worktree 생성:",
+  "sidebar.session.currentBranch": "현재 브랜치",
+  "sidebar.session.moveToWorktree": "Worktree로 이동",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "이 대화 및 현재 로컬 변경 사항을 전용 worktree로 이동하여 격리된 후속 작업을 수행합니다.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "이 대화와 변경된 파일 1개를 격리된 후속 작업을 위해 전용 worktree로 이동합니다.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "이 대화와 변경된 파일 {{files}}개를 격리된 후속 작업을 위해 전용 worktree로 이동합니다.",
+  "sidebar.session.showChanges.tooltip.empty": "변경 사항 뷰를 열어 현재 작업 트리를 검사합니다.",
+  "sidebar.session.showChanges.tooltip.one": "파일 1개 변경됨 · +{{additions}} -{{deletions}}. 변경 사항 뷰 열기.",
+  "sidebar.session.showChanges.tooltip.other":
+    "파일 {{files}}개 변경됨 · +{{additions}} -{{deletions}}. 변경 사항 뷰 열기.",
+  "sidebar.session.agentManager.tooltip":
+    "Agent Manager를 열어 병렬 세션 및 worktree의 전체 개요를 확인하고, 장기 실행 작업을 한 곳에서 조정할 수 있습니다.",
+  "sidebar.session.openAgentManager": "Agent Manager 열기",
+  "sidebar.session.progress.capturing": "변경 사항 캡처 중...",
+  "sidebar.session.progress.creating": "worktree 생성 중...",
+  "sidebar.session.progress.setup": "설정 실행 중...",
+  "sidebar.session.progress.transferring": "변경 사항 전송 중...",
+  "sidebar.session.progress.forking": "세션 시작 중...",
+  "sidebar.session.progress.failed": "worktree에서 계속하지 못했습니다",
   "session.header.search.placeholder": "{{project}} 검색",
   "session.header.searchFiles": "파일 검색",
   "session.header.openIn": "열기",

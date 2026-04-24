@@ -543,7 +543,40 @@ export const dict = {
   "session.new.worktree.mainWithBranch": "Branche principale ({{branch}})",
   "session.new.worktree.create": "Créer un nouvel arbre de travail",
   "session.new.lastModified": "Dernière modification",
-
+  "sidebar.session.newSession": "Nouvelle Session",
+  "sidebar.session.newSession.tooltip":
+    "Démarrer une nouvelle conversation tout en gardant la session actuelle intacte.",
+  "sidebar.session.newSession.disabled":
+    "Cette session est déjà nouvelle. Commencez à discuter ou créez plutôt un worktree.",
+  "sidebar.session.newWorktree": "Nouveau Worktree",
+  "sidebar.session.newWorktree.tooltip":
+    "Créer un git worktree isolé pour expérimenter en toute sécurité, séparer les modifications et exécuter des sessions parallèles sans perturber votre branche actuelle.",
+  "sidebar.session.configureWorktree.tooltip":
+    "Ouvrez la boîte de dialogue worktree du Agent Manager pour configurer un nouveau worktree avant de le créer.",
+  "sidebar.session.newWorktree.from": "Nouveau Worktree depuis",
+  "sidebar.session.currentBranch": "branche actuelle",
+  "sidebar.session.moveToWorktree": "Déplacer vers un Worktree",
+  "sidebar.session.moveToWorktree.tooltip.empty":
+    "Déplacez cette conversation et vos modifications locales actuelles dans un worktree dédié pour un travail de suivi isolé.",
+  "sidebar.session.moveToWorktree.tooltip.one":
+    "Déplacer cette conversation et 1 fichier modifié vers un worktree dédié pour un travail de suivi isolé.",
+  "sidebar.session.moveToWorktree.tooltip.other":
+    "Déplacer cette conversation et {{files}} fichiers modifiés vers un worktree dédié pour un travail de suivi isolé.",
+  "sidebar.session.showChanges.tooltip.empty":
+    "Ouvrez la vue des modifications pour inspecter l'arborescence de travail actuelle.",
+  "sidebar.session.showChanges.tooltip.one":
+    "1 fichier modifié · +{{additions}} -{{deletions}}. Ouvrir la vue des modifications.",
+  "sidebar.session.showChanges.tooltip.other":
+    "{{files}} fichiers modifiés · +{{additions}} -{{deletions}}. Ouvrir la vue des modifications.",
+  "sidebar.session.agentManager.tooltip":
+    "Ouvrez Agent Manager pour une vue d'ensemble complète des sessions parallèles et des worktrees, afin de coordonner les tâches longues en un seul endroit.",
+  "sidebar.session.openAgentManager": "Ouvrir Agent Manager",
+  "sidebar.session.progress.capturing": "Capture des modifications...",
+  "sidebar.session.progress.creating": "Création du worktree...",
+  "sidebar.session.progress.setup": "Exécution de la configuration...",
+  "sidebar.session.progress.transferring": "Transfert des modifications...",
+  "sidebar.session.progress.forking": "Démarrage de la session...",
+  "sidebar.session.progress.failed": "Échec de la poursuite dans le worktree",
   "session.header.search.placeholder": "Rechercher {{project}}",
   "session.header.searchFiles": "Rechercher des fichiers",
   "session.header.openIn": "Ouvrir dans",

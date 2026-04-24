@@ -1,4 +1,4 @@
-import { Message, Model, Part, Session, SnapshotFileDiff } from "@opencode-ai/sdk/v2"
+import { Message, Model, Part, Session, SnapshotFileDiff } from "@kilocode/sdk/v2"
 import { fn } from "@opencode-ai/shared/util/fn"
 import { iife } from "@opencode-ai/shared/util/iife"
 import z from "zod"

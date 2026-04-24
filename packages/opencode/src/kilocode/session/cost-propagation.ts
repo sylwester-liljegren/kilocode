@@ -6,6 +6,28 @@ import { SessionID, MessageID } from "@/session/schema"
 
 export namespace KiloCostPropagation {
   /**
+   * Per-key promise chain that serializes concurrent `propagate` calls against
+   * the same parent message. Prevents lost updates when the LLM launches
+   * several `task` tool calls in parallel (each release stage races to
+   * read-modify-write the same parent cost field).
+   */
+  const locks = new Map<string, Promise<void>>()
+
+  function acquire(key: string): Promise<() => void> {
+    const prev = locks.get(key) ?? Promise.resolve()
+    let release!: () => void
+    const current = new Promise<void>((r) => (release = r))
+    const chain = prev.catch(() => {}).then(() => current)
+    locks.set(key, chain)
+    return prev
+      .catch(() => {})
+      .then(() => () => {
+        release()
+        if (locks.get(key) === chain) locks.delete(key)
+      })
+  }
+
+  /**
    * Total assistant-message cost in a session. Because each subagent propagates
    * its own total into the parent assistant message when it finishes, this sum
    * already reflects descendant sessions recursively — no tree walk needed.
@@ -22,8 +44,8 @@ export namespace KiloCostPropagation {
    * Add `amount` to the given parent assistant message's cost. No-op when
    * `amount` is non-positive or the target is not an assistant message.
    *
-   * Caller must guarantee serial access to the parent message — concurrent
-   * calls against the same `(sid, mid)` are not atomic (read-modify-write).
+   * Concurrent calls against the same parent are serialized internally so the
+   * read-modify-write cannot lose updates when subagents complete in parallel.
    */
   export const propagate = Effect.fn("KiloCostPropagation.propagate")(function* (
     sessions: Session.Interface,
@@ -32,9 +54,16 @@ export namespace KiloCostPropagation {
     amount: number,
   ) {
     if (!(amount > 0)) return
-    const parent = yield* Effect.sync(() => MessageV2.get({ sessionID: sid, messageID: mid }))
-    if (parent.info.role !== "assistant") return
-    parent.info.cost += amount
-    yield* sessions.updateMessage(parent.info)
+    yield* Effect.acquireUseRelease(
+      Effect.promise(() => acquire(`${sid}:${mid}`)),
+      () =>
+        Effect.gen(function* () {
+          const parent = yield* Effect.sync(() => MessageV2.get({ sessionID: sid, messageID: mid }))
+          if (parent.info.role !== "assistant") return
+          parent.info.cost += amount
+          yield* sessions.updateMessage(parent.info)
+        }),
+      (release) => Effect.sync(() => release()),
+    )
   })
 }

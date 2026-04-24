@@ -355,7 +355,14 @@ export interface ProviderModel {
   options?: { description?: string }
   recommendedIndex?: number
   isFree?: boolean
-  cost?: { input: number; output: number }
+  cost?: {
+    input: number
+    output: number
+    cache?: {
+      read: number
+      write: number
+    }
+  }
 }
 
 export interface Provider {
@@ -1703,7 +1710,6 @@ export interface SendMessageRequest {
 export interface AbortRequest {
   type: "abort"
   sessionID: string
-  queuedMessageIDs?: string[]
 }
 
 export interface RevertSessionRequest {

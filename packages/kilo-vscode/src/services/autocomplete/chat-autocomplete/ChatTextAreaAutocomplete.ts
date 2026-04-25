@@ -7,7 +7,7 @@ import { postprocessAutocompleteSuggestion } from "../classic-auto-complete/usel
 import { VisibleCodeTracker } from "../context/VisibleCodeTracker"
 import { FileIgnoreController } from "../shims/FileIgnoreController"
 import type { KiloConnectionService } from "../../cli-backend"
-import { finalizeChatSuggestion, buildChatPrefix } from "./chat-autocomplete-utils"
+import { finalizeChatSuggestion, buildChatPrefix, stripPrefixEcho } from "./chat-autocomplete-utils"
 
 interface ChatCompletionRequestMessage {
   type: "requestChatCompletion"
@@ -113,7 +113,10 @@ export class ChatTextAreaAutocomplete {
         context,
       )
 
-      const cleanedSuggestion = this.cleanSuggestion(response, userText)
+      // Strip echoed prefix before post-processing — some FIM endpoints
+      // echo the prompt context before producing new content.
+      const stripped = stripPrefixEcho(response, prefix)
+      const cleanedSuggestion = this.cleanSuggestion(stripped, userText)
 
       // Track if suggestion was filtered or returned
       if (!cleanedSuggestion) {

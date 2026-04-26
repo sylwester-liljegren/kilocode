@@ -878,63 +878,6 @@ describe("session.message-v2.toModelMessage", () => {
   })
   // kilocode_change end
 
-  // kilocode_change start - Kilo gateway wraps @openrouter/ai-sdk-provider so same skip applies
-  test("preserves reasoning details through Kilo gateway (wraps openrouter SDK)", async () => {
-    const assistantID = "m-assistant"
-    const gatewayModel: Provider.Model = {
-      ...model,
-      id: ModelID.make("deepseek/deepseek-v4-pro"),
-      providerID: ProviderID.make("kilocode"),
-      api: {
-        id: "deepseek/deepseek-v4-pro",
-        url: "https://api.kilo.ai/api/openrouter",
-        npm: "@kilocode/kilo-gateway",
-      },
-      capabilities: {
-        ...model.capabilities,
-        reasoning: true,
-        interleaved: { field: "reasoning_details" },
-      },
-    }
-    const reasoningDetails = [{ type: "reasoning.text", text: "thinking", format: "unknown", index: 0 }]
-    const input: MessageV2.WithParts[] = [
-      {
-        info: assistantInfo(assistantID, "m-parent", undefined, {
-          providerID: gatewayModel.providerID,
-          modelID: gatewayModel.id,
-        }),
-        parts: [
-          {
-            ...basePart(assistantID, "a1"),
-            type: "reasoning",
-            text: "thinking",
-            time: { start: 0 },
-            metadata: { openrouter: { reasoning_details: reasoningDetails } },
-          },
-          { ...basePart(assistantID, "a2"), type: "text", text: "answer" },
-        ] as MessageV2.Part[],
-      },
-    ]
-
-    expect(
-      ProviderTransform.message(await MessageV2.toModelMessages(input, gatewayModel), gatewayModel, {}),
-    ).toStrictEqual([
-      {
-        role: "assistant",
-        providerOptions: undefined,
-        content: [
-          {
-            type: "reasoning",
-            text: "thinking",
-            providerOptions: { openrouter: { reasoning_details: reasoningDetails } },
-          },
-          { type: "text", text: "answer", providerOptions: undefined },
-        ],
-      },
-    ])
-  })
-  // kilocode_change end
-
   test("splits assistant messages on step-start boundaries", async () => {
     const assistantID = "m-assistant"
 

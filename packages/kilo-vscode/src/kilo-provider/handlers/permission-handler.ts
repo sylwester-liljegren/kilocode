@@ -26,6 +26,8 @@ export interface PermissionContext {
   getPermissionDirectory(requestID: string): string | undefined
   /** Clear a cached directory record when the permission is no longer pending. */
   clearPermissionDirectory(requestID: string): void
+  /** Remove directory entries for permissions no longer in the active set. */
+  prunePermissionDirectories(active: Set<string>): void
 }
 
 export function recoveryDirs(workspace: string, dirs: ReadonlyMap<string, string>) {
@@ -144,6 +146,8 @@ export async function handlePermissionResponse(
  *
  * Each recovered permission is also recorded in the per-permission directory
  * map so subsequent replies route to the exact Instance it was fetched from.
+ * Stale entries (permissions no longer pending on any backend) are pruned so
+ * the map does not grow without bound.
  */
 export async function fetchAndSendPendingPermissions(ctx: PermissionContext): Promise<void> {
   if (!ctx.client) return
@@ -171,6 +175,9 @@ export async function fetchAndSendPendingPermissions(ctx: PermissionContext): Pr
         })
       }
     }
+    // Remove directory entries for permissions that are no longer pending on
+    // any backend Instance, preventing unbounded growth of the map.
+    ctx.prunePermissionDirectories(seen)
   } catch (error) {
     console.error("[Kilo New] KiloProvider: Failed to fetch pending permissions:", error)
   }

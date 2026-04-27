@@ -2655,6 +2655,11 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       recordPermissionDirectory: (id, dir) => this.permissionDirectories.set(id, dir),
       getPermissionDirectory: (id) => this.permissionDirectories.get(id),
       clearPermissionDirectory: (id) => this.permissionDirectories.delete(id),
+      prunePermissionDirectories: (active) => {
+        for (const key of this.permissionDirectories.keys()) {
+          if (!active.has(key)) this.permissionDirectories.delete(key)
+        }
+      },
     }
   }
 

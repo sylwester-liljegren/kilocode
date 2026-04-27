@@ -63,9 +63,14 @@ function ctx(opts: {
     recordPermissionDirectory: (id, dir) => permDirs.set(id, dir),
     getPermissionDirectory: (id) => permDirs.get(id),
     clearPermissionDirectory: (id) => { permDirs.delete(id) },
+    prunePermissionDirectories: (active) => {
+      for (const key of permDirs.keys()) {
+        if (!active.has(key)) permDirs.delete(key)
+      }
+    },
   }
 
-  return { fake, messages, queries }
+  return { fake, messages, queries, permDirs }
 }
 
 describe("recoveryDirs", () => {
@@ -180,6 +185,11 @@ describe("fetchAndSendPendingPermissions", () => {
       recordPermissionDirectory: (id, dir) => permDirs.set(id, dir),
       getPermissionDirectory: (id) => permDirs.get(id),
       clearPermissionDirectory: (id) => { permDirs.delete(id) },
+      prunePermissionDirectories: (active) => {
+        for (const key of permDirs.keys()) {
+          if (!active.has(key)) permDirs.delete(key)
+        }
+      },
     }
     await fetchAndSendPendingPermissions(fake)
     expect(messages).toHaveLength(0)

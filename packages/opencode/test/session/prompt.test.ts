@@ -845,9 +845,9 @@ it.live(
             yield* sessions.updateMessage(childAssistant)
             yield* ctx.metadata({
               title: "done",
-              metadata: { sessionId: child.id, model: ref },
+              metadata: { sessionId: child.id, model: ref, variant: undefined },
             })
-            return { title: "done", metadata: { sessionId: child.id, model: ref }, output: "done" }
+            return { title: "done", metadata: { sessionId: child.id, model: ref, variant: undefined }, output: "done" }
           })
         yield* Effect.addFinalizer(() => Effect.sync(() => void (task.execute = original)))
 

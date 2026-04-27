@@ -751,7 +751,6 @@
         },
         "kilo-code.new.autocomplete.model": {
           "type": "string",
-          "default": "mistralai/codestral-2508",
           "enum": [
             "mistralai/codestral-2508",
             "inception/mercury-edit"

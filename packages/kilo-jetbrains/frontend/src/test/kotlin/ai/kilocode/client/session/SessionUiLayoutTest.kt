@@ -11,11 +11,14 @@ import ai.kilocode.client.session.model.QuestionItem
 import ai.kilocode.client.session.model.QuestionOption
 import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.session.ui.ConnectionPanel
+import ai.kilocode.client.session.ui.EmptySessionPanel
 import ai.kilocode.client.session.ui.PermissionPanel
 import ai.kilocode.client.session.ui.PromptPanel
 import ai.kilocode.client.session.ui.QuestionPanel
+import ai.kilocode.client.session.ui.SessionMessageListPanel
 import ai.kilocode.client.session.ui.SessionRootPanel
 import ai.kilocode.client.session.update.SessionController
+import ai.kilocode.client.session.update.SessionControllerEvent
 import ai.kilocode.client.testing.FakeAppRpcApi
 import ai.kilocode.client.testing.FakeSessionRpcApi
 import ai.kilocode.client.testing.FakeWorkspaceRpcApi
@@ -24,11 +27,11 @@ import ai.kilocode.rpc.dto.KiloAppStatusDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStateDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStatusDto
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.components.JBScrollPane
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import javax.swing.JLayeredPane
-import javax.swing.SwingUtilities
 
 @Suppress("UnstableApiUsage")
 class SessionUiLayoutTest : BasePlatformTestCase() {
@@ -81,63 +84,99 @@ class SessionUiLayoutTest : BasePlatformTestCase() {
         assertEquals(JLayeredPane.PALETTE_LAYER, root.getLayer(root.overlay))
     }
 
-    fun `test overlay panel matches prompt width and sits above prompt`() {
-        val prompt = find<PromptPanel>(ui)
+    fun `test connection panel is docked between permission and prompt`() {
+        val root = find<SessionRootPanel>(ui)
+        val question = find<QuestionPanel>(ui)
+        val permission = find<PermissionPanel>(ui)
         val connection = find<ConnectionPanel>(ui)
-        val overlay = connection.parent
+        val prompt = find<PromptPanel>(ui)
+        val stack = prompt.parent
 
-        layout()
-
-        val box = SwingUtilities.convertRectangle(prompt.parent, prompt.bounds, overlay)
-        val h = connection.preferredSize.height
-
-        assertEquals(box.x, connection.x)
-        assertEquals(box.width, connection.width)
-        assertEquals(maxOf(0, box.y - h), connection.y)
-        assertEquals(h, connection.height)
+        assertSame(root.content, stack.parent)
+        assertSame(stack, connection.parent)
+        assertEquals(0, root.overlay.componentCount)
+        assertEquals(listOf(question, permission, connection, prompt), stack.components.toList())
     }
 
-    fun `test overlay follows prompt when question panel changes visibility`() {
-        val prompt = find<PromptPanel>(ui)
+    fun `test connection panel uses stack width and sits above prompt`() {
         val connection = find<ConnectionPanel>(ui)
-        val overlay = connection.parent
-        val question = find<QuestionPanel>(ui)
+        val prompt = find<PromptPanel>(ui)
+        val stack = prompt.parent
 
+        showConnection()
+        layout()
+
+        assertTrue(connection.isVisible)
+        assertEquals(0, connection.x)
+        assertEquals(stack.width, connection.width)
+        assertEquals(prompt.width, connection.width)
+        assertTrue(connection.y + connection.height <= prompt.y)
+    }
+
+    fun `test connection panel moves after visible question panel`() {
+        val connection = find<ConnectionPanel>(ui)
+        val question = find<QuestionPanel>(ui)
+        val prompt = find<PromptPanel>(ui)
+
+        showConnection()
         layout()
         assertFalse(question.isVisible)
+        val top = connection.y
 
         controller().model.setState(questionStateChanged())
         layout()
 
         assertTrue(question.isVisible)
-        val box = SwingUtilities.convertRectangle(prompt.parent, prompt.bounds, overlay)
-        assertEquals(box.width, connection.width)
-        assertEquals(maxOf(0, box.y - connection.preferredSize.height), connection.y)
-        assertEquals(connection.preferredSize.height, connection.height)
+        assertTrue(question.y < connection.y)
+        assertTrue(top < connection.y)
+        assertTrue(connection.y + connection.height <= prompt.y)
     }
 
-    fun `test overlay follows prompt when permission panel changes visibility`() {
-        val prompt = find<PromptPanel>(ui)
+    fun `test connection panel moves after visible permission panel`() {
         val connection = find<ConnectionPanel>(ui)
-        val overlay = connection.parent
         val permission = find<PermissionPanel>(ui)
+        val prompt = find<PromptPanel>(ui)
 
+        showConnection()
         layout()
         assertFalse(permission.isVisible)
+        val top = connection.y
 
         controller().model.setState(permissionStateChanged())
         layout()
 
         assertTrue(permission.isVisible)
-        val box = SwingUtilities.convertRectangle(prompt.parent, prompt.bounds, overlay)
-        assertEquals(box.width, connection.width)
-        assertEquals(maxOf(0, box.y - connection.preferredSize.height), connection.y)
-        assertEquals(connection.preferredSize.height, connection.height)
+        assertTrue(permission.y < connection.y)
+        assertTrue(top < connection.y)
+        assertTrue(connection.y + connection.height <= prompt.y)
+    }
+
+    fun `test empty and message bodies share the same scroll pane`() {
+        val scroll = find<JBScrollPane>(ui)
+        val empty = find<EmptySessionPanel>(ui)
+
+        assertSame(empty, scroll.viewport.view)
+
+        controller().prompt("hello")
+        layout()
+
+        assertSame(scroll, find<SessionMessageListPanel>(ui).parent.parent)
+        assertSame(find<SessionMessageListPanel>(ui), scroll.viewport.view)
     }
 
     private fun layout() {
         ui.doLayout()
-        find<SessionRootPanel>(ui).doLayout()
+        val root = find<SessionRootPanel>(ui)
+        root.doLayout()
+        root.content.doLayout()
+        find<PromptPanel>(ui).parent.doLayout()
+    }
+
+    private fun showConnection() {
+        val m = controller().model
+        m.app = KiloAppStateDto(KiloAppStatusDto.CONNECTING)
+        m.workspace = KiloWorkspaceStateDto(KiloWorkspaceStatusDto.PENDING)
+        find<ConnectionPanel>(ui).onEvent(SessionControllerEvent.AppChanged)
     }
 
     private inline fun <reified T> find(root: java.awt.Container): T {

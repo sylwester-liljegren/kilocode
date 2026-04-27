@@ -24,12 +24,10 @@ import ai.kilocode.log.KiloLog
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import kotlinx.coroutines.CoroutineScope
-import java.awt.Component
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
 import javax.swing.BoxLayout.Y_AXIS
 import javax.swing.JPanel
-import javax.swing.SwingUtilities
 
 /**
  * Top-level session UI composition root.
@@ -72,7 +70,7 @@ class SessionUi(
 
     private lateinit var messageBody: SessionMessageListPanel
 
-    private lateinit var messageScroll: JBScrollPane
+    private lateinit var scroll: JBScrollPane
 
     private lateinit var question: QuestionPanel
     private lateinit var permission: PermissionPanel
@@ -95,7 +93,7 @@ class SessionUi(
         emptyBody = EmptySessionPanel(this)
         messageBody = SessionMessageListPanel(controller.model, this)
 
-        messageScroll = JBScrollPane(messageBody).apply {
+        scroll = JBScrollPane(emptyBody).apply {
             border = JBUI.Borders.empty()
             verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
             horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_NEVER
@@ -110,27 +108,17 @@ class SessionUi(
             onAbort = { controller.abort() },
         )
 
+        sessionContent.add(scroll, BorderLayout.CENTER)
         root.content.add(sessionContent, BorderLayout.CENTER)
-        // Question and permission panels stay in normal flow so the prompt moves
-        // naturally when either dock appears.
+        // Dock panels stay in normal flow so each visible state takes layout space
+        // above the prompt.
         root.content.add(JPanel().apply {
             this.layout = BoxLayout(this, Y_AXIS)
             add(question)
             add(permission)
+            add(connection)
             add(prompt)
         }, BorderLayout.SOUTH)
-
-        // Keep connection status visually attached to the prompt without taking
-        // space in the south stack.
-        root.addOverlay(connection) { panel, child ->
-            val box = SwingUtilities.convertRectangle(
-                prompt.parent,
-                prompt.bounds,
-                panel
-            )
-            val h = child.preferredSize.height
-            java.awt.Rectangle(box.x, maxOf(0, box.y - h), box.width, h)
-        }
 
         add(root, BorderLayout.CENTER)
     }
@@ -166,7 +154,7 @@ class SessionUi(
                 }
 
                 is SessionControllerEvent.ViewChanged ->
-                    showBody(if (event.show) messageScroll else emptyBody)
+                    showBody(if (event.show) messageBody else emptyBody)
 
                 is SessionControllerEvent.AppChanged,
                 is SessionControllerEvent.WorkspaceChanged ->
@@ -230,7 +218,7 @@ class SessionUi(
     }
 
     private fun scrollToBottom() {
-        val bar = messageScroll.verticalScrollBar
+        val bar = scroll.verticalScrollBar
         bar.value = bar.maximum
     }
 
@@ -239,15 +227,11 @@ class SessionUi(
         root.repaint()
     }
 
-    private fun showBody(panel: Component) {
-        if (sessionContent.getComponentCount() == 1 && sessionContent.getComponent(
-                0
-            ) === panel
-        ) return
-        sessionContent.removeAll()
-        sessionContent.add(panel, BorderLayout.CENTER)
-        sessionContent.revalidate()
-        sessionContent.repaint()
+    private fun showBody(panel: JPanel) {
+        if (scroll.viewport.view === panel) return
+        scroll.viewport.setView(panel)
+        scroll.revalidate()
+        scroll.repaint()
     }
 
     override fun dispose() {}

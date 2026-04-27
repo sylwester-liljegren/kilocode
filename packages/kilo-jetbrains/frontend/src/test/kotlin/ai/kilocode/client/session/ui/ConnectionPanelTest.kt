@@ -8,6 +8,7 @@ import ai.kilocode.rpc.dto.KiloAppStatusDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStateDto
 import ai.kilocode.rpc.dto.KiloWorkspaceStatusDto
 import ai.kilocode.rpc.dto.LoadErrorDto
+import java.awt.Dimension
 
 @Suppress("UnstableApiUsage")
 class ConnectionPanelTest : SessionControllerTestBase() {
@@ -150,4 +151,23 @@ class ConnectionPanelTest : SessionControllerTestBase() {
 
         assertEquals(1, appRpc.retries)
     }
+
+    fun `test expanded details height is capped at ten lines`() {
+        edt {
+            controller.model.app = KiloAppStateDto(
+                status = KiloAppStatusDto.ERROR,
+                error = "CLI startup failed",
+                errors = listOf(LoadErrorDto(resource = "connection", detail = lines(30))),
+            )
+            panel.onEvent(ai.kilocode.client.session.update.SessionControllerEvent.AppChanged)
+            panel.size = Dimension(480, 1000)
+        }
+
+        edt { panel.clickSummary() }
+
+        assertTrue(panel.detailsVisible())
+        assertTrue(panel.preferredSize.height <= panel.maxExpandedHeight())
+    }
+
+    private fun lines(count: Int) = (1..count).joinToString("\n") { "line $it" }
 }

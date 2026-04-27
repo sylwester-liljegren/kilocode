@@ -30,6 +30,10 @@ class ConnectionPanel(
     private val controller: SessionController,
 ) : JPanel(BorderLayout()), SessionControllerListener, Disposable {
 
+    companion object {
+        private const val DETAILS_LINES = 10
+    }
+
     private val click = object : MouseAdapter() {
         override fun mouseClicked(e: MouseEvent) {
             flip()
@@ -226,11 +230,15 @@ class ConnectionPanel(
     override fun getPreferredSize(): Dimension {
         val size = super.getPreferredSize()
         if (!scroll.isVisible) return size
-        val rows = details.getFontMetrics(details.font).height * 5
-        val insets = scroll.insets.top + scroll.insets.bottom + scroll.horizontalScrollBar.preferredSize.height
-        val height = rows + insets + JBUI.scale(2)
-        return Dimension(size.width, maxOf(size.height, header.preferredSize.height + height))
+        return Dimension(size.width, header.preferredSize.height + scrollHeight())
     }
+
+    private fun scrollHeight(): Int {
+        val rows = details.text.lineSequence().count().coerceIn(1, DETAILS_LINES)
+        return details.getFontMetrics(details.font).height * rows + scrollChrome()
+    }
+
+    private fun scrollChrome() = scroll.insets.top + scroll.insets.bottom + JBUI.scale(2)
 
     internal fun summaryText() = label.text
 
@@ -260,6 +268,9 @@ class ConnectionPanel(
     internal fun retryFocusable() = retry.isFocusable
 
     internal fun clickRetry() = retry.doClick()
+
+    internal fun maxExpandedHeight() =
+        header.preferredSize.height + details.getFontMetrics(details.font).height * DETAILS_LINES + scrollChrome()
 }
 
 private fun List<LoadErrorDto>.toErrorText(): String? {

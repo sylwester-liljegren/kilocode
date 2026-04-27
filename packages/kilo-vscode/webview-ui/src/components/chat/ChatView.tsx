@@ -276,7 +276,7 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                 </span>
               </Button>
             </Tooltip>
-            <Tooltip value={changesTooltip()} placement="top">
+            <Tooltip value={changesTooltip()} placement="top" class="session-move-changes-trigger">
               <Button
                 variant="ghost"
                 size="small"

@@ -36,6 +36,10 @@
   flex: 0 0 auto;
 }
 
+.session-actions-row > .session-move-changes-trigger {
+  margin-left: auto;
+}
+
 .session-actions-row > [data-component="tooltip-trigger"] > [data-component="button"] {
   flex: 0 0 auto;
   border-radius: var(--session-action-radius);
@@ -357,5 +361,11 @@
 
   .session-move-dot {
     opacity: 1;
+  }
+}
+
+@container (max-width: 420px) {
+  .session-actions-row > .session-move-changes-trigger {
+    margin-left: 0;
   }
 }

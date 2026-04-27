@@ -148,6 +148,9 @@ export function activate(context: vscode.ExtensionContext) {
         tabProvider.setContinueInWorktreeHandler((sessionId, progress) =>
           agentManagerProvider.continueFromSidebar(sessionId, progress),
         )
+        tabProvider.setCreateWorktreeHandler((baseBranch, branchName) =>
+          agentManagerProvider.createFromSidebar(baseBranch, branchName),
+        )
         tabProvider.setDiffVirtualProvider(diffVirtualProvider)
         tabProvider.resolveWebviewPanel(panel)
         tabPanels.set(panel, tabProvider)
@@ -455,6 +458,9 @@ async function openKiloInNewTab(
   tabProvider.setRemoteService(remoteService)
   tabProvider.setContinueInWorktreeHandler((sessionId, progress) =>
     agentManagerProvider.continueFromSidebar(sessionId, progress),
+  )
+  tabProvider.setCreateWorktreeHandler((baseBranch, branchName) =>
+    agentManagerProvider.createFromSidebar(baseBranch, branchName),
   )
   tabProvider.setDiffVirtualProvider(diffVirtualProvider)
   tabProvider.resolveWebviewPanel(panel)

@@ -105,6 +105,7 @@ function errorTool(parts: MessageV2.Part[]) {
   return part?.state.status === "error" ? (part as ErrorToolPart) : undefined
 }
 
+// kilocode_change start - helpers for Ask/Plan guard regression tests
 function names(input: Record<string, unknown> | undefined) {
   const tools = input?.tools
   if (!Array.isArray(tools)) return []
@@ -129,6 +130,7 @@ const waitQuestion = Effect.fn("test.waitQuestion")(function* (sessionID: Sessio
     yield* Effect.sleep("10 millis")
   }
 })
+// kilocode_change end
 
 const mcp = Layer.succeed(
   MCP.Service,
@@ -538,6 +540,7 @@ it.live("glob tool keeps instance context during prompt runs", () =>
   ),
 )
 
+// kilocode_change start - assistant tool parts should continue loop despite stop finish
 it.live("loop continues when finish is stop but assistant has tool parts", () =>
   provideTmpdirServer(
     Effect.fnUntraced(function* ({ llm }) {
@@ -567,7 +570,9 @@ it.live("loop continues when finish is stop but assistant has tool parts", () =>
     { git: true, config: providerCfg },
   ),
 )
+// kilocode_change end
 
+// kilocode_change start - Ask mode guard coverage
 unix("ask agent denies bash redirection during prompt loop", () =>
   provideTmpdirServer(
     ({ dir, llm }) =>
@@ -631,6 +636,167 @@ it.live("ask agent hides edit tools despite session allow-all", () =>
     { git: true, config: providerCfg },
   ),
 )
+// kilocode_change end
+
+// kilocode_change start - saved permissions must not bypass Ask/Plan guards
+unix("ask agent denies bash redirection despite global allow-everything", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      withSh(() =>
+        Effect.gen(function* () {
+          const permission = yield* Permission.Service
+          const prompt = yield* SessionPrompt.Service
+          const sessions = yield* Session.Service
+          const session = yield* sessions.create({ title: "Ask global guard" })
+          const file = path.join(dir, "ask-global-bug.txt")
+
+          yield* permission.allowEverything({ enable: true })
+          yield* prompt.prompt({
+            sessionID: session.id,
+            agent: "ask",
+            noReply: true,
+            parts: [{ type: "text", text: "Explain the repo" }],
+          })
+          yield* llm.tool("bash", { command: "echo bug > ask-global-bug.txt", description: "write ask bug" })
+          yield* llm.text("done")
+
+          yield* prompt.loop({ sessionID: session.id })
+          yield* permission.allowEverything({ enable: false })
+          expect(yield* Effect.promise(() => Bun.file(file).exists())).toBe(false)
+
+          const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+          const tool = msgs
+            .flatMap((msg) => msg.parts)
+            .find((part): part is MessageV2.ToolPart => part.type === "tool" && part.tool === "bash")
+          expect(tool?.state.status).toBe("error")
+        }),
+      ),
+    { git: true, config: providerCfg },
+  ),
+)
+
+unix("ask agent denies bash redirection despite session allow-everything", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      withSh(() =>
+        Effect.gen(function* () {
+          const permission = yield* Permission.Service
+          const prompt = yield* SessionPrompt.Service
+          const sessions = yield* Session.Service
+          const session = yield* sessions.create({
+            title: "Ask local guard",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          const file = path.join(dir, "ask-session-bug.txt")
+
+          yield* permission.allowEverything({ enable: true, sessionID: session.id })
+          yield* prompt.prompt({
+            sessionID: session.id,
+            agent: "ask",
+            noReply: true,
+            parts: [{ type: "text", text: "Explain the repo" }],
+          })
+          yield* llm.tool("bash", { command: "echo bug > ask-session-bug.txt", description: "write ask bug" })
+          yield* llm.text("done")
+
+          yield* prompt.loop({ sessionID: session.id })
+          yield* permission.allowEverything({ enable: false, sessionID: session.id })
+          expect(yield* Effect.promise(() => Bun.file(file).exists())).toBe(false)
+
+          const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+          const tool = msgs
+            .flatMap((msg) => msg.parts)
+            .find((part): part is MessageV2.ToolPart => part.type === "tool" && part.tool === "bash")
+          expect(tool?.state.status).toBe("error")
+        }),
+      ),
+    { git: true, config: providerCfg },
+  ),
+)
+
+it.live("plan agent denies non-plan write despite global allow-everything", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      Effect.gen(function* () {
+        const permission = yield* Permission.Service
+        const prompt = yield* SessionPrompt.Service
+        const sessions = yield* Session.Service
+        const session = yield* sessions.create({ title: "Plan global guard" })
+        const plan = Session.plan(session)
+        const file = path.join(dir, "plan-global-bug.txt")
+
+        yield* permission.allowEverything({ enable: true })
+        yield* prompt.prompt({
+          sessionID: session.id,
+          agent: "plan",
+          noReply: true,
+          parts: [{ type: "text", text: "Create a plan only" }],
+        })
+        yield* llm.tool("write", { filePath: plan, content: "# Plan\n\n- Stay in plan mode.\n" })
+        yield* llm.tool("write", { filePath: file, content: "bug\n" })
+        yield* llm.text("done")
+
+        yield* prompt.loop({ sessionID: session.id })
+        yield* permission.allowEverything({ enable: false })
+        expect(yield* Effect.promise(() => Bun.file(plan).exists())).toBe(true)
+        expect(yield* Effect.promise(() => Bun.file(file).exists())).toBe(false)
+
+        const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+        const tools = msgs
+          .flatMap((msg) => msg.parts)
+          .filter((part): part is MessageV2.ToolPart => part.type === "tool" && part.tool === "write")
+        const good = tools.find((part) => (part.state.input as { filePath?: string } | undefined)?.filePath === plan)
+        const bad = tools.find((part) => (part.state.input as { filePath?: string } | undefined)?.filePath === file)
+        expect(good?.state.status).toBe("completed")
+        expect(bad?.state.status).toBe("error")
+      }),
+    { git: true, config: providerCfg },
+  ),
+)
+
+it.live("plan agent denies non-plan write despite session allow-everything", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      Effect.gen(function* () {
+        const permission = yield* Permission.Service
+        const prompt = yield* SessionPrompt.Service
+        const sessions = yield* Session.Service
+        const session = yield* sessions.create({
+          title: "Plan local guard",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
+        const plan = Session.plan(session)
+        const file = path.join(dir, "plan-session-bug.txt")
+
+        yield* permission.allowEverything({ enable: true, sessionID: session.id })
+        yield* prompt.prompt({
+          sessionID: session.id,
+          agent: "plan",
+          noReply: true,
+          parts: [{ type: "text", text: "Create a plan only" }],
+        })
+        yield* llm.tool("write", { filePath: plan, content: "# Plan\n\n- Stay in plan mode.\n" })
+        yield* llm.tool("write", { filePath: file, content: "bug\n" })
+        yield* llm.text("done")
+
+        yield* prompt.loop({ sessionID: session.id })
+        yield* permission.allowEverything({ enable: false, sessionID: session.id })
+        expect(yield* Effect.promise(() => Bun.file(plan).exists())).toBe(true)
+        expect(yield* Effect.promise(() => Bun.file(file).exists())).toBe(false)
+
+        const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+        const tools = msgs
+          .flatMap((msg) => msg.parts)
+          .filter((part): part is MessageV2.ToolPart => part.type === "tool" && part.tool === "write")
+        const good = tools.find((part) => (part.state.input as { filePath?: string } | undefined)?.filePath === plan)
+        const bad = tools.find((part) => (part.state.input as { filePath?: string } | undefined)?.filePath === file)
+        expect(good?.state.status).toBe("completed")
+        expect(bad?.state.status).toBe("error")
+      }),
+    { git: true, config: providerCfg },
+  ),
+)
+// kilocode_change end
 
 unix("plan follow-up stops before queued mutations after plan_exit", () =>
   provideTmpdirServer(

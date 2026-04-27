@@ -120,6 +120,7 @@ export const AskInput = Schema.Struct({
   ...Request.fields,
   id: Schema.optional(PermissionID),
   ruleset: Ruleset,
+  hardRuleset: Schema.optional(Ruleset), // kilocode_change
 })
   .annotate({ identifier: "PermissionAskInput" })
   .pipe(withStatics((s) => ({ zod: zod(s) })))
@@ -159,6 +160,7 @@ export interface Interface {
 interface PendingEntry {
   info: Request
   ruleset: Ruleset // kilocode_change
+  hardRuleset?: Ruleset // kilocode_change
   deferred: Deferred.Deferred<void, RejectedError | CorrectedError>
 }
 
@@ -172,6 +174,17 @@ export function evaluate(permission: string, pattern: string, ...rulesets: Rules
   log.info("evaluate", { permission, pattern, ruleset: rulesets.flat() })
   return evalRule(permission, pattern, ...rulesets)
 }
+
+// kilocode_change start
+function veto(permission: string, pattern: string, ruleset?: Ruleset) {
+  if (!ruleset) return false
+  return evaluate(permission, pattern, ruleset).action === "deny"
+}
+
+function subset(permission: string, ruleset: Ruleset) {
+  return ruleset.filter((rule) => Wildcard.match(permission, rule.permission))
+}
+// kilocode_change end
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Permission") {}
 
@@ -205,7 +218,7 @@ export const layer = Layer.effect(
 
     const ask = Effect.fn("Permission.ask")(function* (input: AskInput) {
       const { approved, pending } = yield* InstanceState.get(state)
-      const { ruleset, ...request } = input
+      const { ruleset, hardRuleset, ...request } = input // kilocode_change
       const s = yield* InstanceState.get(state) // kilocode_change
       const local = s.session[request.sessionID] ?? [] // kilocode_change
       let needsAsk = false
@@ -217,9 +230,14 @@ export const layer = Layer.effect(
       for (const pattern of request.patterns) {
         const rule = evaluate(request.permission, pattern, ruleset, approved, local) // kilocode_change — include session-scoped rules
         log.info("evaluated", { permission: request.permission, pattern, action: rule })
+        // kilocode_change start — saved/session approvals cannot override hard Ask/Plan denials
+        if (veto(request.permission, pattern, hardRuleset)) {
+          return yield* new DeniedError({ ruleset: subset(request.permission, hardRuleset ?? []) })
+        }
+        // kilocode_change end
         if (rule.action === "deny") {
           return yield* new DeniedError({
-            ruleset: ruleset.filter((rule) => Wildcard.match(request.permission, rule.permission)),
+            ruleset: subset(request.permission, ruleset), // kilocode_change
           })
         }
         // kilocode_change start — override "allow" to "ask" for config paths
@@ -244,7 +262,7 @@ export const layer = Layer.effect(
       log.info("asking", { id, permission: info.permission, patterns: info.patterns })
 
       const deferred = yield* Deferred.make<void, RejectedError | CorrectedError>()
-      pending.set(id, { info, ruleset, deferred }) // kilocode_change
+      pending.set(id, { info, ruleset, hardRuleset, deferred }) // kilocode_change
       yield* bus.publish(Event.Asked, info)
       return yield* Effect.ensuring(
         Deferred.await(deferred),
@@ -302,9 +320,11 @@ export const layer = Layer.effect(
 
       for (const [id, item] of pending.entries()) {
         if (item.info.sessionID !== existing.info.sessionID) continue
-        const ok = item.info.patterns.every(
-          (pattern) => evaluate(item.info.permission, pattern, item.ruleset, approved).action === "allow", // kilocode_change — include original ruleset
-        )
+        if (ConfigProtection.isRequest(item.info)) continue // kilocode_change
+        const ok = item.info.patterns.every((pattern) => {
+          if (veto(item.info.permission, pattern, item.hardRuleset)) return false // kilocode_change
+          return evaluate(item.info.permission, pattern, item.ruleset, approved).action === "allow" // kilocode_change — include original ruleset
+        })
         if (!ok) continue
         pending.delete(id)
         yield* bus.publish(Event.Replied, {
@@ -390,7 +410,10 @@ export const layer = Layer.effect(
 
       if (input.requestID) {
         const entry = s.pending.get(PermissionID.make(input.requestID))
-        if (entry && (!input.sessionID || entry.info.sessionID === input.sessionID)) {
+        const ok = entry
+          ? entry.info.patterns.every((pattern) => !veto(entry.info.permission, pattern, entry.hardRuleset))
+          : false // kilocode_change
+        if (entry && ok && (!input.sessionID || entry.info.sessionID === input.sessionID)) {
           s.pending.delete(PermissionID.make(input.requestID))
           yield* bus.publish(Event.Replied, {
             sessionID: entry.info.sessionID,
@@ -404,6 +427,7 @@ export const layer = Layer.effect(
       for (const [id, entry] of s.pending) {
         if (input.sessionID && entry.info.sessionID !== input.sessionID) continue
         if (ConfigProtection.isRequest(entry.info)) continue
+        if (entry.info.patterns.some((pattern) => veto(entry.info.permission, pattern, entry.hardRuleset))) continue // kilocode_change
         s.pending.delete(id)
         yield* bus.publish(Event.Replied, {
           sessionID: entry.info.sessionID,

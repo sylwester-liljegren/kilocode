@@ -64,6 +64,11 @@ export namespace KiloSessionPrompt {
     return Permission.merge(rules, input.agent.permission, rules.filter((rule) => rule.action === "deny"))
   }
 
+  export function hardPermissions(input: { agent: { name: string; permission: Permission.Ruleset } }) {
+    if (!["ask", "plan"].includes(input.agent.name)) return
+    return input.agent.permission
+  }
+
   /**
    * Mutable cache for environment details, keyed by user message ID
    * so it recomputes when a new user message arrives.

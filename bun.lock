@@ -32,7 +32,7 @@
     },
     "packages/app": {
       "name": "@opencode-ai/app",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "@kilocode/kilo-i18n": "workspace:*",
         "@kilocode/kilo-ui": "workspace:*",
@@ -88,7 +88,7 @@
     },
     "packages/desktop": {
       "name": "@opencode-ai/desktop",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "@opencode-ai/app": "workspace:*",
         "@opencode-ai/ui": "workspace:*",
@@ -121,7 +121,7 @@
     },
     "packages/desktop-electron": {
       "name": "@opencode-ai/desktop-electron",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "@opencode-ai/app": "workspace:*",
         "@opencode-ai/ui": "workspace:*",
@@ -398,7 +398,7 @@
     },
     "packages/opencode": {
       "name": "@kilocode/cli",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "bin": {
         "kilo": "./bin/kilo",
         "kilocode": "./bin/kilo",
@@ -556,7 +556,7 @@
     },
     "packages/plugin": {
       "name": "@kilocode/plugin",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "@kilocode/sdk": "workspace:*",
         "effect": "catalog:",
@@ -581,7 +581,7 @@
     },
     "packages/script": {
       "name": "@opencode-ai/script",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "semver": "^7.6.3",
       },
@@ -592,7 +592,7 @@
     },
     "packages/sdk/js": {
       "name": "@kilocode/sdk",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "cross-spawn": "catalog:",
       },
@@ -607,7 +607,7 @@
     },
     "packages/shared": {
       "name": "@opencode-ai/shared",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "bin": {
         "opencode": "./bin/opencode",
       },
@@ -631,7 +631,7 @@
     },
     "packages/storybook": {
       "name": "@opencode-ai/storybook",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "devDependencies": {
         "@opencode-ai/ui": "workspace:*",
         "@solidjs/meta": "catalog:",
@@ -654,7 +654,7 @@
     },
     "packages/ui": {
       "name": "@opencode-ai/ui",
-      "version": "7.2.26",
+      "version": "7.2.25",
       "dependencies": {
         "@kilocode/sdk": "workspace:*",
         "@kobalte/core": "catalog:",

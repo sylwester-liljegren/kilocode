@@ -467,45 +467,32 @@ export type EventCommandExecuted = {
   }
 }
 
-export type SuggestionAction = {
-  /**
-   * Button or option label (1-5 words)
-   */
-  label: string
-  /**
-   * Brief explanation of what this action does
-   */
-  description?: string
-  /**
-   * Synthetic user prompt to inject when this action is accepted
-   */
-  prompt: string
-}
-
-export type SuggestionRequest = {
-  id: string
-  sessionID: string
-  /**
-   * Suggestion text shown to the user
-   */
-  text: string
-  /**
-   * Available actions the user can take
-   */
-  actions: Array<SuggestionAction>
-  /**
-   * Whether this suggestion blocks prompt input. When unset, the TUI treats the suggestion as blocking for backwards compatibility; the built-in suggest tool always sets this to false.
-   */
-  blocking?: boolean
-  tool?: {
-    messageID: string
-    callID: string
-  }
-}
-
 export type EventSuggestionShown = {
   type: "suggestion.shown"
-  properties: SuggestionRequest
+  properties: {
+    id: string
+    sessionID: string
+    text: string
+    actions: Array<{
+      /**
+       * Button or option label (1-5 words)
+       */
+      label: string
+      /**
+       * Brief explanation of what this action does
+       */
+      description?: string
+      /**
+       * Synthetic user prompt to inject when this action is accepted
+       */
+      prompt: string
+    }>
+    blocking?: boolean
+    tool?: {
+      messageID: string
+      callID: string
+    }
+  }
 }
 
 export type EventSuggestionAccepted = {
@@ -514,7 +501,20 @@ export type EventSuggestionAccepted = {
     sessionID: string
     requestID: string
     index: number
-    action: SuggestionAction
+    action: {
+      /**
+       * Button or option label (1-5 words)
+       */
+      label: string
+      /**
+       * Brief explanation of what this action does
+       */
+      description?: string
+      /**
+       * Synthetic user prompt to inject when this action is accepted
+       */
+      prompt: string
+    }
   }
 }
 
@@ -583,6 +583,13 @@ export type EventTodoUpdated = {
   }
 }
 
+export type EventVcsBranchUpdated = {
+  type: "vcs.branch.updated"
+  properties: {
+    branch?: string
+  }
+}
+
 export type IndexingStatusState = "Disabled" | "In Progress" | "Complete" | "Error" | "Standby"
 
 export type IndexingStatus = {
@@ -597,13 +604,6 @@ export type EventIndexingStatus = {
   type: "indexing.status"
   properties: {
     status: IndexingStatus
-  }
-}
-
-export type EventVcsBranchUpdated = {
-  type: "vcs.branch.updated"
-  properties: {
-    branch?: string
   }
 }
 
@@ -1241,31 +1241,31 @@ export type SyncEventSessionUpdated = {
   data: {
     sessionID: string
     info: {
-      id: string | null
-      slug: string | null
-      projectID: string | null
-      workspaceID: string | null
-      directory: string | null
-      parentID: string | null
-      summary: {
+      id?: string | null
+      slug?: string | null
+      projectID?: string | null
+      workspaceID?: string | null
+      directory?: string | null
+      parentID?: string | null
+      summary?: {
         additions: number
         deletions: number
         files: number
         diffs?: Array<SnapshotSummaryFileDiff>
       } | null
       share?: {
-        url: string | null
+        url?: string | null
       }
-      title: string | null
-      version: string | null
+      title?: string | null
+      version?: string | null
       time?: {
-        created: number | null
-        updated: number | null
-        compacting: number | null
-        archived: number | null
+        created?: number | null
+        updated?: number | null
+        compacting?: number | null
+        archived?: number | null
       }
-      permission: PermissionRuleset | null
-      revert: {
+      permission?: PermissionRuleset | null
+      revert?: {
         messageID: string
         partID?: string
         snapshot?: string
@@ -1330,8 +1330,8 @@ export type GlobalEvent = {
     | EventSessionStatus
     | EventSessionIdle
     | EventTodoUpdated
-    | EventIndexingStatus
     | EventVcsBranchUpdated
+    | EventIndexingStatus
     | EventSessionCompacted
     | EventKiloSessionsRemoteStatusChanged
     | EventWorktreeReady
@@ -1968,6 +1968,19 @@ export type Config = {
      */
     prompt?: string
   }
+  /**
+   * Thresholds for truncating tool output. When output exceeds either limit, the full text is written to the truncation directory and a preview is returned.
+   */
+  tool_output?: {
+    /**
+     * Maximum lines of tool output before it is truncated and saved to disk (default: 2000)
+     */
+    max_lines?: number
+    /**
+     * Maximum bytes of tool output before it is truncated and saved to disk (default: 51200)
+     */
+    max_bytes?: number
+  }
   compaction?: {
     /**
      * Enable automatic compaction when context is full (default: true)
@@ -2435,8 +2448,8 @@ export type Event =
   | EventSessionStatus
   | EventSessionIdle
   | EventTodoUpdated
-  | EventIndexingStatus
   | EventVcsBranchUpdated
+  | EventIndexingStatus
   | EventSessionCompacted
   | EventKiloSessionsRemoteStatusChanged
   | EventWorktreeReady
@@ -2553,6 +2566,42 @@ export type FormatterStatus = {
   name: string
   extensions: Array<string>
   enabled: boolean
+}
+
+export type SuggestionAction = {
+  /**
+   * Button or option label (1-5 words)
+   */
+  label: string
+  /**
+   * Brief explanation of what this action does
+   */
+  description?: string
+  /**
+   * Synthetic user prompt to inject when this action is accepted
+   */
+  prompt: string
+}
+
+export type SuggestionRequest = {
+  id: string
+  sessionID: string
+  /**
+   * Suggestion text shown to the user
+   */
+  text: string
+  /**
+   * Available actions the user can take
+   */
+  actions: Array<SuggestionAction>
+  /**
+   * Whether this suggestion blocks prompt input. When unset, the TUI treats the suggestion as blocking for backwards compatibility; the built-in suggest tool always sets this to false.
+   */
+  blocking?: boolean
+  tool?: {
+    messageID: string
+    callID: string
+  }
 }
 
 export type GlobalHealthData = {

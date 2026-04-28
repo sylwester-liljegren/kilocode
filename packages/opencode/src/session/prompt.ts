@@ -8,6 +8,7 @@ import { KiloCostPropagation } from "@/kilocode/session/cost-propagation" // kil
 import { Suggestion } from "@/kilocode/suggestion" // kilocode_change
 import { Question } from "@/question" // kilocode_change
 import z from "zod"
+import * as EffectZod from "@/util/effect-zod"
 import { SessionID, MessageID, PartID } from "./schema"
 import { MessageV2 } from "./message-v2"
 import { Log } from "../util"
@@ -50,7 +51,9 @@ import { AppFileSystem } from "@opencode-ai/shared/filesystem"
 import { Truncate } from "@/tool"
 import { decodeDataUrl } from "@/util/data-url"
 import { Process } from "@/util"
-import { Cause, Effect, Exit, Layer, Option, Scope, Context } from "effect"
+import { Cause, Effect, Exit, Layer, Option, Scope, Context, Schema } from "effect"
+import { zod } from "@/util/effect-zod"
+import { withStatics } from "@/util/schema"
 import { EffectLogger } from "@/effect"
 import { InstanceState } from "@/effect"
 import { TaskTool, type TaskPromptOps } from "@/tool/task"
@@ -79,7 +82,7 @@ const elog = EffectLogger.create({ service: "session.prompt" })
 export interface Interface {
   readonly cancel: (sessionID: SessionID) => Effect.Effect<void>
   readonly prompt: (input: PromptInput) => Effect.Effect<MessageV2.WithParts>
-  readonly loop: (input: z.infer<typeof LoopInput>) => Effect.Effect<MessageV2.WithParts>
+  readonly loop: (input: LoopInput) => Effect.Effect<MessageV2.WithParts>
   readonly shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts>
   readonly command: (input: CommandInput) => Effect.Effect<MessageV2.WithParts>
   readonly resolvePromptParts: (template: string) => Effect.Effect<PromptInput["parts"]>
@@ -411,7 +414,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         providerID: input.model.providerID,
         agent: input.agent,
       })) {
-        const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
+        const schema = ProviderTransform.schema(input.model, EffectZod.toJsonSchema(item.parameters))
         tools[item.id] = tool({
           description: item.description,
           inputSchema: jsonSchema(schema),
@@ -1376,6 +1379,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
           let msgs = yield* MessageV2.filterCompactedEffect(sessionID)
           msgs = KiloSessionPromptQueue.scope(sessionID, msgs) // kilocode_change - hide later queued prompts
+          msgs = KiloSessionPrompt.trimBeforeLastSummary(msgs) // kilocode_change - trim on any completed summary (e.g. manual /compact against a text user)
 
           let lastUser: MessageV2.User | undefined
           let lastAssistant: MessageV2.Assistant | undefined
@@ -1560,8 +1564,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
             yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
-            // kilocode_change — ephemerally inject dynamic editor context into last user message
+            // kilocode_change start — ephemeral context injection + post-summary
+            // media strip (keeps outgoing body under the gateway body-size limit
+            // even when filterCompacted couldn't trim the pre-summary history).
             KiloSessionPrompt.injectEditorContext({ msgs, lastUser, sessionID, cache: envCache })
+            msgs = KiloSessionPrompt.maybeStripHistoricalMedia(msgs)
+            // kilocode_change end
 
             const [skills, env, instructions, modelMsgs] = yield* Effect.all([
               sys.skills(agent),
@@ -1653,9 +1661,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       },
     )
 
-    const loop: (input: z.infer<typeof LoopInput>) => Effect.Effect<MessageV2.WithParts> = Effect.fn(
-      "SessionPrompt.loop",
-    )(function* (input: z.infer<typeof LoopInput>) {
+    const loop: (input: LoopInput) => Effect.Effect<MessageV2.WithParts> = Effect.fn("SessionPrompt.loop")(function* (
+      input: LoopInput,
+    ) {
       // kilocode_change start
       yield* bus.publish(KiloSession.Event.TurnOpen, { sessionID: input.sessionID })
       return yield* Effect.onExit(
@@ -1837,101 +1845,92 @@ export const defaultLayer = Layer.suspend(() =>
     ),
   ),
 )
-export const PromptInput = z.object({
-  sessionID: SessionID.zod,
-  messageID: MessageID.zod.optional(),
-  model: z
-    .object({
-      providerID: ProviderID.zod,
-      modelID: ModelID.zod,
-    })
-    .optional(),
-  agent: z.string().optional(),
-  noReply: z.boolean().optional(),
-  tools: z
-    .record(z.string(), z.boolean())
-    .optional()
-    .describe("@deprecated tools and permissions have been merged, you can set permissions on the session itself now"),
-  format: MessageV2.Format.zod.optional(),
-  system: z.string().optional(),
-  variant: z.string().optional(),
-  // kilocode_change start
-  editorContext: z
-    .object({
-      visibleFiles: z.array(z.string()).optional(),
-      openTabs: z.array(z.string()).optional(),
-      activeFile: z.string().optional(),
-      shell: z.string().optional(),
-    })
-    .optional(),
-  // kilocode_change end
-  parts: z.array(
-    z.discriminatedUnion("type", [
-      MessageV2.TextPartInput.zod as unknown as z.ZodObject<any>,
-      MessageV2.FilePartInput.zod as unknown as z.ZodObject<any>,
-      MessageV2.AgentPartInput.zod as unknown as z.ZodObject<any>,
-      MessageV2.SubtaskPartInput.zod as unknown as z.ZodObject<any>,
-    ]),
-  ),
+const ModelRef = Schema.Struct({
+  providerID: ProviderID,
+  modelID: ModelID,
 })
+
+export const PromptInput = Schema.Struct({
+  sessionID: SessionID,
+  messageID: Schema.optional(MessageID),
+  model: Schema.optional(ModelRef),
+  agent: Schema.optional(Schema.String),
+  noReply: Schema.optional(Schema.Boolean),
+  tools: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)).annotate({
+    description:
+      "@deprecated tools and permissions have been merged, you can set permissions on the session itself now",
+  }),
+  format: Schema.optional(MessageV2.Format),
+  system: Schema.optional(Schema.String),
+  variant: Schema.optional(Schema.String),
+  // kilocode_change start - reuse shared editor context schema
+  editorContext: Schema.optional(MessageV2.EditorContext),
+  // kilocode_change end
+  parts: Schema.Array(
+    Schema.Union([
+      MessageV2.TextPartInput,
+      MessageV2.FilePartInput,
+      MessageV2.AgentPartInput,
+      MessageV2.SubtaskPartInput,
+    ]).annotate({ discriminator: "type" }),
+  ),
+}).pipe(withStatics((s) => ({ zod: zod(s) })))
 // `z.discriminatedUnion` erases the discriminated members' shapes back to
-// `{}` because the derived `.zod` on each input is typed as an opaque
-// `z.ZodType`. Restore the precise `parts` type from the exported Schema
-// input types so callers see a proper tagged union.
+// `{}` when walked from the generic `z.ZodType` input. Restore the precise
+// `parts` type from the exported Schema input types so callers see a proper
+// tagged union.
 type PartInputUnion =
   | MessageV2.TextPartInput
   | MessageV2.FilePartInput
   | MessageV2.AgentPartInput
   | MessageV2.SubtaskPartInput
-export type PromptInput = Omit<z.infer<typeof PromptInput>, "parts"> & {
+export type PromptInput = Omit<Schema.Schema.Type<typeof PromptInput>, "parts" | "editorContext"> & {
   parts: PartInputUnion[]
+  editorContext?: MessageV2.EditorContext
 }
 
-export const LoopInput = z.object({
-  sessionID: SessionID.zod,
-})
+export class LoopInput extends Schema.Class<LoopInput>("SessionPrompt.LoopInput")({
+  sessionID: SessionID,
+}) {
+  static readonly zod = zod(this)
+}
 
-export const ShellInput = z.object({
-  sessionID: SessionID.zod,
-  messageID: MessageID.zod.optional(),
-  agent: z.string(),
-  model: z
-    .object({
-      providerID: ProviderID.zod,
-      modelID: ModelID.zod,
-    })
-    .optional(),
-  command: z.string(),
-})
-export type ShellInput = z.infer<typeof ShellInput>
+export const ShellInput = Schema.Struct({
+  sessionID: SessionID,
+  messageID: Schema.optional(MessageID),
+  agent: Schema.String,
+  model: Schema.optional(ModelRef),
+  command: Schema.String,
+}).pipe(withStatics((s) => ({ zod: zod(s) })))
+export type ShellInput = Schema.Schema.Type<typeof ShellInput>
 
-export const CommandInput = z.object({
-  messageID: MessageID.zod.optional(),
-  sessionID: SessionID.zod,
-  agent: z.string().optional(),
-  model: z.string().optional(),
-  arguments: z.string(),
-  command: z.string(),
-  variant: z.string().optional(),
-  // Inlined (no `.meta({ ref })`) to keep the original SDK output — the
+export const CommandInput = Schema.Struct({
+  messageID: Schema.optional(MessageID),
+  sessionID: SessionID,
+  agent: Schema.optional(Schema.String),
+  model: Schema.optional(Schema.String),
+  arguments: Schema.String,
+  command: Schema.String,
+  variant: Schema.optional(Schema.String),
+  // Inlined (no identifier annotation) to keep the original SDK output — the
   // PromptInput call site below references FilePartInput by ref via the
   // Schema export in message-v2.ts.
-  parts: z
-    .array(
-      z.discriminatedUnion("type", [
-        z.object({
-          id: PartID.zod.optional(),
-          type: z.literal("file"),
-          mime: z.string(),
-          filename: z.string().optional(),
-          url: z.string(),
-          source: MessageV2.FilePartSource.zod.optional(),
+  parts: Schema.optional(
+    Schema.Array(
+      Schema.Union([
+        Schema.Struct({
+          id: Schema.optional(PartID),
+          type: Schema.Literal("file"),
+          mime: Schema.String,
+          filename: Schema.optional(Schema.String),
+          url: Schema.String,
+          source: Schema.optional(MessageV2.FilePartSource),
         }),
-      ]),
-    )
-    .optional(),
-})
-export type CommandInput = z.infer<typeof CommandInput>
+      ]).annotate({ discriminator: "type" }),
+    ),
+  ),
+}).pipe(withStatics((s) => ({ zod: zod(s) })))
+export type CommandInput = Schema.Schema.Type<typeof CommandInput>
 
 /** @internal Exported for testing */
 export function createStructuredOutputTool(input: {
@@ -1970,7 +1969,7 @@ const quoteTrimRegex = /^["']|["']$/g
 // kilocode_change start - legacy promise helpers for Kilo callsites
 const { runPromise } = makeRuntime(Service, defaultLayer)
 export const prompt = (input: PromptInput) => runPromise((svc) => svc.prompt(input))
-export const loop = (input: z.infer<typeof LoopInput>) => runPromise((svc) => svc.loop(input))
+export const loop = (input: LoopInput) => runPromise((svc) => svc.loop(input))
 export const cancel = (sessionID: SessionID) => runPromise((svc) => svc.cancel(sessionID))
 // kilocode_change end
 

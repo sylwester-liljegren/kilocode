@@ -209,9 +209,7 @@ import { createKiloClient } from "@kilocode/sdk/v2"
 
 const port = process.env.PORT!
 const pass = process.env.KILO_SERVER_PASSWORD
-const headers = pass
-  ? { Authorization: "Basic " + Buffer.from("kilo:" + pass).toString("base64") }
-  : undefined
+const headers = pass ? { Authorization: "Basic " + Buffer.from("kilo:" + pass).toString("base64") } : undefined
 
 const client = createKiloClient({
   baseUrl: `http://127.0.0.1:${port}`,

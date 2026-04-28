@@ -10,9 +10,10 @@ import { Instance } from "../../project/instance"
 import { EOL } from "os"
 import { Filesystem } from "../../util"
 import { AppRuntime } from "@/effect/app-runtime"
-import { Log } from "../../util"
+import { Schema } from "effect"
+import { Log } from "../../util" // kilocode_change
 
-const log = Log.create({ service: "import" })
+const log = Log.create({ service: "import" }) // kilocode_change
 
 /** Discriminated union returned by the ShareNext API (GET /api/shares/:id/data) */
 export type ShareData =
@@ -183,10 +184,10 @@ export const ImportCommand = cmd({
         return
       }
 
-      const info = Session.Info.parse({
+      const info = Schema.decodeUnknownSync(Session.Info)({
         ...exportData.info,
         projectID: Instance.project.id,
-      })
+      }) as Session.Info
       const row = Session.toRow(info)
       Database.use((db) =>
         db

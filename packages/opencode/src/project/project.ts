@@ -54,7 +54,7 @@ export const Info = Schema.Struct({
 export type Info = Types.DeepMutable<Schema.Schema.Type<typeof Info>>
 
 export const Event = {
-  Updated: BusEvent.define("project.updated", Info.zod),
+  Updated: BusEvent.define("project.updated", Info),
 }
 
 type Row = typeof ProjectTable.$inferSelect

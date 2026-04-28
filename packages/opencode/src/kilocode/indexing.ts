@@ -1,4 +1,5 @@
 import z from "zod"
+import { Schema } from "effect"
 import path from "path"
 import {
   CodeIndexManager,
@@ -7,7 +8,12 @@ import {
 } from "@kilocode/kilo-indexing/engine"
 import { toIndexingConfigInput } from "@kilocode/kilo-indexing/config"
 import { hasIndexingPlugin } from "@kilocode/kilo-indexing/detect"
-import { IndexingStatus, disabledIndexingStatus, normalizeIndexingStatus } from "@kilocode/kilo-indexing/status"
+import {
+  IndexingStatus,
+  INDEXING_STATUS_STATES,
+  disabledIndexingStatus,
+  normalizeIndexingStatus,
+} from "@kilocode/kilo-indexing/status"
 import { Telemetry } from "@kilocode/kilo-telemetry"
 import { Instance } from "@/project/instance"
 import { Bus } from "@/bus"
@@ -123,6 +129,19 @@ export namespace KiloIndexing {
   export const Status = IndexingStatus
   export type Status = z.infer<typeof Status>
 
+  // Mirror of IndexingStatus using Effect Schema for BusEvent.define, which
+  // requires a Schema.Top. The zod form above is kept for consumers that still
+  // depend on the z.infer-derived type.
+  const StateSchema = Schema.Literals(INDEXING_STATUS_STATES).annotate({ identifier: "IndexingStatusState" })
+
+  const StatusSchema = Schema.Struct({
+    state: StateSchema,
+    message: Schema.String,
+    processedFiles: Schema.Number,
+    totalFiles: Schema.Number,
+    percent: Schema.Number,
+  }).annotate({ identifier: "IndexingStatus" })
+
   type Entry = {
     manager?: CodeIndexManager
     current(): Status
@@ -138,8 +157,8 @@ export namespace KiloIndexing {
 
   export const Event = BusEvent.define(
     "indexing.status",
-    z.object({
-      status: Status,
+    Schema.Struct({
+      status: StatusSchema,
     }),
   )
 
@@ -166,7 +185,9 @@ export namespace KiloIndexing {
     }
 
     if (cfg.experimental?.semantic_indexing !== true) {
-      return inert(() => disabledIndexingStatus("Semantic indexing is disabled. Enable it in the Experimental settings."))
+      return inert(() =>
+        disabledIndexingStatus("Semantic indexing is disabled. Enable it in the Experimental settings."),
+      )
     }
 
     if (isWorktreePath(dir)) {

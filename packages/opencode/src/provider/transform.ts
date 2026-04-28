@@ -220,8 +220,6 @@ function normalizeMessages(
         // Filter out reasoning parts from content
         const filteredContent = msg.content.filter((part: any) => part.type !== "reasoning")
 
-        // kilocode_change start - cherry-picked from anomalyco/opencode#24146;
-        // will be reverted on the next wholesale upstream merge.
         // Include reasoning_content | reasoning_details directly on the message for all assistant messages.
         // Always set the field even when empty — some providers (e.g. DeepSeek) may return empty
         // reasoning_content which still needs to be sent back in subsequent requests.
@@ -236,7 +234,6 @@ function normalizeMessages(
             },
           },
         }
-        // kilocode_change end
       }
 
       return msg
@@ -452,12 +449,10 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
   const adaptiveEfforts = anthropicAdaptiveEfforts(model.api.id)
 
   if (
-    // kilocode_change start - cherry-picked from anomalyco/opencode#24157
     id.includes("deepseek-chat") ||
     id.includes("deepseek-reasoner") ||
     id.includes("deepseek-r1") ||
     id.includes("deepseek-v3") ||
-    // kilocode_change end
     id.includes("minimax") ||
     // id.includes("glm") || // kilocode_change
     // id.includes("kimi") || // kilocode_change
@@ -600,13 +595,11 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
     case "venice-ai-sdk-provider":
     // https://docs.venice.ai/overview/guides/reasoning-models#reasoning-effort
     case "@ai-sdk/openai-compatible":
-      // kilocode_change start - cherry-picked from anomalyco/opencode#24163
       const efforts = [...WIDELY_SUPPORTED_EFFORTS]
       if (model.api.id.includes("deepseek-v4")) {
         efforts.push("max")
       }
       return Object.fromEntries(efforts.map((effort) => [effort, { reasoningEffort: effort }]))
-    // kilocode_change end
 
     case "@ai-sdk/azure":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure

@@ -16,7 +16,9 @@ import { SkillTool } from "./skill"
 import * as Tool from "./tool"
 import { Config } from "../config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@kilocode/plugin"
+import { Schema } from "effect"
 import z from "zod"
+import { ZodOverride } from "@/util/effect-zod"
 import { Plugin } from "../plugin"
 import { Provider } from "../provider"
 import { ProviderID, type ModelID } from "../provider/schema"
@@ -125,9 +127,17 @@ export const layer: Layer.Layer<
         const custom: Tool.Def[] = []
 
         function fromPlugin(id: string, def: ToolDefinition): Tool.Def {
+          // Plugin tools define their args as a raw Zod shape. Wrap the
+          // derived Zod object in a `Schema.declare` so it slots into the
+          // Schema-typed framework, and annotate with `ZodOverride` so the
+          // walker emits the original Zod object for LLM JSON Schema.
+          const zodParams = z.object(def.args)
+          const parameters = Schema.declare<unknown>((u): u is unknown => zodParams.safeParse(u).success).annotate({
+            [ZodOverride]: zodParams,
+          })
           return {
             id,
-            parameters: z.object(def.args),
+            parameters,
             description: def.description,
             execute: (args, toolCtx) =>
               Effect.gen(function* () {
@@ -203,7 +213,7 @@ export const layer: Layer.Layer<
         })
         // kilocode_change end
 
-        const kilo = yield* KiloToolRegistry.build(kiloToolInfos) // kilocode_change
+        const kilo = yield* KiloToolRegistry.build(kiloToolInfos, { agent: agents, truncate }) // kilocode_change
 
         // kilocode_change start
         return {

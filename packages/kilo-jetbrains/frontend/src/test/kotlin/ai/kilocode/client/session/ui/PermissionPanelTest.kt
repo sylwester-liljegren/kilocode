@@ -4,10 +4,9 @@ import ai.kilocode.client.app.KiloAppService
 import ai.kilocode.client.app.KiloSessionService
 import ai.kilocode.client.app.KiloWorkspaceService
 import ai.kilocode.client.app.Workspace
+import ai.kilocode.client.session.model.Permission
+import ai.kilocode.client.session.model.PermissionMeta
 import ai.kilocode.client.session.update.SessionController
-import ai.kilocode.client.session.model.Question
-import ai.kilocode.client.session.model.QuestionItem
-import ai.kilocode.client.session.model.QuestionOption
 import ai.kilocode.client.testing.FakeAppRpcApi
 import ai.kilocode.client.testing.FakeSessionRpcApi
 import ai.kilocode.client.testing.FakeWorkspaceRpcApi
@@ -27,10 +26,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.awt.Container
-import javax.swing.JButton
+import javax.swing.AbstractButton
 
 @Suppress("UnstableApiUsage")
-class QuestionPanelTest : BasePlatformTestCase() {
+class PermissionPanelTest : BasePlatformTestCase() {
 
     private lateinit var parent: Disposable
     private lateinit var scope: CoroutineScope
@@ -39,24 +38,23 @@ class QuestionPanelTest : BasePlatformTestCase() {
     private lateinit var workspaces: KiloWorkspaceService
     private lateinit var workspace: Workspace
     private lateinit var controller: SessionController
-    private lateinit var panel: QuestionPanel
+    private lateinit var panel: PermissionPanel
 
     override fun setUp() {
         super.setUp()
-        parent = Disposer.newDisposable("question-panel")
+        parent = Disposer.newDisposable("permission-panel")
         scope = CoroutineScope(SupervisorJob())
         rpc = FakeSessionRpcApi()
         val sessions = KiloSessionService(project, scope, rpc)
-        val appRpc = FakeAppRpcApi().also { it.state.value = KiloAppStateDto(KiloAppStatusDto.READY) }
-        val workspaceRpc = FakeWorkspaceRpcApi().also {
+        val api = FakeAppRpcApi().also { it.state.value = KiloAppStateDto(KiloAppStatusDto.READY) }
+        val work = FakeWorkspaceRpcApi().also {
             it.state.value = KiloWorkspaceStateDto(status = KiloWorkspaceStatusDto.READY)
         }
-        app = KiloAppService(scope, appRpc)
-        workspaces = KiloWorkspaceService(scope, workspaceRpc)
+        app = KiloAppService(scope, api)
+        workspaces = KiloWorkspaceService(scope, work)
         workspace = workspaces.workspace("/test")
-        val root = BorderLayoutPanel()
-        controller = SessionController(parent, "ses_test", sessions, workspace, app, scope, root)
-        panel = QuestionPanel(controller)
+        controller = SessionController(parent, "ses_test", sessions, workspace, app, scope, BorderLayoutPanel())
+        panel = PermissionPanel(controller)
     }
 
     override fun tearDown() {
@@ -68,57 +66,40 @@ class QuestionPanelTest : BasePlatformTestCase() {
         }
     }
 
-    fun `test empty question hides panel and clears stale request id`() {
-        panel.show(
-            Question(
-                id = "req_old",
-                items = listOf(
-                    QuestionItem(
-                        question = "Pick one",
-                        header = "Header",
-                        options = listOf(QuestionOption("Yes", "desc")),
-                        multiple = false,
-                        custom = true,
-                    )
-                ),
-            )
-        )
-        assertTrue(panel.isVisible)
+    fun `test allow button uses bundle text and replies once`() {
+        panel.show(permission())
 
-        panel.show(Question(id = "req_new", items = emptyList()))
-
-        assertFalse(panel.isVisible)
-        assertEquals(0, panel.componentCount)
-        assertTrue(rpc.questionReplies.isEmpty())
-        assertTrue(rpc.questionRejects.isEmpty())
-    }
-
-    fun `test dismiss button uses bundle text and rejects question`() {
-        panel.show(
-            Question(
-                id = "req_1",
-                items = listOf(
-                    QuestionItem(
-                        question = "Pick one",
-                        header = "Header",
-                        options = listOf(QuestionOption("Yes", "desc")),
-                        multiple = false,
-                        custom = true,
-                    )
-                ),
-            )
-        )
-
-        val button = buttons(panel).first { it.text == "Dismiss" }
-        button.doClick()
+        buttons(panel).first { it.text == "Allow" }.doClick()
         flush()
 
         assertFalse(panel.isVisible)
-        assertEquals("req_1", rpc.questionRejects.single().first)
+        assertEquals("perm1", rpc.permissionReplies.single().first)
+        assertEquals("once", rpc.permissionReplies.single().third.reply)
     }
 
-    private fun buttons(root: Container): List<JButton> = root.components.flatMap { comp ->
-        val item = if (comp is JButton) listOf(comp) else emptyList()
+    fun `test deny button uses bundle text and rejects`() {
+        panel.show(permission())
+
+        buttons(panel).first { it.text == "Deny" }.doClick()
+        flush()
+
+        assertFalse(panel.isVisible)
+        assertEquals("perm1", rpc.permissionReplies.single().first)
+        assertEquals("reject", rpc.permissionReplies.single().third.reply)
+    }
+
+    private fun permission() = Permission(
+        id = "perm1",
+        sessionId = "ses_test",
+        name = "edit",
+        patterns = listOf("*.kt"),
+        always = emptyList(),
+        meta = PermissionMeta(),
+        message = "Review file changes",
+    )
+
+    private fun buttons(root: Container): List<AbstractButton> = root.components.flatMap { comp ->
+        val item = if (comp is AbstractButton) listOf(comp) else emptyList()
         if (comp is Container) item + buttons(comp) else item
     }
 

@@ -10,8 +10,11 @@ import com.intellij.openapi.util.IconLoader
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.util.ui.Centerizer
+import com.intellij.util.ui.JBDimension
+import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -22,7 +25,6 @@ import javax.swing.Box
 import javax.swing.BoxLayout
 import javax.swing.DefaultListModel
 import javax.swing.JList
-import javax.swing.JPanel
 import javax.swing.ListCellRenderer
 import javax.swing.ListSelectionModel
 import kotlin.math.abs
@@ -34,11 +36,17 @@ class EmptySessionPanel(
     parent: Disposable,
     private val controller: SessionController,
     recents: List<SessionDto>,
-) : JPanel(BorderLayout()), Disposable {
+) : BorderLayoutPanel(), Disposable {
 
     companion object {
         internal const val LIMIT = 5
         internal const val MAX_WIDTH = 350
+        private const val PAD = 12
+        private const val SIDE_PAD = 12
+        private const val RECENT_PAD = 8
+        private const val LOGO_GAP = 14
+        private const val RECENT_GAP = 28
+        private const val SECOND_MS_LIMIT = 10_000_000_000L
         private const val MINUTE = 60_000L
         private const val HOUR = 60 * MINUTE
         private const val DAY = 24 * HOUR
@@ -48,6 +56,7 @@ class EmptySessionPanel(
     private var hover = -1
 
     private val list = JBList(model).apply {
+        // Blend the recent-session list into the centered empty-state surface.
         isOpaque = false
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         visibleRowCount = LIMIT
@@ -76,6 +85,7 @@ class EmptySessionPanel(
         })
     }
     private val md = MdView.html().apply {
+        // MdView uses an HTML component; transparency keeps the centered panel seamless.
         opaque = false
         foreground = UIUtil.getContextHelpForeground()
         set(KiloBundle.message("session.empty.welcome"))
@@ -84,8 +94,9 @@ class EmptySessionPanel(
 
     init {
         Disposer.register(parent, this)
+        // The empty state floats on the tool-window background.
         isOpaque = false
-        border = JBUI.Borders.empty(12)
+        border = JBUI.Borders.empty(PAD)
         setSessions(recents)
         add(Centerizer(content, Centerizer.TYPE.BOTH), BorderLayout.CENTER)
     }
@@ -97,44 +108,40 @@ class EmptySessionPanel(
         repaint()
     }
 
-    private fun createContent(): JPanel {
+    private fun createContent(): BorderLayoutPanel {
         val logo = JBLabel(
             IconLoader.getIcon("/icons/kilo-content.svg", EmptySessionPanel::class.java),
         ).apply {
             alignmentX = CENTER_ALIGNMENT
         }
-        val intro = JPanel(BorderLayout()).apply {
-            isOpaque = false
+        val intro = BorderLayoutPanel().apply {
             alignmentX = CENTER_ALIGNMENT
             add(md.component, BorderLayout.CENTER)
-            border = JBUI.Borders.empty(0, 12, 0, 12)
+            border = JBUI.Borders.empty(0, SIDE_PAD, 0, SIDE_PAD)
         }
-        val recent = JPanel(BorderLayout()).apply {
-            isOpaque = false
+        val recent = BorderLayoutPanel().apply {
             alignmentX = CENTER_ALIGNMENT
             add(JBLabel(KiloBundle.message("session.empty.recent")).apply {
                 foreground = UIUtil.getContextHelpForeground()
-                font = font.deriveFont(font.size2D - 1f)
-                border = JBUI.Borders.emptyLeft(8)
+                font = JBFont.small()
+                border = JBUI.Borders.emptyLeft(RECENT_PAD)
             }, BorderLayout.NORTH)
             add(list, BorderLayout.CENTER)
         }
-        val stack = JPanel().apply {
-            isOpaque = false
+        val stack = BorderLayoutPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             add(logo)
-            add(Box.createVerticalStrut(JBUI.scale(14)))
+            add(Box.createVerticalStrut(JBUI.scale(LOGO_GAP)))
             add(intro)
-            add(Box.createVerticalStrut(JBUI.scale(28)))
+            add(Box.createVerticalStrut(JBUI.scale(RECENT_GAP)))
             add(recent)
         }
-        return object : JPanel(BorderLayout()) {
+        return object : BorderLayoutPanel() {
             override fun getPreferredSize(): Dimension {
                 val size = super.getPreferredSize()
-                return Dimension(JBUI.scale(MAX_WIDTH), size.height)
+                return JBDimension(JBUI.scale(MAX_WIDTH), size.height)
             }
         }.apply {
-            isOpaque = false
             add(stack, BorderLayout.NORTH)
         }
     }
@@ -168,7 +175,7 @@ class EmptySessionPanel(
 
     internal fun normalize(value: Double): Long {
         val raw = value.toLong()
-        if (abs(raw) < 10_000_000_000L) return raw * 1000
+        if (abs(raw) < SECOND_MS_LIMIT) return raw * 1000
         return raw
     }
 
@@ -192,12 +199,12 @@ class EmptySessionPanel(
         return index
     }
 
-    private inner class SessionRenderer : JPanel(BorderLayout()), ListCellRenderer<SessionDto> {
+    private inner class SessionRenderer : BorderLayoutPanel(), ListCellRenderer<SessionDto> {
         private val title = JBLabel()
         private val time = JBLabel()
 
         init {
-            border = JBUI.Borders.empty(8, 8, 8, 8)
+            border = JBUI.Borders.empty(RECENT_PAD, RECENT_PAD, RECENT_PAD, RECENT_PAD)
             add(title, BorderLayout.CENTER)
             add(time, BorderLayout.EAST)
         }

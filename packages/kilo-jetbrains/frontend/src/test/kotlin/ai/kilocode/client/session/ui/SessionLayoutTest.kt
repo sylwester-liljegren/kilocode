@@ -2,22 +2,23 @@ package ai.kilocode.client.session.ui
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.Dimension
 import javax.swing.JLabel
-import javax.swing.JPanel
 
 /**
  * Tests for [SessionLayout].
  *
- * Uses a plain [JPanel] as container to test the layout manager in isolation.
+ * Uses a plain [BorderLayoutPanel] as container to test the layout manager in isolation.
  * Components are sized manually since there is no real screen / Swing event loop
  * involved during tests.
  */
 @Suppress("UnstableApiUsage")
 class SessionLayoutTest : BasePlatformTestCase() {
 
-    private fun panel(gap: Int = 0, width: Int = 400): JPanel {
-        return JPanel(SessionLayout(gap)).apply {
+    private fun panel(gap: Int = 0, width: Int = 400): BorderLayoutPanel {
+        return BorderLayoutPanel().apply {
+            layout = SessionLayout(gap)
             setSize(width, 2000)
         }
     }

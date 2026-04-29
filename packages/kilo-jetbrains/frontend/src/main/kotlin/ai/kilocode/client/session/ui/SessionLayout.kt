@@ -1,11 +1,12 @@
 package ai.kilocode.client.session.ui
 
+import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
 import java.awt.LayoutManager
-import javax.swing.JPanel
 
 /**
  * A vertical, width-aware layout manager for the session transcript.
@@ -21,14 +22,14 @@ import javax.swing.JPanel
  * 3. Stacks children top-to-bottom with a configurable [gap].
  * 4. Skips invisible children.
  *
- * Pair with [SessionLayoutPanel] (or any [JPanel] that implements [Scrollable]
+ * Pair with [SessionLayoutPanel] (or any panel that implements [Scrollable]
  * with `getScrollableTracksViewportWidth = true`) so the viewport constrains
  * the panel width and the layout always has a valid width to work with.
  */
 class SessionLayout(private val gap: Int = JBUI.scale(4)) : LayoutManager {
 
-    override fun addLayoutComponent(name: String, comp: Component) {}
-    override fun removeLayoutComponent(comp: Component) {}
+    override fun addLayoutComponent(name: String, comp: Component) = Unit
+    override fun removeLayoutComponent(comp: Component) = Unit
 
     override fun preferredLayoutSize(parent: Container): Dimension {
         val ins = parent.insets
@@ -43,7 +44,7 @@ class SessionLayout(private val gap: Int = JBUI.scale(4)) : LayoutManager {
             comp.setSize(w, comp.height.coerceAtLeast(1))
             h += comp.preferredSize.height
         }
-        return Dimension(w + ins.left + ins.right, h)
+        return JBDimension(w + ins.left + ins.right, h)
     }
 
     override fun minimumLayoutSize(parent: Container): Dimension = preferredLayoutSize(parent)
@@ -67,13 +68,17 @@ class SessionLayout(private val gap: Int = JBUI.scale(4)) : LayoutManager {
 }
 
 /**
- * A [JPanel] pre-configured with [SessionLayout] and the [Scrollable] interface.
+ * A panel pre-configured with [SessionLayout] and the [Scrollable] interface.
  *
  * Setting `getScrollableTracksViewportWidth = true` tells the enclosing
  * [JScrollPane] to force the panel's width to match the viewport, giving
  * [SessionLayout] a valid width to measure against.
  */
-open class SessionLayoutPanel(gap: Int = JBUI.scale(4)) : JPanel(SessionLayout(gap)), javax.swing.Scrollable {
+open class SessionLayoutPanel(gap: Int = JBUI.scale(4)) : BorderLayoutPanel(), javax.swing.Scrollable {
+    init {
+        layout = SessionLayout(gap)
+    }
+
     override fun getScrollableTracksViewportWidth() = true
     override fun getScrollableTracksViewportHeight() = false
     override fun getPreferredScrollableViewportSize(): Dimension = preferredSize

@@ -12,24 +12,29 @@ import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import javax.swing.JPanel
 import javax.swing.ScrollPaneConstants
 import javax.swing.UIManager
 
 class ConnectionPanel(
     parent: Disposable,
     private val controller: SessionController,
-) : JPanel(BorderLayout()), SessionControllerListener, Disposable {
+) : BorderLayoutPanel(), SessionControllerListener, Disposable {
 
     companion object {
         private const val DETAILS_LINES = 10
+        private const val PAD_TOP = 4
+        private const val PAD_SIDE = 8
+        private const val GAP = 4
+        private const val CHROME = 2
         private val ERROR = JBColor.namedColor("Label.errorForeground", UIUtil.getErrorForeground())
         private val WARNING = JBColor.lazy {
             UIManager.getColor("Component.warningFocusColor")
@@ -44,13 +49,12 @@ class ConnectionPanel(
         }
     }
 
-    private val header = JPanel(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4, 8, 0, 8)
-        isOpaque = false
+    private val header = BorderLayoutPanel().apply {
+        border = JBUI.Borders.empty(PAD_TOP, PAD_SIDE, 0, PAD_SIDE)
     }
 
-    private val left = JPanel(BorderLayout(JBUI.scale(4), 0)).apply {
-        isOpaque = false
+    private val left = BorderLayoutPanel().apply {
+        layout = BorderLayout(JBUI.scale(GAP), 0)
         addMouseListener(click)
     }
 
@@ -75,6 +79,7 @@ class ConnectionPanel(
 
     private val details = JBTextArea().apply {
         isEditable = false
+        // Details should read as inline expandable text, not a nested text box.
         isOpaque = false
         lineWrap = true
         wrapStyleWord = true
@@ -82,7 +87,8 @@ class ConnectionPanel(
     }
 
     private val scroll = JBScrollPane(details).apply {
-        border = JBUI.Borders.empty(0, 8, 4, 0)
+        border = JBUI.Borders.empty(0, PAD_SIDE, PAD_TOP, 0)
+        // Match the banner background while retaining platform scroll behavior.
         isOpaque = false
         viewport.isOpaque = false
         horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
@@ -95,6 +101,7 @@ class ConnectionPanel(
 
     init {
         Disposer.register(parent, this)
+        // Keep the banner solid so expanded details cover transcript content beneath it.
         isOpaque = true
         background = UIUtil.getPanelBackground()
         border = JBUI.Borders.customLine(UIUtil.getBoundsColor(), 1, 0, 0, 0)
@@ -211,7 +218,7 @@ class ConnectionPanel(
     override fun getPreferredSize(): Dimension {
         val size = super.getPreferredSize()
         if (!scroll.isVisible) return size
-        return Dimension(size.width, header.preferredSize.height + scrollHeight())
+        return JBDimension(size.width, header.preferredSize.height + scrollHeight())
     }
 
     private fun scrollHeight(): Int {
@@ -219,7 +226,7 @@ class ConnectionPanel(
         return details.getFontMetrics(details.font).height * rows + scrollChrome()
     }
 
-    private fun scrollChrome() = scroll.insets.top + scroll.insets.bottom + JBUI.scale(2)
+    private fun scrollChrome() = scroll.insets.top + scroll.insets.bottom + JBUI.scale(CHROME)
 
     internal fun summaryText() = label.text
 

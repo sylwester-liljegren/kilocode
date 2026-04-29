@@ -38,19 +38,26 @@ interface Range {
   end: number
 }
 
-type Style = "slash" | "hash" | "jsx"
+type Style = "slash" | "hash" | "jsx" | "block"
 
 const standalone = [
   /^\s*\/\/\s*kilocode_change\b.*$/,
   /^\s*#\s*kilocode_change\b.*$/,
   /^\s*\{?\s*\/\*\s*kilocode_change\b.*\*\/\}?\s*$/,
 ]
-const suffix = [
-  /\s+\/\/\s*kilocode_change\b.*$/,
-  /\s+#\s*kilocode_change\b.*$/,
-  /\s+\{\s*\/\*\s*kilocode_change\b.*\*\/\s*\}\s*$/,
-]
 const unsupported = new Set([".json", ".jsonc", ".lock", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"])
+const styles = new Map<string, Style>([
+  [".ts", "slash"],
+  [".tsx", "slash"],
+  [".js", "slash"],
+  [".jsx", "slash"],
+  [".yml", "hash"],
+  [".yaml", "hash"],
+  [".toml", "hash"],
+  [".sh", "hash"],
+  [".bash", "hash"],
+  [".zsh", "hash"],
+])
 const url = "https://github.com/anomalyco/opencode.git"
 const exempt = ["script/upstream/"]
 
@@ -95,10 +102,11 @@ function ext(file: string) {
   return path.extname(file).toLowerCase()
 }
 
-function supported(file: string) {
+function supported(file: string, text: string) {
   const kind = ext(file)
   if (unsupported.has(kind)) return false
-  return true
+  if (styles.has(kind)) return true
+  return !kind && text.startsWith("#!")
 }
 
 function annotates(file: string) {
@@ -116,15 +124,49 @@ function join(text: Text) {
   return text.lines.join(text.eol) + (text.final ? text.eol : "")
 }
 
-function strip(line: string) {
+function strip(file: string, line: string) {
   if (standalone.some((item) => item.test(line))) return null
-  return suffix.reduce((current, item) => current.replace(item, ""), line)
+  if (style(file) === "hash") return comment(line, ["#"])
+  return comment(line, ["{/*", "/*", "//"])
 }
 
-function clean(text: string): Text {
+function comment(line: string, tokens: string[]) {
+  let quote = ""
+  let escape = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (!char) continue
+
+    if (quote) {
+      if (escape) {
+        escape = false
+        continue
+      }
+      if (char === "\\") {
+        escape = true
+        continue
+      }
+      if (char === quote) quote = ""
+      continue
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char
+      continue
+    }
+
+    const token = tokens.find((item) => line.startsWith(item, i))
+    if (token && line.slice(i).includes("kilocode_change")) return line.slice(0, i).trimEnd()
+  }
+
+  return line
+}
+
+function clean(file: string, text: string): Text {
   const parsed = split(text)
   const lines = parsed.lines.flatMap((line) => {
-    const next = strip(line)
+    const next = strip(file, line)
     if (next === null) return []
     return [next]
   })
@@ -189,34 +231,64 @@ async function upstream(ref: string, file: string) {
 
 function style(file: string): Style {
   const kind = ext(file)
-  if ([".yml", ".yaml", ".toml", ".sh", ".bash", ".zsh"].includes(kind)) return "hash"
-  return "slash"
+  return styles.get(kind) ?? "hash"
 }
 
-function jsx(lines: string[], range: Range) {
-  const first = lines[range.start]?.trim() ?? ""
-  if (!first) return false
-  if (first.startsWith("<")) return true
-  if (first.startsWith("{")) {
-    const prev =
-      lines
-        .slice(0, range.start)
-        .findLast((line) => line.trim().length > 0)
-        ?.trim() ?? ""
-    if (prev.endsWith(">") || prev.endsWith(")") || prev.endsWith("(")) return true
+function context(file: string, text: Text, range: Range): Style {
+  const base = style(file)
+  if (![".tsx", ".jsx"].includes(ext(file))) return base
+
+  if (tag(text.lines, range.start)) return "block"
+  if (child(text.lines, range.start)) return "jsx"
+  return base
+}
+
+function nearby(lines: string[], start: number, step: number) {
+  for (let i = start; i >= 0 && i < lines.length; i += step) {
+    const line = lines[i]?.trim()
+    if (line) return line
   }
+  return ""
+}
+
+function tag(lines: string[], start: number) {
+  const current = lines[start]?.trim() ?? ""
+  if (!current) return false
+  if (/^[A-Za-z_$][\w$.:/-]*(=|\s*=)/.test(current)) return true
+
+  for (let i = start - 1; i >= Math.max(0, start - 20); i--) {
+    const line = lines[i]?.trim() ?? ""
+    if (!line) continue
+    if (line.includes(">")) return false
+    if (/^<\/?[A-Za-z]/.test(line)) return true
+  }
+
+  return false
+}
+
+function child(lines: string[], start: number) {
+  const current = lines[start]?.trim() ?? ""
+  const prev = nearby(lines, start - 1, -1)
+  const next = nearby(lines, start + 1, 1)
+
+  if (prev.endsWith(">") && !prev.endsWith("=>")) return true
+  if (next.startsWith("</")) return true
+  if (current.startsWith("</")) return true
+  if (current.startsWith("<") && prev && !prev.endsWith("(") && !prev.endsWith("return (")) return true
   return false
 }
 
 function block(mode: Style, pad: string) {
   if (mode === "hash") return { start: `${pad}# kilocode_change start`, end: `${pad}# kilocode_change end` }
   if (mode === "jsx") return { start: `${pad}{/* kilocode_change start */}`, end: `${pad}{/* kilocode_change end */}` }
+  if (mode === "block") return { start: `${pad}/* kilocode_change start */`, end: `${pad}/* kilocode_change end */` }
   return { start: `${pad}// kilocode_change start`, end: `${pad}// kilocode_change end` }
 }
 
 function note(mode: Style) {
   if (mode === "hash") return " # kilocode_change"
   if (mode === "jsx") return " {/* kilocode_change */}"
+  if (mode === "block") return " /* kilocode_change */"
   return " // kilocode_change"
 }
 
@@ -226,8 +298,9 @@ function indent(line: string) {
 
 function inline(file: string, lines: string[], range: Range, mode: Style) {
   if (mode === "hash") return true
+  if (mode === "block" || mode === "jsx") return false
   if (![".tsx", ".jsx"].includes(ext(file))) return true
-  return !jsx(lines, range)
+  return true
 }
 
 function ranges(nums: Set<number>): Range[] {
@@ -245,10 +318,9 @@ function ranges(nums: Set<number>): Range[] {
 
 function annotate(file: string, text: Text, found: Range[]) {
   const lines = [...text.lines]
-  const base = style(file)
 
   for (const range of [...found].reverse()) {
-    const mode = [".tsx", ".jsx"].includes(ext(file)) && jsx(text.lines, range) ? "jsx" : base
+    const mode = context(file, text, range)
     if (range.start === range.end && inline(file, text.lines, range, mode)) {
       lines[range.start] = `${lines[range.start]}${note(mode)}`
       continue
@@ -340,10 +412,9 @@ async function main() {
   process.chdir(top)
 
   const file = normalize(top, opts.file)
-  if (!supported(file)) throw new Error(`Cannot safely add comment markers to ${file}`)
-
   const abs = path.join(top, file)
   const current = await Bun.file(abs).text()
+  if (!supported(file, current)) throw new Error(`Cannot safely add comment markers to ${file}`)
   if (current.includes("\0")) throw new Error(`${file} appears to be binary`)
 
   header("Fix kilocode_change markers")
@@ -352,8 +423,8 @@ async function main() {
   success(`Last merged upstream: ${version.tag} (${version.commit.slice(0, 8)})`)
 
   const base = await upstream(version.commit, file)
-  const head = clean(current)
-  const diff = base === null ? null : await changed(clean(base), head)
+  const head = clean(file, current)
+  const diff = base === null ? null : await changed(clean(file, base), head)
   const found = ranges(diff?.lines ?? new Set())
   const next = base === null ? fresh(file, head) : annotate(file, head, found)
 

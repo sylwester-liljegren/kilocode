@@ -1,6 +1,7 @@
 package ai.kilocode.client.session.ui
 
 import ai.kilocode.client.plugin.KiloBundle
+import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.log.ChatLogSummary
 import ai.kilocode.log.KiloLog
 import com.intellij.openapi.fileTypes.PlainTextFileType
@@ -127,7 +128,8 @@ class PromptPanel(
         this.style = style
         editor.font = style.transcriptFont
         editor.getEditor(false)?.let(style::applyToEditor)
-        val height = style.transcriptFont.size * UiStyle.Size.LINES + JBUI.scale(UiStyle.Size.CHROME)
+        val height = style.transcriptFont.size * UiStyle.Size.LINES + JBUI.scale(
+            UiStyle.Size.CHROME)
         editor.preferredSize = JBDimension(0, height)
         editor.minimumSize = JBDimension(0, height)
         revalidate()

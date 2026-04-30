@@ -4,7 +4,7 @@ import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.session.model.Content
 import ai.kilocode.client.session.model.Reasoning
 import ai.kilocode.client.session.ui.SessionStyle
-import ai.kilocode.client.session.ui.UiStyle
+import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.client.ui.md.MdView
 import com.intellij.icons.AllIcons
 import com.intellij.ui.components.JBLabel

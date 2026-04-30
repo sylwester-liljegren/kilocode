@@ -1,4 +1,4 @@
-package ai.kilocode.client.session.ui
+package ai.kilocode.client.ui
 
 import com.intellij.ui.JBColor
 import com.intellij.ui.RoundedLineBorder
@@ -80,7 +80,7 @@ object UiStyle {
         fun warning(): Border = JBUI.Borders.customLine(Colors.warning(), 1)
 
         fun picker(): Border = JBUI.Borders.compound(
-            RoundedLineBorder(Colors.line(), JBUI.scale(Space.MD)),
+          RoundedLineBorder(Colors.line(), JBUI.scale(Space.MD)),
             JBUI.Borders.empty(Space.XS, Space.LG),
         )!!
 

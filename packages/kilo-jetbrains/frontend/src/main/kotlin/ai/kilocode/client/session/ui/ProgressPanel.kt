@@ -3,6 +3,7 @@ package ai.kilocode.client.session.ui
 import ai.kilocode.client.session.model.SessionModel
 import ai.kilocode.client.session.model.SessionModelEvent
 import ai.kilocode.client.session.model.SessionState
+import ai.kilocode.client.ui.UiStyle
 import com.intellij.openapi.Disposable
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel

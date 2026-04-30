@@ -3,7 +3,7 @@ package ai.kilocode.client.session.views
 import ai.kilocode.client.session.model.Content
 import ai.kilocode.client.session.model.Generic
 import ai.kilocode.client.session.ui.SessionStyle
-import ai.kilocode.client.session.ui.UiStyle
+import ai.kilocode.client.ui.UiStyle
 import com.intellij.ui.components.JBLabel
 import java.awt.BorderLayout
 

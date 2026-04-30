@@ -4,6 +4,7 @@ import ai.kilocode.client.session.model.SessionModel
 import ai.kilocode.client.session.model.SessionModelEvent
 import ai.kilocode.client.session.views.MessageView
 import ai.kilocode.client.session.views.TurnView
+import ai.kilocode.client.ui.UiStyle
 import com.intellij.openapi.Disposable
 
 /**

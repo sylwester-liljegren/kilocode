@@ -4,7 +4,7 @@ import ai.kilocode.client.session.model.Content
 import ai.kilocode.client.session.model.Message
 import ai.kilocode.client.session.ui.SessionStyle
 import ai.kilocode.client.session.ui.SessionStyleTarget
-import ai.kilocode.client.session.ui.UiStyle
+import ai.kilocode.client.ui.UiStyle
 
 /**
  * A single message container inside a [TurnView].

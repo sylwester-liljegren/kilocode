@@ -2,6 +2,7 @@ package ai.kilocode.client.session.ui
 
 import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.session.update.SessionController
+import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.client.ui.md.MdView
 import ai.kilocode.rpc.dto.SessionDto
 import com.intellij.openapi.Disposable

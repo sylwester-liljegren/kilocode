@@ -5,7 +5,7 @@ import ai.kilocode.client.session.model.Content
 import ai.kilocode.client.session.model.Tool
 import ai.kilocode.client.session.model.ToolExecState
 import ai.kilocode.client.session.ui.SessionStyle
-import ai.kilocode.client.session.ui.UiStyle
+import ai.kilocode.client.ui.UiStyle
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.ui.components.JBLabel

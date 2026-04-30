@@ -3,7 +3,7 @@ package ai.kilocode.client.session.views
 import ai.kilocode.client.session.model.Message
 import ai.kilocode.client.session.ui.SessionStyle
 import ai.kilocode.client.session.ui.SessionStyleTarget
-import ai.kilocode.client.session.ui.UiStyle
+import ai.kilocode.client.ui.UiStyle
 
 /**
  * Top-level transcript item representing one conversational turn.

@@ -3,6 +3,7 @@ package ai.kilocode.client.session.ui
 import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.session.update.SessionController
 import ai.kilocode.client.session.model.Permission
+import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.rpc.dto.PermissionReplyDto
 import com.intellij.icons.AllIcons
 import com.intellij.ui.dsl.builder.RightGap

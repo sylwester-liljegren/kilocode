@@ -4,6 +4,7 @@ import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.session.update.SessionController
 import ai.kilocode.client.session.update.SessionControllerEvent
 import ai.kilocode.client.session.update.SessionControllerListener
+import ai.kilocode.client.ui.UiStyle
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer

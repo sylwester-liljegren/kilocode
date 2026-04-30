@@ -91,20 +91,6 @@ export type EventLspUpdated = {
   }
 }
 
-export type EventInstallationUpdated = {
-  type: "installation.updated"
-  properties: {
-    version: string
-  }
-}
-
-export type EventInstallationUpdateAvailable = {
-  type: "installation.update-available"
-  properties: {
-    version: string
-  }
-}
-
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -360,6 +346,20 @@ export type EventSessionError = {
   }
 }
 
+export type EventInstallationUpdated = {
+  type: "installation.updated"
+  properties: {
+    version: string
+  }
+}
+
+export type EventInstallationUpdateAvailable = {
+  type: "installation.update-available"
+  properties: {
+    version: string
+  }
+}
+
 export type QuestionOption = {
   /**
    * Display text (1-5 words, concise)
@@ -457,13 +457,60 @@ export type EventQuestionRejected = {
   properties: QuestionRejected
 }
 
-export type EventCommandExecuted = {
-  type: "command.executed"
+export type Todo = {
+  /**
+   * Brief description of the task
+   */
+  content: string
+  /**
+   * Current status of the task: pending, in_progress, completed, cancelled
+   */
+  status: string
+  /**
+   * Priority level of the task: high, medium, low
+   */
+  priority: string
+}
+
+export type EventTodoUpdated = {
+  type: "todo.updated"
   properties: {
-    name: string
     sessionID: string
-    arguments: string
-    messageID: string
+    todos: Array<Todo>
+  }
+}
+
+export type SessionStatus =
+  | {
+      type: "idle"
+    }
+  | {
+      type: "retry"
+      attempt: number
+      message: string
+      next: number
+    }
+  | {
+      type: "busy"
+    }
+  | {
+      type: "offline"
+      requestID: string
+      message: string
+    }
+
+export type EventSessionStatus = {
+  type: "session.status"
+  properties: {
+    sessionID: string
+    status: SessionStatus
+  }
+}
+
+export type EventSessionIdle = {
+  type: "session.idle"
+  properties: {
+    sessionID: string
   }
 }
 
@@ -526,60 +573,20 @@ export type EventSuggestionDismissed = {
   }
 }
 
-export type SessionStatus =
-  | {
-      type: "idle"
-    }
-  | {
-      type: "retry"
-      attempt: number
-      message: string
-      next: number
-    }
-  | {
-      type: "busy"
-    }
-  | {
-      type: "offline"
-      requestID: string
-      message: string
-    }
-
-export type EventSessionStatus = {
-  type: "session.status"
-  properties: {
-    sessionID: string
-    status: SessionStatus
-  }
-}
-
-export type EventSessionIdle = {
-  type: "session.idle"
+export type EventSessionCompacted = {
+  type: "session.compacted"
   properties: {
     sessionID: string
   }
 }
 
-export type Todo = {
-  /**
-   * Brief description of the task
-   */
-  content: string
-  /**
-   * Current status of the task: pending, in_progress, completed, cancelled
-   */
-  status: string
-  /**
-   * Priority level of the task: high, medium, low
-   */
-  priority: string
-}
-
-export type EventTodoUpdated = {
-  type: "todo.updated"
+export type EventCommandExecuted = {
+  type: "command.executed"
   properties: {
+    name: string
     sessionID: string
-    todos: Array<Todo>
+    arguments: string
+    messageID: string
   }
 }
 
@@ -587,13 +594,6 @@ export type EventVcsBranchUpdated = {
   type: "vcs.branch.updated"
   properties: {
     branch?: string
-  }
-}
-
-export type EventSessionCompacted = {
-  type: "session.compacted"
-  properties: {
-    sessionID: string
   }
 }
 
@@ -1102,6 +1102,7 @@ export type Session = {
   projectID: string
   workspaceID?: string
   directory: string
+  path?: string
   parentID?: string
   summary?: {
     additions: number
@@ -1246,6 +1247,7 @@ export type SyncEventSessionUpdated = {
       projectID?: string | null
       workspaceID?: string | null
       directory?: string | null
+      path?: string | null
       parentID?: string | null
       summary?: {
         additions: number
@@ -1301,8 +1303,6 @@ export type GlobalEvent = {
     | EventFileWatcherUpdated
     | EventLspClientDiagnostics
     | EventLspUpdated
-    | EventInstallationUpdated
-    | EventInstallationUpdateAvailable
     | EventTuiPromptAppend
     | EventTuiCommandExecute
     | EventTuiToastShow
@@ -1320,18 +1320,20 @@ export type GlobalEvent = {
     | EventSessionTurnClose
     | EventSessionDiff
     | EventSessionError
+    | EventInstallationUpdated
+    | EventInstallationUpdateAvailable
     | EventQuestionAsked
     | EventQuestionReplied
     | EventQuestionRejected
-    | EventCommandExecuted
+    | EventTodoUpdated
+    | EventSessionStatus
+    | EventSessionIdle
     | EventSuggestionShown
     | EventSuggestionAccepted
     | EventSuggestionDismissed
-    | EventSessionStatus
-    | EventSessionIdle
-    | EventTodoUpdated
-    | EventVcsBranchUpdated
     | EventSessionCompacted
+    | EventCommandExecuted
+    | EventVcsBranchUpdated
     | EventKiloSessionsRemoteStatusChanged
     | EventWorktreeReady
     | EventWorktreeFailed
@@ -1788,6 +1790,10 @@ export type Config = {
    * JSON schema reference for configuration validation
    */
   $schema?: string
+  /**
+   * Default shell to use for terminal and bash tool
+   */
+  shell?: string
   logLevel?: LogLevel
   server?: ServerConfig
   /**
@@ -2239,6 +2245,7 @@ export type GlobalSession = {
   projectID: string
   workspaceID?: string
   directory: string
+  path?: string
   parentID?: string
   summary?: {
     additions: number
@@ -2419,8 +2426,6 @@ export type Event =
   | EventFileWatcherUpdated
   | EventLspClientDiagnostics
   | EventLspUpdated
-  | EventInstallationUpdated
-  | EventInstallationUpdateAvailable
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -2438,18 +2443,20 @@ export type Event =
   | EventSessionTurnClose
   | EventSessionDiff
   | EventSessionError
+  | EventInstallationUpdated
+  | EventInstallationUpdateAvailable
   | EventQuestionAsked
   | EventQuestionReplied
   | EventQuestionRejected
-  | EventCommandExecuted
+  | EventTodoUpdated
+  | EventSessionStatus
+  | EventSessionIdle
   | EventSuggestionShown
   | EventSuggestionAccepted
   | EventSuggestionDismissed
-  | EventSessionStatus
-  | EventSessionIdle
-  | EventTodoUpdated
-  | EventVcsBranchUpdated
   | EventSessionCompacted
+  | EventCommandExecuted
+  | EventVcsBranchUpdated
   | EventKiloSessionsRemoteStatusChanged
   | EventWorktreeReady
   | EventWorktreeFailed
@@ -2498,6 +2505,10 @@ export type McpStatus =
   | McpStatusFailed
   | McpStatusNeedsAuth
   | McpStatusNeedsClientRegistration
+
+export type McpUnsupportedOAuthError = {
+  error: string
+}
 
 export type Path = {
   home: string
@@ -3105,6 +3116,29 @@ export type ProjectUpdateResponses = {
 }
 
 export type ProjectUpdateResponse = ProjectUpdateResponses[keyof ProjectUpdateResponses]
+
+export type PtyShellsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/pty/shells"
+}
+
+export type PtyShellsResponses = {
+  /**
+   * List of shells
+   */
+  200: Array<{
+    path: string
+    name: string
+    acceptable: boolean
+  }>
+}
+
+export type PtyShellsResponse = PtyShellsResponses[keyof PtyShellsResponses]
 
 export type PtyListData = {
   body?: never
@@ -3733,7 +3767,7 @@ export type ExperimentalSessionListData = {
     /**
      * Only return root sessions (no parentID)
      */
-    roots?: boolean
+    roots?: boolean | "true" | "false"
     /**
      * Filter sessions updated on or after this timestamp (milliseconds since epoch)
      */
@@ -3753,7 +3787,7 @@ export type ExperimentalSessionListData = {
     /**
      * Include archived sessions (default false)
      */
-    archived?: boolean
+    archived?: boolean | "true" | "false"
   }
   url: "/experimental/session"
 }
@@ -3801,7 +3835,7 @@ export type SessionListData = {
     /**
      * Only return root sessions (no parentID)
      */
-    roots?: boolean
+    roots?: boolean | "true" | "false"
     /**
      * Filter sessions updated on or after this timestamp (milliseconds since epoch)
      */
@@ -5496,9 +5530,9 @@ export type McpAuthStartData = {
 
 export type McpAuthStartErrors = {
   /**
-   * Bad request
+   * MCP server does not support OAuth
    */
-  400: BadRequestError
+  400: McpUnsupportedOAuthError
   /**
    * Not found
    */
@@ -5574,9 +5608,9 @@ export type McpAuthAuthenticateData = {
 
 export type McpAuthAuthenticateErrors = {
   /**
-   * Bad request
+   * MCP server does not support OAuth
    */
-  400: BadRequestError
+  400: McpUnsupportedOAuthError
   /**
    * Not found
    */

@@ -2,9 +2,9 @@
 import { CodebaseSearchTool } from "../../tool/warpgrep"
 import { RecallTool } from "../../tool/recall"
 import * as Tool from "../../tool/tool"
-import { Flag } from "@/flag/flag"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import { Effect } from "effect"
-import { Log } from "@/util"
+import * as Log from "@opencode-ai/core/util/log"
 import { Agent } from "@/agent/agent"
 import * as Truncate from "@/tool/truncate"
 
@@ -37,7 +37,9 @@ export namespace KiloToolRegistry {
 
   function semanticTool(deps: Deps) {
     return Effect.gen(function* () {
-      const ready = yield* Effect.tryPromise(() => import("@/kilocode/indexing").then((mod) => mod.KiloIndexing.ready())).pipe(
+      const ready = yield* Effect.tryPromise(() =>
+        import("@/kilocode/indexing").then((mod) => mod.KiloIndexing.ready()),
+      ).pipe(
         Effect.catch((err) =>
           Effect.sync(() => {
             log.warn("semantic search unavailable", { err })

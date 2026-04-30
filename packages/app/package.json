@@ -74,7 +74,8 @@
     "virtua": "catalog:",
     "zod": "catalog:",
     "@kilocode/kilo-ui": "workspace:*",
-    "@kilocode/kilo-i18n": "workspace:*"
+    "@kilocode/kilo-i18n": "workspace:*",
+    "@opencode-ai/core": "workspace:*"
   },
   "peerDependencies": {}
 }

@@ -172,7 +172,7 @@ The client-side chain works as follows:
 ## Data and compliance
 
 - **Frontier**: Uses Anthropic models with no training on user data.
-- **Balanced**: As a paid tier, the underlying providers are curated to offer enterprise-grade data handling — no training on customer prompts or outputs, limited retention for abuse monitoring only, and contractual data-processing terms. When selecting or updating the providers Balanced routes to, prefer those with zero-retention or opt-out-by-default policies and clear enterprise DPAs. Per-provider policies should be documented so enterprise users can make informed choices.
+- **Balanced**: As a paid tier, underlying providers are selected with data-handling policies suitable for professional use. Prefer providers with stronger privacy posture when updating the routing.
 - **Free**: May route to providers that log prompts and outputs and use them to improve their services, including NVIDIA's free endpoints (see [NVIDIA API Trial Terms of Service](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf)). Users should avoid submitting personal or confidential data. Surface this disclosure in proximity to every user-facing Auto Free mention.
 - **Small**: Same concern as Balanced/Free — the model selected depends on credit status, which may route to providers with different policies.
 

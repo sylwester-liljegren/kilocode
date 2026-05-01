@@ -67,6 +67,12 @@ class ModelPickerTest : BasePlatformTestCase() {
         assertEquals(1, model.next(3, -1))
     }
 
+    fun `test item keeps reasoning variants`() {
+        val item = ModelPicker.Item("gpt", "GPT", "openai", "OpenAI", variants = listOf("low", "high"))
+
+        assertEquals(listOf("low", "high"), item.variants)
+    }
+
     private fun item(
         id: String,
         display: String,

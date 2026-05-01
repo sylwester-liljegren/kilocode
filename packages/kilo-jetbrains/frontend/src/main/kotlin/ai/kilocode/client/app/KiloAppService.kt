@@ -8,8 +8,11 @@ import ai.kilocode.rpc.dto.KiloAppStateDto
 import ai.kilocode.rpc.dto.KiloAppStatusDto
 import ai.kilocode.rpc.dto.ModelFavoriteUpdateDto
 import ai.kilocode.rpc.dto.ModelSelectionDto
-import com.intellij.openapi.components.Service
+import ai.kilocode.rpc.dto.ModelSelectionUpdateDto
+import ai.kilocode.rpc.dto.ModelStateDto
+import ai.kilocode.rpc.dto.ModelVariantUpdateDto
 import ai.kilocode.log.KiloLog
+import com.intellij.openapi.components.Service
 import fleet.rpc.client.durable
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +50,8 @@ class KiloAppService internal constructor(
 
     internal val _state = MutableStateFlow(init)
     val state: StateFlow<KiloAppStateDto> = _state.asStateFlow()
+    private val _models = MutableStateFlow(ModelStateDto())
+    val models: StateFlow<ModelStateDto> = _models.asStateFlow()
     private val _favorites = MutableStateFlow<List<ModelSelectionDto>>(emptyList())
     val favorites: StateFlow<List<ModelSelectionDto>> = _favorites.asStateFlow()
 
@@ -139,7 +144,7 @@ class KiloAppService internal constructor(
     fun refreshModelFavoritesAsync() {
         cs.launch {
             try {
-                _favorites.value = call { modelState() }.favorite
+                setModelState(call { modelState() })
             } catch (e: Exception) {
                 LOG.warn("model favorites refresh failed", e)
             }
@@ -151,19 +156,64 @@ class KiloAppService internal constructor(
         val prev = _favorites.value
         val exists = prev.any { it.providerID to it.modelID == key }
         val action = if (exists) "remove" else "add"
-        _favorites.value = if (exists) {
-            prev.filterNot { it.providerID to it.modelID == key }
+        val next = if (exists) {
+            _models.value.copy(favorite = prev.filterNot { it.providerID to it.modelID == key })
         } else {
-            listOf(ModelSelectionDto(providerID, modelID)) + prev
+            _models.value.copy(favorite = listOf(ModelSelectionDto(providerID, modelID)) + prev)
         }
+        setModelState(next)
         cs.launch {
             try {
-                _favorites.value = call { updateModelFavorite(ModelFavoriteUpdateDto(action, providerID, modelID)) }.favorite
+                setModelState(call { updateModelFavorite(ModelFavoriteUpdateDto(action, providerID, modelID)) })
             } catch (e: Exception) {
                 LOG.warn("model favorite update failed", e)
-                _favorites.value = prev
+                setModelState(_models.value.copy(favorite = prev))
             }
         }
+    }
+
+    fun selectModel(agent: String, providerID: String, modelID: String) {
+        val prev = _models.value
+        setModelState(prev.copy(model = prev.model + (agent to ModelSelectionDto(providerID, modelID))))
+        cs.launch {
+            try {
+                setModelState(call { updateModelSelection(ModelSelectionUpdateDto(agent, providerID, modelID)) })
+            } catch (e: Exception) {
+                LOG.warn("model selection update failed", e)
+                setModelState(prev)
+            }
+        }
+    }
+
+    fun clearModel(agent: String) {
+        val prev = _models.value
+        setModelState(prev.copy(model = prev.model - agent))
+        cs.launch {
+            try {
+                setModelState(call { clearModelSelection(agent) })
+            } catch (e: Exception) {
+                LOG.warn("model selection clear failed", e)
+                setModelState(prev)
+            }
+        }
+    }
+
+    fun selectVariant(key: String, value: String) {
+        val prev = _models.value
+        setModelState(prev.copy(variant = prev.variant + (key to value)))
+        cs.launch {
+            try {
+                setModelState(call { updateModelVariant(ModelVariantUpdateDto(key, value)) })
+            } catch (e: Exception) {
+                LOG.warn("model variant update failed", e)
+                setModelState(prev)
+            }
+        }
+    }
+
+    private fun setModelState(state: ModelStateDto) {
+        _models.value = state
+        _favorites.value = state.favorite
     }
 
     /**

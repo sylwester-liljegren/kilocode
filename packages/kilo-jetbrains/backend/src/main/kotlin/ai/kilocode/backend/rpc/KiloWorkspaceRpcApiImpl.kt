@@ -141,6 +141,7 @@ class KiloWorkspaceRpcApiImpl : KiloWorkspaceRpcApi {
         free = m.free,
         status = m.status,
         recommendedIndex = m.recommendedIndex,
+        variants = m.variants,
     )
 
     private fun agents(d: AgentData) = AgentsDto(

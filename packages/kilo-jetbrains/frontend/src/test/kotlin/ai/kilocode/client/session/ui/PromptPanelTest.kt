@@ -24,4 +24,29 @@ class PromptPanelTest : BasePlatformTestCase() {
         assertEquals(26, panel.inputFont().size)
         assertTrue(panel.preferredSize.height >= 26)
     }
+
+    fun `test reasoning picker hides when variants are empty`() {
+        val panel = PromptPanel(project, {}, {})
+
+        panel.reasoning.setItems(emptyList())
+
+        assertFalse(panel.reasoning.isVisible)
+    }
+
+    fun `test reasoning picker shows selected variant`() {
+        val panel = PromptPanel(project, {}, {})
+
+        panel.reasoning.setItems(listOf(LabelPicker.Item("low", "Low"), LabelPicker.Item("high", "High")), "high")
+
+        assertTrue(panel.reasoning.isVisible)
+        assertEquals("high", panel.reasoning.selectedForTest()?.id)
+    }
+
+    fun `test reset visibility can be toggled`() {
+        val panel = PromptPanel(project, {}, {})
+
+        panel.setResetVisible(true)
+
+        assertTrue(panel.resetVisibleForTest())
+    }
 }

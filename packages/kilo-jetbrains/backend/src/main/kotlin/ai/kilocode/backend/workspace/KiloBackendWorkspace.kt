@@ -57,6 +57,9 @@ class KiloBackendWorkspace(
         private const val MAX_RETRIES = 3
         private const val RETRY_DELAY_MS = 1000L
         private val json = Json { ignoreUnknownKeys = true }
+        private val EFFORT_ORDER = listOf("none", "minimal", "low", "medium", "high", "xhigh", "max")
+            .withIndex()
+            .associate { it.value to it.index }
     }
 
     private val _state = MutableStateFlow<KiloWorkspaceState>(KiloWorkspaceState.Pending)
@@ -302,7 +305,13 @@ class KiloBackendWorkspace(
             free = obj.bool("isFree"),
             status = obj.str("status"),
             recommendedIndex = obj.num("recommendedIndex"),
+            variants = variants(obj),
         )
+    }
+
+    private fun variants(obj: JsonObject): List<String> {
+        val raw = obj["variants"]?.jsonObject?.keys?.toList() ?: return emptyList()
+        return raw.sortedWith(compareBy<String> { EFFORT_ORDER[it] ?: Int.MAX_VALUE }.thenBy { it })
     }
 
     private fun fetch(path: String): String {

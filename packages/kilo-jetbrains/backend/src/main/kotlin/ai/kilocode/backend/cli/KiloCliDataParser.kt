@@ -260,16 +260,29 @@ object KiloCliDataParser {
 
     fun parseModelState(raw: String): ModelStateDto {
         val obj = tryParseObject(raw) ?: return ModelStateDto()
-        return ModelStateDto(favorite = parseModelFavorites(obj["favorite"]))
+        return ModelStateDto(
+            favorite = parseModelFavorites(obj["favorite"]),
+            model = parseModelSelections(obj["model"]),
+            variant = parseModelVariants(obj["variant"]),
+            recent = parseModelFavorites(obj["recent"]),
+        )
     }
 
     fun buildModelStateJson(raw: String?, favorite: List<ModelSelectionDto>): String {
+        val state = parseModelState(raw.orEmpty()).copy(favorite = favorite)
+        return buildModelStateJson(raw, state)
+    }
+
+    fun buildModelStateJson(raw: String?, state: ModelStateDto): String {
         val data = raw
             ?.takeIf { it.isNotBlank() }
             ?.let(::tryParseObject)
             ?.toMutableMap()
             ?: mutableMapOf()
-        data["favorite"] = JsonArray(favorite.map(::modelSelection))
+        data["favorite"] = JsonArray(state.favorite.map(::modelSelection))
+        data["model"] = JsonObject(state.model.mapValues { (_, value) -> modelSelection(value) })
+        data["variant"] = JsonObject(state.variant.mapValues { (_, value) -> JsonPrimitive(value) })
+        data["recent"] = JsonArray(state.recent.map(::modelSelection))
         return pretty.encodeToString(JsonObject.serializer(), JsonObject(data))
     }
 
@@ -294,6 +307,10 @@ object KiloCliDataParser {
         val ag = prompt.agent
         if (ag != null) {
             sb.append(""","agent":${escape(ag)}""")
+        }
+        val variant = prompt.variant
+        if (variant != null) {
+            sb.append(""","variant":${escape(variant)}""")
         }
         sb.append("}")
         return sb.toString()
@@ -432,6 +449,30 @@ object KiloCliDataParser {
             val mid = obj.str("modelID") ?: return@mapNotNull null
             ModelSelectionDto(pid, mid)
         }
+    }
+
+    internal fun parseModelSelections(raw: JsonElement?): Map<String, ModelSelectionDto> {
+        val obj = runCatching { raw?.jsonObject }.getOrNull() ?: return emptyMap()
+        return obj.entries.mapNotNull { (name, elem) ->
+            if (name.isBlank()) return@mapNotNull null
+            val item = runCatching { elem.jsonObject }.getOrNull() ?: return@mapNotNull null
+            val pid = item.str("providerID") ?: return@mapNotNull null
+            val mid = item.str("modelID") ?: return@mapNotNull null
+            name to ModelSelectionDto(pid, mid)
+        }.toMap()
+    }
+
+    internal fun parseModelVariants(raw: JsonElement?): Map<String, String> {
+        val obj = runCatching { raw?.jsonObject }.getOrNull() ?: return emptyMap()
+        return obj.entries.mapNotNull { (key, elem) ->
+            if (key.isBlank()) return@mapNotNull null
+            val prim = runCatching { elem.jsonPrimitive }.getOrNull() ?: return@mapNotNull null
+            if (!prim.isString) return@mapNotNull null
+            val value = prim.contentOrNull
+                ?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            key to value
+        }.toMap()
     }
 
     private fun modelSelection(item: ModelSelectionDto) = JsonObject(mapOf(

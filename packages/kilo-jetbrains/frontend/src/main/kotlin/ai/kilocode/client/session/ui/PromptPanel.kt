@@ -4,6 +4,7 @@ import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.log.ChatLogSummary
 import ai.kilocode.log.KiloLog
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileTypes.PlainTextFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
@@ -48,6 +49,8 @@ class PromptPanel(
 
     val mode = ModePicker()
     val model = ModelPicker()
+    val reasoning = LabelPicker()
+    var onReset: () -> Unit = {}
     private var style = SessionStyle.current()
 
     private val editor = EditorTextField(project, PlainTextFileType.INSTANCE).apply {
@@ -85,6 +88,16 @@ class PromptPanel(
         }
     }
 
+    private val reset = JButton(AllIcons.Actions.Cancel).apply {
+        UiStyle.Buttons.icon(this)
+        isFocusPainted = false
+        toolTipText = KiloBundle.message("model.picker.reset")
+        accessibleContext.accessibleName = KiloBundle.message("model.picker.reset")
+        isVisible = false
+        preferredSize = JBUI.size(UiStyle.Size.BUTTON, UiStyle.Size.BUTTON)
+        addActionListener { onReset() }
+    }
+
     @Volatile
     private var busy = false
 
@@ -100,7 +113,12 @@ class PromptPanel(
             border = JBUI.Borders.emptyTop(UiStyle.Space.SM)
         }
         bar.add(mode)
+        bar.add(Box.createHorizontalStrut(UiStyle.Gap.small()))
         bar.add(model)
+        bar.add(Box.createHorizontalStrut(UiStyle.Gap.small()))
+        bar.add(reasoning)
+        bar.add(Box.createHorizontalStrut(UiStyle.Gap.small()))
+        bar.add(reset)
         bar.add(Box.createHorizontalGlue())
         bar.add(button)
         add(bar, BorderLayout.SOUTH)
@@ -120,9 +138,17 @@ class PromptPanel(
         }
     }
 
+    fun setResetVisible(value: Boolean) {
+        reset.isVisible = value
+        revalidate()
+        repaint()
+    }
+
     fun text(): String = editor.text.trim()
 
     internal fun inputFont() = editor.font
+
+    internal fun resetVisibleForTest() = reset.isVisible
 
     override fun applyStyle(style: SessionStyle) {
         this.style = style

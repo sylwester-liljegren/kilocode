@@ -296,6 +296,7 @@ class KiloBackendWorkspaceTest {
         assertTrue(model.reasoning)
         assertTrue(model.toolCall)
         assertEquals(2.0, model.recommendedIndex)
+        assertEquals(listOf("low", "medium", "high"), model.variants)
     }
 
     @Test
@@ -515,6 +516,7 @@ class KiloBackendWorkspaceTest {
                         "limit": {"context": 200000, "output": 16000},
                         "status": "active",
                         "recommendedIndex": 2,
+                        "variants": {"high": {}, "low": {}, "medium": {}},
                         "options": {},
                         "headers": {},
                         "release_date": "2025-05-01"

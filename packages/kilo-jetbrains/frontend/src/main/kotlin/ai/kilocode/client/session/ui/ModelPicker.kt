@@ -50,6 +50,7 @@ class ModelPicker : JBLabel() {
         val providerName: String,
         val recommendedIndex: Double? = null,
         val free: Boolean = false,
+        val variants: List<String> = emptyList(),
     ) {
         val key: String get() = "$provider/$id"
 

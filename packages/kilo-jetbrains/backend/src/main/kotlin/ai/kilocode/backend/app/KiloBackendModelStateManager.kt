@@ -4,7 +4,9 @@ import ai.kilocode.backend.cli.KiloCliDataParser
 import ai.kilocode.log.KiloLog
 import ai.kilocode.rpc.dto.ModelFavoriteUpdateDto
 import ai.kilocode.rpc.dto.ModelSelectionDto
+import ai.kilocode.rpc.dto.ModelSelectionUpdateDto
 import ai.kilocode.rpc.dto.ModelStateDto
+import ai.kilocode.rpc.dto.ModelVariantUpdateDto
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -53,15 +55,42 @@ class KiloBackendModelStateManager(
     suspend fun favorite(update: ModelFavoriteUpdateDto): ModelStateDto = mutex.withLock {
         val raw = read()
         val key = update.providerID to update.modelID
-        val current = KiloCliDataParser.parseModelState(raw.orEmpty()).favorite
+        val state = KiloCliDataParser.parseModelState(raw.orEmpty())
+        val current = state.favorite
         val exists = current.any { it.providerID to it.modelID == key }
         val next = when (update.action) {
             "add" -> if (exists) current else listOf(ModelSelectionDto(update.providerID, update.modelID)) + current
             "remove" -> current.filterNot { it.providerID to it.modelID == key }
             else -> current
         }
-        write(KiloCliDataParser.buildModelStateJson(raw, next))
-        ModelStateDto(favorite = next)
+        val updated = state.copy(favorite = next)
+        write(KiloCliDataParser.buildModelStateJson(raw, updated))
+        updated
+    }
+
+    suspend fun selection(update: ModelSelectionUpdateDto): ModelStateDto = mutex.withLock {
+        val raw = read()
+        val state = KiloCliDataParser.parseModelState(raw.orEmpty())
+        val next = state.model + (update.agent to ModelSelectionDto(update.providerID, update.modelID))
+        val updated = state.copy(model = next)
+        write(KiloCliDataParser.buildModelStateJson(raw, updated))
+        updated
+    }
+
+    suspend fun clear(agent: String): ModelStateDto = mutex.withLock {
+        val raw = read()
+        val state = KiloCliDataParser.parseModelState(raw.orEmpty())
+        val updated = state.copy(model = state.model - agent)
+        write(KiloCliDataParser.buildModelStateJson(raw, updated))
+        updated
+    }
+
+    suspend fun variant(update: ModelVariantUpdateDto): ModelStateDto = mutex.withLock {
+        val raw = read()
+        val state = KiloCliDataParser.parseModelState(raw.orEmpty())
+        val updated = state.copy(variant = state.variant + (update.key to update.value))
+        write(KiloCliDataParser.buildModelStateJson(raw, updated))
+        updated
     }
 
     private fun read(): String? {

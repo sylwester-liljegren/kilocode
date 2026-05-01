@@ -46,6 +46,10 @@ class SessionModel {
     var models: List<ModelItem> = emptyList()
     var agent: String? = null
     var model: String? = null
+    var defaultModel: String? = null
+    var modelOverride: Boolean = false
+    var variants: List<String> = emptyList()
+    var variant: String? = null
     var showSession: Boolean = false
 
     var state: SessionState = SessionState.Idle
@@ -430,6 +434,7 @@ data class ModelItem(
     val providerName: String,
     val recommendedIndex: Double?,
     val free: Boolean,
+    val variants: List<String>,
 ) {
     val key: String get() = "$provider/$id"
 }

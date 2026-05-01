@@ -13,6 +13,7 @@ data class ModelDto(
     val free: Boolean = false,
     val status: String? = null,
     val recommendedIndex: Double? = null,
+    val variants: List<String> = emptyList(),
 )
 
 @Serializable

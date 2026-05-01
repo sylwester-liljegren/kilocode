@@ -56,6 +56,7 @@ data class ModelInfo(
     val free: Boolean,
     val status: String?,
     val recommendedIndex: Double?,
+    val variants: List<String>,
 )
 
 data class AgentData(

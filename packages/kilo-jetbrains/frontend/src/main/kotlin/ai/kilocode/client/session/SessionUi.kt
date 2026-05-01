@@ -8,6 +8,7 @@ import ai.kilocode.client.session.model.SessionModelEvent
 import ai.kilocode.client.session.model.SessionState
 import ai.kilocode.client.session.ui.ConnectionPanel
 import ai.kilocode.client.session.ui.EmptySessionPanel
+import ai.kilocode.client.session.ui.LabelPicker
 import ai.kilocode.client.session.ui.ModePicker
 import ai.kilocode.client.session.ui.ModelPicker
 import ai.kilocode.client.session.ui.PermissionPanel
@@ -187,6 +188,8 @@ class SessionUi private constructor(
     private fun bindUi() {
         prompt.mode.onSelect = { item -> controller.selectAgent(item.id) }
         prompt.model.onSelect = { item -> controller.selectModel(item.provider, item.id) }
+        prompt.reasoning.onSelect = { item -> controller.selectVariant(item.id) }
+        prompt.onReset = { controller.clearModelOverride() }
         prompt.model.favorites = { app.favorites.value }
         prompt.model.onFavoriteToggle = { item -> app.toggleModelFavorite(item.provider, item.id) }
 
@@ -210,11 +213,14 @@ class SessionUi private constructor(
                             it.providerName,
                             it.recommendedIndex,
                             it.free,
+                            it.variants,
                         )
                     }
                     val selected =
                         m.model?.let { full -> items.firstOrNull { it.key == full }?.key }
                     prompt.model.setItems(items, selected)
+                    prompt.reasoning.setItems(m.variants.map { LabelPicker.Item(it, variantTitle(it)) }, m.variant)
+                    prompt.setResetVisible(m.modelOverride)
                     prompt.setReady(m.isReady())
                 }
 
@@ -333,3 +339,5 @@ class SessionUi private constructor(
 
     override fun dispose() {}
 }
+
+private fun variantTitle(value: String): String = value.replaceFirstChar { it.titlecase() }

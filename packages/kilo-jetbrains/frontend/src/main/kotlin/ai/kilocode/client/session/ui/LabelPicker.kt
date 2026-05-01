@@ -34,6 +34,7 @@ class LabelPicker : JBLabel() {
     init {
         border = UiStyle.Borders.picker()
         isEnabled = false
+        isVisible = false
         text = " "
 
         addMouseListener(object : MouseAdapter() {
@@ -55,13 +56,17 @@ class LabelPicker : JBLabel() {
         refresh()
     }
 
+    internal fun selectedForTest(): Item? = selected
+
     private fun refresh() {
         if (items.isEmpty()) {
             isEnabled = false
+            isVisible = false
             text = " "
             cursor = Cursor.getDefaultCursor()
             return
         }
+        isVisible = true
         val display = selected?.display ?: items.firstOrNull()?.display ?: ""
         text = "$display ▴"
         isEnabled = true

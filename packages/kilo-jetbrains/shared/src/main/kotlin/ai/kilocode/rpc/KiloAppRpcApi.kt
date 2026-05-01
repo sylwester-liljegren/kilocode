@@ -3,7 +3,9 @@ package ai.kilocode.rpc
 import ai.kilocode.rpc.dto.HealthDto
 import ai.kilocode.rpc.dto.KiloAppStateDto
 import ai.kilocode.rpc.dto.ModelFavoriteUpdateDto
+import ai.kilocode.rpc.dto.ModelSelectionUpdateDto
 import ai.kilocode.rpc.dto.ModelStateDto
+import ai.kilocode.rpc.dto.ModelVariantUpdateDto
 import com.intellij.platform.rpc.RemoteApiProviderService
 import fleet.rpc.RemoteApi
 import fleet.rpc.Rpc
@@ -47,4 +49,13 @@ interface KiloAppRpcApi : RemoteApi<Unit> {
 
     /** Toggle a persisted CLI model favorite. */
     suspend fun updateModelFavorite(update: ModelFavoriteUpdateDto): ModelStateDto
+
+    /** Persist a per-agent model selection. */
+    suspend fun updateModelSelection(update: ModelSelectionUpdateDto): ModelStateDto
+
+    /** Clear a persisted per-agent model selection. */
+    suspend fun clearModelSelection(agent: String): ModelStateDto
+
+    /** Persist a per-model reasoning variant selection. */
+    suspend fun updateModelVariant(update: ModelVariantUpdateDto): ModelStateDto
 }

@@ -6,7 +6,9 @@ import ai.kilocode.rpc.dto.KiloAppStateDto
 import ai.kilocode.rpc.dto.KiloAppStatusDto
 import ai.kilocode.rpc.dto.ModelFavoriteUpdateDto
 import ai.kilocode.rpc.dto.ModelSelectionDto
+import ai.kilocode.rpc.dto.ModelSelectionUpdateDto
 import ai.kilocode.rpc.dto.ModelStateDto
+import ai.kilocode.rpc.dto.ModelVariantUpdateDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -22,6 +24,9 @@ class FakeAppRpcApi : KiloAppRpcApi {
     val state = MutableStateFlow(KiloAppStateDto(KiloAppStatusDto.DISCONNECTED))
     var health = HealthDto(healthy = true, version = "1.0.0")
     var models = ModelStateDto()
+    val selections = mutableListOf<ModelSelectionUpdateDto>()
+    val cleared = mutableListOf<String>()
+    val variants = mutableListOf<ModelVariantUpdateDto>()
 
     var connected = false
         private set
@@ -73,7 +78,28 @@ class FakeAppRpcApi : KiloAppRpcApi {
             "remove" -> models.favorite.filterNot { it.providerID to it.modelID == key }
             else -> models.favorite
         }
-        models = ModelStateDto(next)
+        models = models.copy(favorite = next)
+        return models
+    }
+
+    override suspend fun updateModelSelection(update: ModelSelectionUpdateDto): ModelStateDto {
+        assertNotEdt("updateModelSelection")
+        selections.add(update)
+        models = models.copy(model = models.model + (update.agent to ModelSelectionDto(update.providerID, update.modelID)))
+        return models
+    }
+
+    override suspend fun clearModelSelection(agent: String): ModelStateDto {
+        assertNotEdt("clearModelSelection")
+        cleared.add(agent)
+        models = models.copy(model = models.model - agent)
+        return models
+    }
+
+    override suspend fun updateModelVariant(update: ModelVariantUpdateDto): ModelStateDto {
+        assertNotEdt("updateModelVariant")
+        variants.add(update)
+        models = models.copy(variant = models.variant + (update.key to update.value))
         return models
     }
 }

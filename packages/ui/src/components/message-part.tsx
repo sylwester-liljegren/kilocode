@@ -1471,6 +1471,7 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
     () => props.message.role === "assistant" && typeof (props.message as AssistantMessage).time.completed !== "number",
   )
   const text = () => (part().text ?? "").trim()
+  // kilocode_change start
   // Synthetic text parts (e.g. "Initializing snapshot…" from the slow-repo guard)
   // are transient status indicators, not assistant output — they must never
   // carry the copy button, and they must not "steal" last-part status from
@@ -1482,14 +1483,15 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
   // re-appears on session reload; hiding it when the owning message is no
   // longer streaming keeps the scrollback clean in that edge case.
   const showSyntheticPart = createMemo(() => !part().synthetic || streaming())
+  // kilocode_change end
   const isLastTextPart = createMemo(() => {
     const last = (data.store.part?.[props.message.id] ?? [])
-      .filter((item): item is TextPart => item?.type === "text" && !!item.text?.trim() && !item.synthetic)
+      .filter((item): item is TextPart => item?.type === "text" && !!item.text?.trim() && !item.synthetic) // kilocode_change
       .at(-1)
     return last?.id === part().id
   })
   const showCopy = createMemo(() => {
-    if (part().synthetic) return false
+    if (part().synthetic) return false // kilocode_change
     if (props.message.role !== "assistant") return isLastTextPart()
     if (props.showAssistantCopyPartID === null) return false
     if (typeof props.showAssistantCopyPartID === "string") return props.showAssistantCopyPartID === part().id
@@ -1506,7 +1508,7 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
   }
 
   return (
-    <Show when={text() && showSyntheticPart()}>
+    <Show when={text() && showSyntheticPart() /* kilocode_change */}>
       <div data-component="text-part">
         <div data-slot="text-part-body">
           <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>

@@ -1,7 +1,11 @@
 package ai.kilocode.client.session.ui
 
 import ai.kilocode.rpc.dto.ModelSelectionDto
+import com.intellij.icons.AllIcons
+import com.intellij.ui.CollectionListModel
+import com.intellij.ui.components.JBList
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.util.ui.EmptyIcon
 
 @Suppress("UnstableApiUsage")
 class ModelPickerTest : BasePlatformTestCase() {
@@ -25,11 +29,11 @@ class ModelPickerTest : BasePlatformTestCase() {
             item("auto", "Kilo Auto", "kilo", "Kilo", 0.0),
         ), listOf(ModelSelectionDto("openai", "gpt-4o")), "")
 
-        assertEquals("Favorites", (rows[0] as ModelPickerRow.Header).label)
-        assertEquals("openai/gpt-4o", (rows[1] as ModelPickerRow.Entry).item.key)
-        assertEquals("Recommended", (rows[2] as ModelPickerRow.Header).label)
-        assertEquals("kilo/auto", (rows[3] as ModelPickerRow.Entry).item.key)
-        assertEquals("anthropic/claude", (rows[4] as ModelPickerRow.Entry).item.key)
+        assertEquals("Favorites", modelPickerSectionTitle(rows, 0))
+        assertEquals("openai/gpt-4o", rows[0].item.key)
+        assertEquals("Recommended", modelPickerSectionTitle(rows, 1))
+        assertEquals("kilo/auto", rows[1].item.key)
+        assertEquals("anthropic/claude", rows[2].item.key)
     }
 
     fun `test favorites are hidden while filtering`() {
@@ -39,8 +43,8 @@ class ModelPickerTest : BasePlatformTestCase() {
         ), listOf(ModelSelectionDto("openai", "gpt-4o")), "gpt")
 
 
-        assertFalse(rows.any { it is ModelPickerRow.Header && it.label == "Favorites" })
-        assertEquals("openai/gpt-4o", (rows.filterIsInstance<ModelPickerRow.Entry>().single()).item.key)
+        assertFalse(rows.indices.any { modelPickerSectionTitle(rows, it) == "Favorites" })
+        assertEquals("openai/gpt-4o", rows.single().item.key)
     }
 
     fun `test kilo provider group is first and other providers keep source order`() {
@@ -50,27 +54,92 @@ class ModelPickerTest : BasePlatformTestCase() {
             item("claude", "Claude", "anthropic", "Anthropic"),
         ), emptyList(), "")
 
-        assertEquals(listOf("Kilo", "OpenAI", "Anthropic"), rows.filterIsInstance<ModelPickerRow.Header>().map { it.label })
+        assertEquals(listOf("Kilo", "OpenAI", "Anthropic"), rows.indices.mapNotNull { modelPickerSectionTitle(rows, it) })
     }
 
-    fun `test list model navigation skips headers`() {
-        val model = ModelPickerListModel()
-        model.setRows(listOf(
-            ModelPickerRow.Header("Recommended"),
-            ModelPickerRow.Entry(item("a", "A", "openai", "OpenAI"), false),
-            ModelPickerRow.Header("Anthropic"),
-            ModelPickerRow.Entry(item("b", "B", "anthropic", "Anthropic"), false),
-        ))
+    fun `test index prefers normal row over favorite duplicate`() {
+        val rows = listOf(
+            ModelPickerRow(item("a", "A", "openai", "OpenAI"), "Favorites", true),
+            ModelPickerRow(item("a", "A", "openai", "OpenAI"), "OpenAI", false),
+        )
 
-        assertEquals(1, model.first())
-        assertEquals(3, model.next(1, 1))
-        assertEquals(1, model.next(3, -1))
+        assertEquals(1, modelPickerIndex(rows, "openai/a"))
     }
 
     fun `test item keeps reasoning variants`() {
         val item = ModelPicker.Item("gpt", "GPT", "openai", "OpenAI", variants = listOf("low", "high"))
 
         assertEquals(listOf("low", "high"), item.variants)
+    }
+
+    fun `test display parts split provider prefix`() {
+        val parts = ModelText.parts(item("claude-opus", "Anthropic Claude Opus 4.7", "anthropic", "Anthropic"))
+
+        assertEquals("Anthropic", parts.provider)
+        assertEquals("Claude Opus 4.7", parts.model)
+    }
+
+    fun `test display parts split vscode colon form`() {
+        val parts = ModelText.parts(item("claude-opus", "Anthropic: Claude Opus 4.7", "anthropic", "Anthropic"))
+
+        assertEquals("Anthropic", parts.provider)
+        assertEquals("Claude Opus 4.7", parts.model)
+    }
+
+    fun `test display parts trim colon segments`() {
+        val parts = ModelText.parts(item("laguna", " Poolside : Laguna M.1 ", "poolside", "Poolside"))
+
+        assertEquals("Poolside", parts.provider)
+        assertEquals("Laguna M.1", parts.model)
+    }
+
+    fun `test display parts keep plain model name`() {
+        val parts = ModelText.parts(item("claude-sonnet", "Claude Sonnet 4.6", "anthropic", "Anthropic"))
+
+        assertNull(parts.provider)
+        assertEquals("Claude Sonnet 4.6", parts.model)
+    }
+
+    fun `test display parts sanitize free suffix`() {
+        val parts = ModelText.parts(item("auto", "Auto Free (free)", "kilo", "Kilo"))
+
+        assertNull(parts.provider)
+        assertEquals("Auto Free", parts.model)
+    }
+
+    fun `test renderer shows empty favorite star only for selected row`() {
+        val row = ModelPickerRow(item("auto", "Auto", "kilo", "Kilo"), "Kilo", false)
+        val model = CollectionListModel(listOf(row))
+        val renderer = ModelPickerRenderer(model, { null }, { emptySet() })
+        val list = JBList(model)
+
+        renderer.getListCellRendererComponent(list, row, 0, false, false)
+        assertSame(EmptyIcon.ICON_16, renderer.starIcon())
+
+        renderer.getListCellRendererComponent(list, row, 0, true, false)
+        assertSame(AllIcons.Nodes.NotFavoriteOnHover, renderer.starIcon())
+    }
+
+    fun `test renderer keeps favorite star visible`() {
+        val row = ModelPickerRow(item("auto", "Auto", "kilo", "Kilo"), "Kilo", false)
+        val model = CollectionListModel(listOf(row))
+        val renderer = ModelPickerRenderer(model, { null }, { setOf("kilo/auto") })
+        val list = JBList(model)
+
+        renderer.getListCellRendererComponent(list, row, 0, false, false)
+
+        assertSame(AllIcons.Nodes.Favorite, renderer.starIcon())
+    }
+
+    fun `test renderer shows free badge for free model`() {
+        val row = ModelPickerRow(ModelPicker.Item("auto", "Auto", "kilo", "Kilo", free = true), "Kilo", false)
+        val model = CollectionListModel(listOf(row))
+        val renderer = ModelPickerRenderer(model, { null }, { emptySet() })
+        val list = JBList(model)
+
+        renderer.getListCellRendererComponent(list, row, 0, false, false)
+
+        assertTrue(renderer.badgeVisible())
     }
 
     private fun item(

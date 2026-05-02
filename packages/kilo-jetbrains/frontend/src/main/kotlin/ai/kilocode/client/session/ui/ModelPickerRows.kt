@@ -26,19 +26,32 @@ internal fun modelPickerRows(
         val byKey = all.associateBy { it.key }
         val fav = favorites.map { "${it.providerID}/${it.modelID}" }.mapNotNull(byKey::get)
         if (fav.isNotEmpty()) {
-            out += ModelPickerRow.Header(KiloBundle.message("model.picker.favorites"))
-            out += fav.map { ModelPickerRow.Entry(it, favorite = true) }
+            val section = KiloBundle.message("model.picker.favorites")
+            out += fav.map { ModelPickerRow(it, section, favorite = true) }
         }
     }
     if (recommended.isNotEmpty()) {
-        out += ModelPickerRow.Header(KiloBundle.message("model.picker.recommended"))
-        out += recommended.map { ModelPickerRow.Entry(it, favorite = false) }
+        val section = KiloBundle.message("model.picker.recommended")
+        out += recommended.map { ModelPickerRow(it, section, favorite = false) }
     }
     for ((_, list) in grouped) {
         val sorted = list.sortedWith(compareBy<ModelPicker.Item> { it.display.lowercase() }.thenBy { it.id })
         val label = sorted.firstOrNull()?.providerName ?: continue
-        out += ModelPickerRow.Header(label)
-        out += sorted.map { ModelPickerRow.Entry(it, favorite = false) }
+        out += sorted.map { ModelPickerRow(it, label, favorite = false) }
     }
     return out
+}
+
+internal fun modelPickerIndex(rows: List<ModelPickerRow>, key: String?): Int {
+    if (key == null) return -1
+    return rows.indexOfFirst { it.item.key == key && !it.favorite }
+        .takeIf { it >= 0 }
+        ?: rows.indexOfFirst { it.item.key == key }
+}
+
+internal fun modelPickerSectionTitle(rows: List<ModelPickerRow>, index: Int): String? {
+    val row = rows.getOrNull(index) ?: return null
+    val section = row.section ?: return null
+    val prev = rows.getOrNull(index - 1)
+    return if (prev?.section != section) section else null
 }

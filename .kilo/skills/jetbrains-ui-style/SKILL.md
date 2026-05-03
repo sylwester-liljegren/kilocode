@@ -1107,6 +1107,7 @@ Use layout managers for sizing and alignment. Avoid `preferredSize`, `maximumSiz
 - Center center: description component.
 - Set the background once on the root renderer using list selection colors.
 - Use selected-safe foreground colors for text.
+- Do not import or use `java.awt.Component` as a renderer return type; return the concrete Swing component such as `JPanel`.
 
 ```kotlin
 private class PickerRenderer<T>(
@@ -1143,7 +1144,7 @@ private class PickerRenderer<T>(
         index: Int,
         selected: Boolean,
         focused: Boolean,
-    ): Component {
+    ): JPanel {
         val focus = list.hasFocus() || focused
         background = UIUtil.getListBackground(selected, focus)
         val fg = UIUtil.getListForeground(selected, focus)

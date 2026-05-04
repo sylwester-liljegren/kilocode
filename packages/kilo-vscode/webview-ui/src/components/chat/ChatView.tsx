@@ -5,7 +5,7 @@
  * Main chat container that combines all chat components
  */
 
-import { type Component, For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js"
+import { type Component, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js"
 import { Button } from "@kilocode/kilo-ui/button"
 import { Icon } from "@kilocode/kilo-ui/icon"
 import { Spinner } from "@kilocode/kilo-ui/spinner"
@@ -16,7 +16,6 @@ import { TaskHeader } from "./TaskHeader"
 import { MessageList } from "./MessageList"
 import { PromptInput } from "./PromptInput"
 import { PermissionDock } from "./PermissionDock"
-import { QuestionDock } from "./QuestionDock"
 import { StartupErrorBanner } from "./StartupErrorBanner"
 import { useSession } from "../../context/session"
 import { useVSCode } from "../../context/vscode"
@@ -64,11 +63,9 @@ export const ChatView: Component<ChatViewProps> = (props) => {
   const familyPermissions = createMemo(() => session.scopedPermissions(id()))
   const familyQuestions = createMemo(() => session.scopedQuestions(id()))
   const familySuggestions = createMemo(() => session.scopedSuggestions(id()))
-  // Non-tool questions (standalone, not from the question tool) render in the
-  // bottom dock above the prompt input, alongside the permission dock. Rendering
-  // them in the scroll container would leave them floating mid-screen when the
-  // conversation is short. Tool-linked questions still render inline at their
-  // tool part position via AssistantMessage.
+  // Non-tool questions (standalone, not from the question tool) render inline in
+  // the message list since they don't have an associated tool part in the conversation.
+  // Tool-linked questions render inline at their tool part position via AssistantMessage.
   const standaloneQuestions = createMemo(() => familyQuestions().filter((q) => !q.tool))
   const standaloneSuggestions = createMemo(() => familySuggestions().filter((s) => !s.tool))
   const permissionRequest = () => familyPermissions().find((p) => p.sessionID === id()) ?? familyPermissions()[0]
@@ -79,10 +76,7 @@ export const ChatView: Component<ChatViewProps> = (props) => {
   const suggesting = () => isSuggesting(blocked(), familySuggestions().length)
   // Session is busy only because a question tool call is pending — prompt should behave as idle
   const questioning = () => isQuestioning(blocked(), familyQuestions().length)
-  // Standalone questions (e.g. the slow-snapshot prompt) dock above the prompt input
-  // so users find them in the expected place instead of floating in the middle of
-  // the scroll view when the conversation is short.
-  const dock = () => !props.readonly || !!permissionRequest() || standaloneQuestions().length > 0
+  const dock = () => !props.readonly || !!permissionRequest()
 
   // When a bottom-dock permission disappears while the session is busy,
   // the scroll container grows taller. Dispatch a custom event so MessageList can
@@ -321,6 +315,7 @@ export const ChatView: Component<ChatViewProps> = (props) => {
             onSelectSession={props.onSelectSession}
             onShowHistory={props.onShowHistory}
             onForkMessage={props.onForkMessage}
+            questions={standaloneQuestions}
             suggestions={standaloneSuggestions}
             readonly={props.readonly}
           />
@@ -341,7 +336,6 @@ export const ChatView: Component<ChatViewProps> = (props) => {
               />
             )}
           </Show>
-          <For each={standaloneQuestions()}>{(req) => <QuestionDock request={req} />}</For>
           <Show when={!props.readonly && idle() && !blocked() && hasActions(hasMessages())}>
             {renderActions(hasMessages())}
           </Show>

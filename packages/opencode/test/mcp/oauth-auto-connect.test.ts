@@ -111,6 +111,7 @@ beforeEach(() => {
 
 // Import modules after mocking
 const { MCP } = await import("../../src/mcp/index")
+const { McpOAuthCallback } = await import("../../src/mcp/oauth-callback")
 const { Instance } = await import("../../src/project/instance")
 const { tmpdir } = await import("../fixture/fixture")
 
@@ -270,6 +271,7 @@ test("authenticate() stores a connected client when auth completes without redir
 
             const result = yield* mcp.authenticate("test-oauth-connect")
             expect(result.status).toBe("connected")
+            expect(McpOAuthCallback.isRunning()).toBe(false)
 
             const after = yield* mcp.status()
             expect(after["test-oauth-connect"]?.status).toBe("connected")

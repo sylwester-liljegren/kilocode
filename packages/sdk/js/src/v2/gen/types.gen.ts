@@ -1576,9 +1576,9 @@ export type AgentConfig = {
    * Default model variant for this agent (applies only when using the agent's configured model).
    */
   variant?: string
-  temperature?: number
-  top_p?: number
-  prompt?: string
+  temperature?: number | null
+  top_p?: number | null
+  prompt?: string | null
   /**
    * @deprecated Use 'permission' field instead
    */
@@ -1589,7 +1589,7 @@ export type AgentConfig = {
   /**
    * Description of when to use the agent
    */
-  description?: string
+  description?: string | null
   mode?: "subagent" | "primary" | "all"
   /**
    * Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)
@@ -1605,7 +1605,7 @@ export type AgentConfig = {
   /**
    * Maximum number of agentic iterations before forcing text-only response
    */
-  steps?: number
+  steps?: number | null
   /**
    * @deprecated Use 'steps' field instead.
    */
@@ -1908,7 +1908,7 @@ export type Config = {
   /**
    * Default agent to use when none is specified. Must be a primary agent. Falls back to 'code' if not set or if the specified agent is invalid.
    */
-  default_agent?: string
+  default_agent?: string | null
   /**
    * Custom username to display in conversations instead of system username
    */

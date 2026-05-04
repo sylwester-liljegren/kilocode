@@ -38,10 +38,11 @@ const AgentSchema = Schema.StructWithRest(
       description: "@deprecated Use 'permission' field instead",
     }),
     disable: Schema.optional(Schema.Boolean),
+    // kilocode_change start - nullable for delete sentinel
     description: Schema.optional(Schema.NullOr(Schema.String)).annotate({
-      // kilocode_change - nullable for delete sentinel
       description: "Description of when to use the agent",
     }),
+    // kilocode_change end
     mode: Schema.optional(Schema.Literals(["subagent", "primary", "all"])),
     hidden: Schema.optional(Schema.Boolean).annotate({
       description: "Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)",
@@ -50,10 +51,11 @@ const AgentSchema = Schema.StructWithRest(
     color: Schema.optional(Color).annotate({
       description: "Hex color code (e.g., #FF5733) or theme color (e.g., primary)",
     }),
+    // kilocode_change start - nullable for delete sentinel
     steps: Schema.optional(Schema.NullOr(PositiveInt)).annotate({
-      // kilocode_change - nullable for delete sentinel
       description: "Maximum number of agentic iterations before forcing text-only response",
     }),
+    // kilocode_change end
     maxSteps: Schema.optional(PositiveInt).annotate({ description: "@deprecated Use 'steps' field instead." }),
     permission: Schema.optional(ConfigPermission.Info),
   }),

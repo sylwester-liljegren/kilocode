@@ -104,8 +104,10 @@ const normalize = (agent: Schema.Schema.Type<typeof AgentSchema>): Schema.Schema
   }
   globalThis.Object.assign(permission, agent.permission)
 
-  const steps = agent.steps ?? agent.maxSteps
+  // kilocode_change start - preserve null delete sentinel (?? would collapse null to maxSteps)
+  const steps = agent.steps !== undefined ? agent.steps : agent.maxSteps
   return { ...agent, options, permission, ...(steps !== undefined ? { steps } : {}) }
+  // kilocode_change end
 }
 
 export const Info = AgentSchema.pipe(

@@ -172,6 +172,8 @@ class PromptPanel(
 
     internal fun shellForTest(): JComponent = shell
 
+    internal val defaultFocusedComponent: JComponent get() = editor
+
     override fun applyStyle(style: SessionStyle) {
         this.style = style
         editor.font = style.transcriptFont

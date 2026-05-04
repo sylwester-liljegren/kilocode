@@ -94,6 +94,19 @@ class SessionSidePanelManagerTest : BasePlatformTestCase() {
         assertEquals(listOf(true), loading)
     }
 
+    fun `test default focused component tracks active session`() {
+        val manager = manager()
+
+        assertNull(manager.defaultFocusedComponent)
+        manager.newSession()
+        val first = active(manager) as SessionUi
+        manager.openSession(session("ses_1"))
+        val second = active(manager) as SessionUi
+
+        assertSame(second.defaultFocusedComponent, manager.defaultFocusedComponent)
+        assertNotSame(first.defaultFocusedComponent, manager.defaultFocusedComponent)
+    }
+
     fun `test opening same existing session reuses component`() {
         val manager = manager()
         val session = session("ses_1")

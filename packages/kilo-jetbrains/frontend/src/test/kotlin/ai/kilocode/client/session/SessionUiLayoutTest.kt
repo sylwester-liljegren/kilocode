@@ -106,6 +106,12 @@ class SessionUiLayoutTest : BasePlatformTestCase() {
         assertEquals(listOf(question, permission, connection, prompt), stack.components.toList())
     }
 
+    fun `test default focused component is prompt editor`() {
+        val prompt = find<PromptPanel>(ui)
+
+        assertSame(prompt.defaultFocusedComponent, ui.defaultFocusedComponent)
+    }
+
     fun `test connection panel uses stack width and sits above prompt`() {
         val connection = find<ConnectionPanel>(ui)
         val prompt = find<PromptPanel>(ui)

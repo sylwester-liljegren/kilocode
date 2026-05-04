@@ -38,6 +38,7 @@ import kotlinx.coroutines.CoroutineScope
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
 import javax.swing.BoxLayout.Y_AXIS
+import javax.swing.JComponent
 import javax.swing.JPanel
 
 /**
@@ -135,6 +136,8 @@ class SessionUi private constructor(
     internal val id: String? get() = controller.id
 
     internal fun currentStyle() = style
+
+    val defaultFocusedComponent: JComponent get() = prompt.defaultFocusedComponent
 
     private fun buildUi() {
         root = SessionRootPanel()

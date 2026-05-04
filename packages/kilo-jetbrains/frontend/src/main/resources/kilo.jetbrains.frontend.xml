@@ -47,5 +47,10 @@
             <keyboard-shortcut keymap="$default"
                                first-keystroke="ENTER"/>
         </action>
+
+        <action id="Kilo.StopSession"
+                class="ai.kilocode.client.actions.StopSessionAction"
+                text="Stop Session"
+                description="Stop the current Kilo session"/>
     </actions>
 </idea-plugin>

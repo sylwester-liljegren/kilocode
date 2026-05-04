@@ -5,6 +5,7 @@ import ai.kilocode.client.session.ui.prompt.PromptPanel
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.ui.EmptyIcon
 import javax.swing.SwingUtilities
@@ -87,6 +88,27 @@ class PromptPanelTest : BasePlatformTestCase() {
         assertSame(panel, sink.send)
     }
 
+    fun `test prompt button exposes send context`() {
+        val panel = PromptPanel(project, {}, {})
+        val sink = TestSink()
+
+        (panel.buttonForTest() as UiDataProvider).uiDataSnapshot(sink)
+
+        assertSame(panel, sink.send)
+    }
+
+    fun `test prompt button switches between send and stop state`() {
+        val panel = PromptPanel(project, {}, {})
+
+        assertEquals(KeymapUtil.createTooltipText("Send", "Kilo.SendPrompt"), panel.buttonForTest().toolTipText)
+        assertFalse(panel.isStopEnabled)
+
+        panel.setBusy(true)
+
+        assertEquals("Stop", panel.buttonForTest().toolTipText)
+        assertTrue(panel.isStopEnabled)
+    }
+
     fun `test pickers belong to rounded shell`() {
         val panel = PromptPanel(project, {}, {})
         val shell = panel.shellForTest()
@@ -127,4 +149,5 @@ class PromptPanelTest : BasePlatformTestCase() {
         override fun uiDataSnapshot(provider: com.intellij.openapi.actionSystem.DataProvider) {
         }
     }
+
 }

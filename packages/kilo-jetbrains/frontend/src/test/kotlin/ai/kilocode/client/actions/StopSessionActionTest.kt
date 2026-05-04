@@ -8,23 +8,23 @@ import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 @Suppress("UnstableApiUsage")
-class SendPromptActionTest : BasePlatformTestCase() {
+class StopSessionActionTest : BasePlatformTestCase() {
     fun `test action invokes prompt context`() {
         val ctx = FakeContext(true)
-        val action = SendPromptAction()
+        val action = StopSessionAction()
         val event = event(action, ctx)
 
         action.update(event)
         action.actionPerformed(event)
 
         assertTrue(event.presentation.isEnabled)
-        assertEquals(1, ctx.sent)
-        assertEquals("Send Prompt", action.templatePresentation.text)
-        assertEquals("Send the current Kilo prompt", action.templatePresentation.description)
+        assertEquals(1, ctx.stopped)
+        assertEquals("Stop Session", action.templatePresentation.text)
+        assertEquals("Stop the current Kilo session", action.templatePresentation.description)
     }
 
     fun `test update disables action without prompt context`() {
-        val action = SendPromptAction()
+        val action = StopSessionAction()
         val event = event(action, null)
 
         action.update(event)
@@ -32,30 +32,19 @@ class SendPromptActionTest : BasePlatformTestCase() {
         assertFalse(event.presentation.isEnabled)
     }
 
-    fun `test update disables action when send unavailable`() {
+    fun `test update disables action when stop unavailable`() {
         val ctx = FakeContext(false)
-        val action = SendPromptAction()
+        val action = StopSessionAction()
         val event = event(action, ctx)
 
         action.update(event)
         action.actionPerformed(event)
 
         assertFalse(event.presentation.isEnabled)
-        assertEquals(0, ctx.sent)
+        assertEquals(0, ctx.stopped)
     }
 
-    fun `test promote only returns action when prompt can send`() {
-        val action = SendPromptAction()
-        val enabled = context(FakeContext(true))
-        val disabled = context(FakeContext(false))
-        val absent = context(null)
-
-        assertEquals(listOf(action), action.promote(listOf(action), enabled))
-        assertTrue(action.promote(listOf(action), disabled).isEmpty())
-        assertTrue(action.promote(listOf(action), absent).isEmpty())
-    }
-
-    private fun event(action: SendPromptAction, ctx: SendPromptContext?): AnActionEvent {
+    private fun event(action: StopSessionAction, ctx: SendPromptContext?): AnActionEvent {
         val presentation = Presentation().apply { copyFrom(action.templatePresentation) }
         return AnActionEvent.createFromDataContext("", presentation, context(ctx))
     }
@@ -67,17 +56,16 @@ class SendPromptActionTest : BasePlatformTestCase() {
     }
 
     private class FakeContext(
-        override val isSendEnabled: Boolean,
+        override val isStopEnabled: Boolean,
     ) : SendPromptContext {
-        override val isStopEnabled: Boolean = false
-        var sent = 0
+        override val isSendEnabled: Boolean = false
+        var stopped = 0
 
         override fun send() {
-            sent++
         }
 
         override fun stop() {
+            stopped++
         }
     }
-
 }

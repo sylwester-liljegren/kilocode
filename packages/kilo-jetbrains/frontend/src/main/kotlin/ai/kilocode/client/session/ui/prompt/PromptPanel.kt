@@ -1,6 +1,7 @@
 package ai.kilocode.client.session.ui.prompt
 
 import ai.kilocode.client.actions.SendPromptAction
+import ai.kilocode.client.actions.StopSessionAction
 import ai.kilocode.client.plugin.KiloBundle
 import ai.kilocode.client.session.ui.ReasoningPicker
 import ai.kilocode.client.session.ui.SessionStyle
@@ -11,12 +12,16 @@ import ai.kilocode.client.ui.UiStyle
 import ai.kilocode.log.ChatLogSummary
 import ai.kilocode.log.KiloLog
 import com.intellij.icons.AllIcons
+import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataSink
+import com.intellij.openapi.actionSystem.UiDataProvider
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.KeymapManagerListener
 import com.intellij.openapi.keymap.KeymapUtil
@@ -76,11 +81,6 @@ class PromptPanel(
         setPlaceholder(placeholder())
         setShowPlaceholderWhenFocused(true)
         setOneLineMode(false)
-        addDocumentListener(object : DocumentListener {
-            override fun documentChanged(event: DocumentEvent) {
-                syncButton()
-            }
-        })
         addSettingsProvider { ed ->
             style.applyToEditor(ed)
             ed.setBorder(JBUI.Borders.empty())
@@ -108,22 +108,15 @@ class PromptPanel(
     private val button: SendButton = SendButton().apply {
         icon = SEND_ICON
         isFocusPainted = false
-        toolTipText = KiloBundle.message("prompt.button.send")
+        toolTipText = KeymapUtil.createTooltipText(KiloBundle.message("prompt.button.send"), SendPromptAction.ID)
         addActionListener {
-            if (!button.active) return@addActionListener
-            if (busy) {
-                onAbort()
-                return@addActionListener
-            }
-            val action = ActionManager.getInstance().getAction(SendPromptAction.ID)
+            val id = if (busy) StopSessionAction.ID else SendPromptAction.ID
+            val action = ActionManager.getInstance().getAction(id)
                 ?: return@addActionListener
-            ActionManager.getInstance().tryToExecute(
-                action,
-                null,
-                editor,
-                ActionPlaces.UNKNOWN,
-                true,
-            )
+            val ctx = DataManager.getInstance().getDataContext(button)
+            val event = AnActionEvent.createEvent(action, ctx, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null)
+            action.update(event)
+            ActionUtil.performAction(action, event)
         }
     }
 
@@ -141,6 +134,9 @@ class PromptPanel(
 
     override val isSendEnabled: Boolean
         get() = ready && !busy && text().isNotEmpty()
+
+    override val isStopEnabled: Boolean
+        get() = busy
 
     init {
         border = JBUI.Borders.compound(
@@ -171,18 +167,12 @@ class PromptPanel(
 
     fun setReady(value: Boolean) {
         ready = value
-        syncButton()
     }
 
     fun setBusy(value: Boolean) {
         busy = value
         button.icon = if (value) STOP_ICON else SEND_ICON
-        button.toolTipText = if (value) {
-            KiloBundle.message("prompt.button.stop")
-        } else {
-            KiloBundle.message("prompt.button.send")
-        }
-        syncButton()
+        syncTooltip()
     }
 
     fun setResetVisible(value: Boolean) {
@@ -197,6 +187,11 @@ class PromptPanel(
         submit("action")
     }
 
+    override fun stop() {
+        if (!isStopEnabled) return
+        onAbort()
+    }
+
     internal fun inputFont() = editor.font
 
     internal fun resetVisibleForTest() = reset.isVisible
@@ -204,6 +199,8 @@ class PromptPanel(
     internal fun resetForTest(): JComponent = reset
 
     internal fun shellForTest(): JComponent = shell
+
+    internal fun buttonForTest(): JButton = button
 
     internal val defaultFocusedComponent: JComponent get() = editor
 
@@ -222,7 +219,6 @@ class PromptPanel(
 
     fun clear() {
         editor.text = ""
-        syncButton()
     }
 
     fun focus() {
@@ -249,10 +245,6 @@ class PromptPanel(
         }
     }
 
-    private fun syncButton() {
-        button.active = busy || isSendEnabled
-    }
-
     private fun bindKeymap() {
         if (bus != null) return
         val connection = ApplicationManager.getApplication().messageBus.connect()
@@ -260,15 +252,30 @@ class PromptPanel(
         connection.subscribe(KeymapManagerListener.TOPIC, object : KeymapManagerListener {
             override fun activeKeymapChanged(keymap: Keymap?) {
                 editor.setPlaceholder(placeholder())
+                syncTooltip()
             }
 
             override fun shortcutsChanged(keymap: Keymap, actionIds: Collection<String>, fromSettings: Boolean) {
-                if (SendPromptAction.ID in actionIds || IdeActions.ACTION_EDITOR_START_NEW_LINE in actionIds) {
+                if (SendPromptAction.ID in actionIds || StopSessionAction.ID in actionIds ||
+                    IdeActions.ACTION_EDITOR_START_NEW_LINE in actionIds) {
                     editor.setPlaceholder(placeholder())
+                    syncTooltip()
                 }
             }
         })
     }
+
+    private fun syncTooltip() {
+        val id = if (busy) StopSessionAction.ID else SendPromptAction.ID
+        val text = if (busy) {
+            KiloBundle.message("prompt.button.stop")
+        } else {
+            KiloBundle.message("prompt.button.send")
+        }
+        button.toolTipText = tooltip(id, text)
+    }
+
+    private fun tooltip(id: String, text: String): String = KeymapUtil.createTooltipText(text, id)
 
     private fun placeholder(): String {
         val send = KeymapUtil.getFirstKeyboardShortcutText(SendPromptAction.ID)
@@ -281,14 +288,8 @@ class PromptPanel(
         return KiloBundle.message("prompt.placeholder")
     }
 
-    private inner class SendButton : JButton() {
+    private inner class SendButton : JButton(), UiDataProvider {
         private var over = false
-        var active = false
-            set(value) {
-                if (field == value) return
-                field = value
-                repaint()
-            }
 
         init {
             UiStyle.Buttons.icon(this)
@@ -305,6 +306,10 @@ class PromptPanel(
         }
 
         override fun getPreferredSize() = JBUI.size(UiStyle.Size.BUTTON, UiStyle.Size.BUTTON)
+
+        override fun uiDataSnapshot(sink: DataSink) {
+            sink.set(PromptDataKeys.SEND, this@PromptPanel)
+        }
 
         override fun getMinimumSize() = preferredSize
 

@@ -12,6 +12,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.xml.util.XmlStringUtil
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -311,8 +312,9 @@ private fun subtitle(tool: Tool) = when (tool.name) {
 }
 
 private fun setText(label: JBLabel, text: String): Boolean {
-    if (label.text == text) return false
-    label.text = text
+    val value = if (text.isBlank()) "" else XmlStringUtil.wrapInHtml(XmlStringUtil.escapeString(text))
+    if (label.text == value) return false
+    label.text = value
     return true
 }
 

@@ -2,11 +2,17 @@ package ai.kilocode.client.ui
 
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.ui.JBColor
-import com.intellij.ui.RoundedLineBorder
+import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.RenderingHints
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.UIManager
@@ -75,6 +81,14 @@ object UiStyle {
 
         fun running(): Color = JBColor.namedColor("ProgressBar.foreground", UIUtil.getLabelForeground())
 
+        fun picker(): Color = JBColor.lazy {
+            UIManager.getColor("ComboBoxButton.background")
+                ?: UIManager.getColor("ComboBox.nonEditableBackground")
+                ?: UIUtil.getPanelBackground()
+        }
+
+        fun pickerHover(): Color = JBUI.CurrentTheme.ActionButton.hoverBackground()
+
         internal fun contrast(base: Color, delta: Int): Color {
             val step = if (bright(base)) -delta else delta
             return Color(
@@ -124,10 +138,7 @@ object UiStyle {
 
         fun warning(): Border = JBUI.Borders.customLine(Colors.warning(), 1)
 
-        fun picker(): Border = JBUI.Borders.compound(
-          RoundedLineBorder(Colors.line(), JBUI.scale(Space.MD)),
-            JBUI.Borders.empty(Space.XS, Space.LG),
-        )!!
+        fun picker(): Border = JBUI.Borders.empty(Space.XS, Space.LG)
 
         fun user(): Border = JBUI.Borders.compound(
             RoundedLineBorder(Colors.line(), JBUI.scale(Space.LG)),
@@ -175,6 +186,8 @@ object UiStyle {
     }
 
     object Gap {
+        fun xs() = JBUI.scale(Space.XS)
+
         fun inline() = JBUI.scale(Space.MD)
 
         fun regular() = JBUI.scale(Space.LG)
@@ -191,6 +204,57 @@ object UiStyle {
     }
 
     object Buttons {
+        class HoverIcon : JButton() {
+            private var over = false
+
+            init {
+                isFocusable = false
+                setRequestFocusEnabled(false)
+                isContentAreaFilled = false
+                isBorderPainted = false
+                isOpaque = false
+                border = JBUI.Borders.empty()
+                addMouseListener(object : MouseAdapter() {
+                    override fun mouseEntered(e: MouseEvent) {
+                        sync(true)
+                    }
+
+                    override fun mouseExited(e: MouseEvent) {
+                        sync(false)
+                    }
+                })
+            }
+
+            override fun getPreferredSize(): Dimension = JBUI.size(Size.BUTTON, Size.BUTTON)
+
+            override fun getMinimumSize(): Dimension = preferredSize
+
+            override fun getMaximumSize(): Dimension = preferredSize
+
+            override fun paintComponent(g: Graphics) {
+                if (isEnabled && over) paintHover(g)
+                super.paintComponent(g)
+            }
+
+            private fun paintHover(g: Graphics) {
+                val g2 = g.create() as Graphics2D
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                    g2.color = JBUI.CurrentTheme.ActionButton.hoverBackground()
+                    val arc = JBUI.scale(JBUI.getInt("Button.arc", 6))
+                    g2.fillRoundRect(0, 0, width, height, arc, arc)
+                } finally {
+                    g2.dispose()
+                }
+            }
+
+            private fun sync(value: Boolean) {
+                if (over == value) return
+                over = value
+                repaint()
+            }
+        }
+
         fun icon(button: JButton) {
             button.isFocusable = false
             button.setRequestFocusEnabled(false)
@@ -198,6 +262,53 @@ object UiStyle {
             button.isBorderPainted = false
             button.isOpaque = false
             button.border = JBUI.Borders.empty()
+        }
+    }
+
+    object Pickers {
+        open class Label : JBLabel() {
+            private var over = false
+
+            init {
+                border = Borders.picker()
+                background = Colors.picker()
+                // The custom rounded fill needs parent background around the corners.
+                isOpaque = false
+                addMouseListener(object : MouseAdapter() {
+                    override fun mouseEntered(e: MouseEvent) {
+                        sync(true)
+                    }
+
+                    override fun mouseExited(e: MouseEvent) {
+                        sync(false)
+                    }
+                })
+            }
+
+            override fun updateUI() {
+                super.updateUI()
+                border = Borders.picker()
+                background = Colors.picker()
+            }
+
+            override fun paintComponent(g: Graphics) {
+                val g2 = g.create() as Graphics2D
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                    g2.color = if (isEnabled && over) Colors.pickerHover() else Colors.picker()
+                    val arc = JBUI.scale(JBUI.getInt("Button.arc", 6))
+                    g2.fillRoundRect(0, 0, width, height, arc, arc)
+                } finally {
+                    g2.dispose()
+                }
+                super.paintComponent(g)
+            }
+
+            private fun sync(value: Boolean) {
+                if (over == value) return
+                over = value
+                repaint()
+            }
         }
     }
 

@@ -81,6 +81,7 @@ data class PromptDto(
     val providerID: String? = null,
     val modelID: String? = null,
     val agent: String? = null,
+    val variant: String? = null,
 )
 
 @Serializable

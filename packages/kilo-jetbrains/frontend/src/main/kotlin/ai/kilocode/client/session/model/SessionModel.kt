@@ -46,6 +46,10 @@ class SessionModel {
     var models: List<ModelItem> = emptyList()
     var agent: String? = null
     var model: String? = null
+    var defaultModel: String? = null
+    var modelOverride: Boolean = false
+    var variants: List<String> = emptyList()
+    var variant: String? = null
     var showSession: Boolean = false
 
     var state: SessionState = SessionState.Idle
@@ -416,9 +420,24 @@ private fun parseToolState(raw: String?): ToolExecState = when (raw) {
     else -> ToolExecState.PENDING
 }
 
-data class AgentItem(val name: String, val display: String)
+data class AgentItem(
+    val name: String,
+    val display: String,
+    val description: String?,
+    val deprecated: Boolean,
+)
 
-data class ModelItem(val id: String, val display: String, val provider: String)
+data class ModelItem(
+    val id: String,
+    val display: String,
+    val provider: String,
+    val providerName: String,
+    val recommendedIndex: Double?,
+    val free: Boolean,
+    val variants: List<String>,
+) {
+    val key: String get() = "$provider/$id"
+}
 
 private fun renderMessage(msg: Message): List<String> {
     val out = mutableListOf<String>()

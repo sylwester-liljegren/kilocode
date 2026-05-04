@@ -1169,6 +1169,136 @@ Themes can override palette colors through `icons.ColorPalette`:
 - Use `createActionGroupPopup()` for action menus.
 - Show with `showInBestPositionFor(editor)`, `showUnderneathOf(component)`, or `showInCenterOf(component)`.
 
+## IntelliJ-Native List Pickers
+
+Use this guidance when building native list pickers that need richer presentation than a simple action menu. Common cases include two-line rows with title and description, active/current item checkmarks, inactive icon placeholders for alignment, hover behaving like selection, optional inline actions such as favorites, and optional filtering or search.
+
+`ListPopupImpl` / `BaseListPopupStep` are fine for simple menu-like lists. Do not make them the main abstraction for reusable rich list UIs because they are popup-first and action-step oriented.
+
+### Recommended Building Blocks
+
+- Use `JBList<T>` for the list.
+- Use `CollectionListModel<T>` for simple item storage.
+- Use `FilteringListModel<T>` or a small custom `AbstractListModel<T>` for filtering and ranking.
+- Use `TreeUIHelper.getInstance().installListSpeedSearch(list) { ... }` for speed search on current IntelliJ platform APIs.
+- Use `ListUtil.installAutoSelectOnMouseMove(list)` for IntelliJ popup-like hover selection.
+- Use `ScrollingUtil.installActions(list)` for keyboard navigation.
+- Use `JBPopupFactory.createComponentPopupBuilder(component, preferredFocusComponent)` for popup wrapping.
+- Use `ScrollPaneFactory.createScrollPane(list)` or `JBScrollPane` for scrolling.
+- Use `SimpleColoredComponent`, `SimpleTextAttributes`, `JBLabel`, and `JPanel` for custom renderers.
+- Use `AllIcons.Actions.Checked` and `EmptyIcon.create(...)` for active-item alignment.
+
+### Renderer Layout Pattern
+
+Use layout managers for sizing and alignment. Avoid `preferredSize`, `maximumSize`, and manual pixel sizing for normal badge or row layout. A good rich row renderer structure is:
+
+- Root renderer extends `JPanel(BorderLayout())`.
+- Root renderer is opaque and owns the selected/unselected background.
+- All child components are transparent unless there is a specific rendering reason.
+- West: `JBLabel` with icon centered horizontally and vertically.
+- Center: `JPanel(BorderLayout())`.
+- Center north: `FlowLayout(FlowLayout.LEFT, 0, 0)` with title first, then optional tag/badge.
+- Center center: description component.
+- Set the background once on the root renderer using list selection colors.
+- Use selected-safe foreground colors for text.
+- Do not import or use `java.awt.Component` as a renderer return type; return the concrete Swing component such as `JPanel`.
+
+```kotlin
+private class PickerRenderer<T>(
+    private val active: () -> T?,
+) : JPanel(BorderLayout()), ListCellRenderer<T> {
+    private val icon = JBLabel().apply {
+        isOpaque = false
+        horizontalAlignment = SwingConstants.CENTER
+        verticalAlignment = SwingConstants.CENTER
+    }
+    private val title = SimpleColoredComponent().apply { isOpaque = false }
+    private val description = SimpleColoredComponent().apply { isOpaque = false }
+    private val tag = JBLabel().apply { isOpaque = false }
+    private val header = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+        isOpaque = false
+        add(title)
+        add(tag)
+    }
+    private val body = JPanel(BorderLayout()).apply {
+        isOpaque = false
+        add(header, BorderLayout.NORTH)
+        add(description, BorderLayout.CENTER)
+    }
+
+    init {
+        isOpaque = true
+        add(icon, BorderLayout.WEST)
+        add(body, BorderLayout.CENTER)
+    }
+
+    override fun getListCellRendererComponent(
+        list: JList<out T>,
+        value: T,
+        index: Int,
+        selected: Boolean,
+        focused: Boolean,
+    ): JPanel {
+        val focus = list.hasFocus() || focused
+        background = UIUtil.getListBackground(selected, focus)
+        val fg = UIUtil.getListForeground(selected, focus)
+        val weak = if (selected) fg else UIUtil.getContextHelpForeground()
+        // Clear and append title/description fragments here.
+        return this
+    }
+}
+```
+
+### Active Icon Alignment
+
+- Use a check icon for the active item.
+- Use `EmptyIcon.create(checkIcon)` for inactive items so text aligns.
+- Prefer a single check icon if selected and unselected variants visually jump.
+- Only use selected-specific icons when contrast requires it and the icon dimensions/visual alignment remain stable.
+
+### Selection And Hover
+
+- Install `ListUtil.installAutoSelectOnMouseMove(list)` so hover and selection are the same UI state.
+- Do not implement a separate hover background in the renderer.
+- Set row selection background on the renderer root only.
+- Use `UIUtil.getListForeground(selected, focused)` and `UIUtil.getListBackground(selected, focused)`, or `ListUiUtil.WithTallRow` when available and appropriate.
+
+### Popup Wrapper
+
+- For rich reusable components, prefer `JBPopupFactory.createComponentPopupBuilder(component, focusComponent)`.
+- Configure `setRequestFocus(true)`, `setCancelOnClickOutside(true)`, `setCancelKeyEnabled(true)`, and usually `setMovable(false)`.
+- Close with `popup.closeOk(null)` after activation.
+- Use `showUnderneathOf(component)`, `showInBestPositionFor(editor)`, or `PopupShowOptions.aboveComponent(component)` depending on the trigger context.
+
+### Activation And Inline Actions
+
+- Enter should activate the selected item.
+- Mouse activation should bounds-check `locationToIndex` and `getCellBounds`.
+- Renderer child components are not real per-row components; do not add listeners to renderer labels.
+- For inline actions such as favorites, hit-test against a laid-out renderer component and consume the click before row activation.
+
+### Filtering
+
+- Use `ListWithFilter.wrap(...)` when a simple searchable text representation is enough.
+- Use `SearchTextField` plus `FilteringListModel` or a small custom `AbstractListModel` when custom matching/ranking is needed.
+- Clear selection when filtered results are empty and provide `list.emptyText.text`.
+
+### Avoid
+
+- Do not use `ListPopupImpl` as the main abstraction for reusable rich list components.
+- Do not use renderer `preferredSize` / `maximumSize` to force normal row or badge layout; fix the layout manager instead.
+- Do not set backgrounds on nested renderer children when the root row background should be continuous.
+- Do not hardcode runtime colors or raw Swing replacements where IntelliJ equivalents exist.
+- Do not sort or reorder items based on active selection unless explicitly required; keep popup ordering stable.
+
+### References
+
+- `ListUtil.installAutoSelectOnMouseMove`: https://github.com/JetBrains/intellij-community/blob/master/platform/platform-api/src/com/intellij/ui/ListUtil.java
+- `PopupChooserBuilder` flow: https://github.com/JetBrains/intellij-community/blob/master/platform/platform-api/src/com/intellij/openapi/ui/popup/PopupChooserBuilder.java
+- `ListWithFilter`: https://github.com/JetBrains/intellij-community/blob/master/platform/platform-api/src/com/intellij/ui/speedSearch/ListWithFilter.java
+- `PopupListElementRenderer`: https://github.com/JetBrains/intellij-community/blob/master/platform/platform-impl/src/com/intellij/ui/popup/list/PopupListElementRenderer.java
+- `ListUiUtil.WithTallRow`: https://github.com/JetBrains/intellij-community/blob/master/platform/util/ui/src/com/intellij/util/ui/ListUiUtil.kt
+
 ## Lists and Trees
 
 - Use `JBList`, not `JList`, for empty text, busy indicator, and tooltip truncation.

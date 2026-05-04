@@ -7,6 +7,8 @@ import ai.kilocode.rpc.dto.MessageTimeDto
 import ai.kilocode.rpc.dto.PartDto
 import ai.kilocode.rpc.dto.PartTimeDto
 import ai.kilocode.rpc.dto.PermissionRequestDto
+import ai.kilocode.rpc.dto.PromptDto
+import ai.kilocode.rpc.dto.PromptPartDto
 import ai.kilocode.rpc.dto.QuestionInfoDto
 import ai.kilocode.rpc.dto.QuestionRequestDto
 import ai.kilocode.rpc.dto.SessionStatusDto
@@ -212,6 +214,21 @@ class ChatDtoSerializationTest {
         assertEquals("failed", decoded.error)
         assertEquals(1.0, decoded.time?.start)
         assertEquals(2.0, decoded.time?.end)
+    }
+
+    @Test
+    fun `PromptDto variant is preserved in round-trip`() {
+        val prompt = PromptDto(
+            parts = listOf(PromptPartDto("text", "hello")),
+            providerID = "kilo",
+            modelID = "gpt-5",
+            agent = "code",
+            variant = "medium",
+        )
+        val encoded = json.encodeToString(PromptDto.serializer(), prompt)
+
+        assertTrue(encoded.contains(""""variant":"medium""""))
+        assertEquals("medium", json.decodeFromString(PromptDto.serializer(), encoded).variant)
     }
 
     // ------ helpers ------

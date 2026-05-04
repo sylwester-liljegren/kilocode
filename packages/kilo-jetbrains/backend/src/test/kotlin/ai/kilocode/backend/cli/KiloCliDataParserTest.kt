@@ -5,6 +5,8 @@ import ai.kilocode.rpc.dto.ChatEventDto
 import ai.kilocode.rpc.dto.ConfigUpdateDto
 import ai.kilocode.rpc.dto.PermissionAlwaysRulesDto
 import ai.kilocode.rpc.dto.PermissionReplyDto
+import ai.kilocode.rpc.dto.ModelSelectionDto
+import ai.kilocode.rpc.dto.ModelStateDto
 import ai.kilocode.rpc.dto.PromptDto
 import ai.kilocode.rpc.dto.PromptPartDto
 import ai.kilocode.rpc.dto.QuestionReplyDto
@@ -479,6 +481,96 @@ class KiloCliDataParserTest {
     }
 
     // ================================================================
+    // parseModelState / buildModelStateJson
+    // ================================================================
+
+    @Test
+    fun `parseModelState - parses favorites`() {
+        val result = KiloCliDataParser.parseModelState(
+            """{"favorite":[{"providerID":"kilo","modelID":"auto"},{"providerID":"openai","modelID":"gpt"}]}""",
+        )
+
+        assertEquals(listOf("kilo/auto", "openai/gpt"), result.favorite.map { "${it.providerID}/${it.modelID}" })
+    }
+
+    @Test
+    fun `parseModelState - parses recent selections`() {
+        val result = KiloCliDataParser.parseModelState(
+            """{"recent":[{"providerID":"anthropic","modelID":"claude"},{"providerID":"openai","modelID":"gpt"}]}""",
+        )
+
+        assertEquals(listOf("anthropic/claude", "openai/gpt"), result.recent.map { "${it.providerID}/${it.modelID}" })
+    }
+
+    @Test
+    fun `parseModelState - parses model selections and variants`() {
+        val result = KiloCliDataParser.parseModelState(
+            """{"model":{"code":{"providerID":"kilo","modelID":"auto"}},"variant":{"kilo/auto":"medium"}}""",
+        )
+
+        assertEquals("kilo", result.model["code"]?.providerID)
+        assertEquals("auto", result.model["code"]?.modelID)
+        assertEquals("medium", result.variant["kilo/auto"])
+    }
+
+    @Test
+    fun `parseModelState - drops malformed favorites`() {
+        val result = KiloCliDataParser.parseModelState(
+            """{"favorite":[{"providerID":"kilo"},false,{"providerID":"openai","modelID":"gpt"}]}""",
+        )
+
+        assertEquals(listOf("openai/gpt"), result.favorite.map { "${it.providerID}/${it.modelID}" })
+    }
+
+    @Test
+    fun `parseModelState - malformed inputs return empty favorites`() {
+        for (raw in listOf("", "not-json", "[]", "42", "null")) {
+            assertTrue(KiloCliDataParser.parseModelState(raw).favorite.isEmpty(), raw)
+        }
+    }
+
+    @Test
+    fun `parseModelState - drops malformed model selections and variants`() {
+        val result = KiloCliDataParser.parseModelState(
+            """{"model":{"bad":false,"ok":{"providerID":"kilo","modelID":"auto"}},"variant":{"":"low","kilo/auto":false,"openai/gpt":"high"}}""",
+        )
+
+        assertEquals(listOf("ok"), result.model.keys.toList())
+        assertEquals(mapOf("openai/gpt" to "high"), result.variant)
+    }
+
+    @Test
+    fun `buildModelStateJson - preserves unrelated keys and replaces favorites`() {
+        val raw = """{"model":{"code":{"providerID":"kilo","modelID":"auto"}},"recent":[{"providerID":"old","modelID":"recent"}],"variant":{"kilo/auto":"fast"},"extra":true,"favorite":[]}"""
+        val result = KiloCliDataParser.buildModelStateJson(raw, listOf(ModelSelectionDto("anthropic", "claude")))
+
+        assertTrue(result.contains("\"model\""), result)
+        assertTrue(result.contains("\"recent\""), result)
+        assertTrue(result.contains("\"variant\""), result)
+        assertTrue(result.contains("\"extra\""), result)
+        assertEquals(listOf("anthropic/claude"), KiloCliDataParser.parseModelState(result).favorite.map { "${it.providerID}/${it.modelID}" })
+    }
+
+    @Test
+    fun `buildModelStateJson - writes model selections and variants`() {
+        val raw = """{"recent":[],"extra":true}"""
+        val result = KiloCliDataParser.buildModelStateJson(
+            raw,
+            ModelStateDto(
+                model = mapOf("code" to ModelSelectionDto("kilo", "auto")),
+                variant = mapOf("kilo/auto" to "medium"),
+                recent = listOf(ModelSelectionDto("anthropic", "claude")),
+            ),
+        )
+
+        val state = KiloCliDataParser.parseModelState(result)
+        assertEquals("auto", state.model["code"]?.modelID)
+        assertEquals("medium", state.variant["kilo/auto"])
+        assertEquals(listOf("anthropic/claude"), state.recent.map { "${it.providerID}/${it.modelID}" })
+        assertTrue(result.contains("\"extra\""), result)
+    }
+
+    // ================================================================
     // buildPromptJson
     // ================================================================
 
@@ -508,6 +600,16 @@ class KiloCliDataParserTest {
         )
         val result = KiloCliDataParser.buildPromptJson(prompt)
         assertTrue(result.contains(""""agent":"ask""""))
+    }
+
+    @Test
+    fun `buildPromptJson - with variant`() {
+        val prompt = PromptDto(
+            parts = listOf(PromptPartDto("text", "Hi")),
+            variant = "medium",
+        )
+        val result = KiloCliDataParser.buildPromptJson(prompt)
+        assertTrue(result.contains(""""variant":"medium""""))
     }
 
     @Test

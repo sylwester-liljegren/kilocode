@@ -45,7 +45,7 @@ export { fetchKilocodeNotifications, type KilocodeNotification } from "./api/not
 // ============================================================================
 // Server Routes (optional - requires hono and OpenCode dependencies)
 // ============================================================================
-export { createKiloRoutes } from "./server/routes.js"
+export { createKiloRoutes, type FimConfig } from "./server/routes.js"
 
 // ============================================================================
 // Note: TUI exports moved to separate entry point

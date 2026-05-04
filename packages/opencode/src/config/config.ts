@@ -252,6 +252,22 @@ export const Info = Schema.Struct({
     }),
   ),
   commit_message: KilocodeConfig.CommitMessageSchema, // kilocode_change
+  // kilocode_change start - configurable FIM provider for autocomplete
+  fim: Schema.optional(
+    Schema.Struct({
+      baseURL: Schema.optional(Schema.String).annotate({
+        description:
+          "Custom base URL for the FIM endpoint (e.g. https://codestral.mistral.ai). When set, autocomplete calls this endpoint directly instead of the Kilo Gateway.",
+      }),
+      apiKey: Schema.optional(Schema.String).annotate({
+        description: "API key for the custom FIM endpoint. Supports {env:VAR} syntax.",
+      }),
+      model: Schema.optional(Schema.String).annotate({
+        description: "Model ID to send to the FIM endpoint. Defaults to mistralai/codestral-2501.",
+      }),
+    }),
+  ).annotate({ description: "Custom FIM (Fill-in-the-Middle) provider for autocomplete completions" }),
+  // kilocode_change end
   tool_output: Schema.optional(
     Schema.Struct({
       max_lines: Schema.optional(PositiveInt).annotate({

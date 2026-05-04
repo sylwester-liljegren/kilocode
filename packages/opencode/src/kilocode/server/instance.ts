@@ -24,6 +24,7 @@ import { Session } from "../../session/session"
 import { Identifier } from "../../id/id"
 import { SessionTable, MessageTable, PartTable } from "../../session/session.sql"
 import { Bus } from "@/bus"
+import { Config } from "../../config"
 
 export function register(app: Hono): Hono {
   return app
@@ -56,6 +57,10 @@ export function register(app: Hono): Hono {
         SessionCreatedEvent: Session.Event.Created,
         Identifier,
         ModelCache,
+        getFimConfig: async () => {
+          const cfg = await Config.get()
+          return cfg.fim
+        },
       }),
     )
 }

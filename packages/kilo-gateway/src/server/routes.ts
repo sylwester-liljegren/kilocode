@@ -23,6 +23,13 @@ type Auth = any
 type ModelCache = { clear: (providerID: string) => void }
 type Z = any
 
+/** Custom FIM provider configuration read from the user's kilo config. */
+export interface FimConfig {
+  baseURL?: string
+  apiKey?: string
+  model?: string
+}
+
 interface KiloRoutesDeps extends ImportDeps {
   Hono: new () => Hono
   describeRoute: DescribeRoute
@@ -33,6 +40,8 @@ interface KiloRoutesDeps extends ImportDeps {
   ModelCache: ModelCache
   z: Z
   Instance: ImportDeps["Instance"] & { disposeAll(): Promise<void> }
+  /** Optional callback that returns the resolved FIM config from the user's kilo.json. */
+  getFimConfig?: () => Promise<FimConfig | undefined>
 }
 
 const FIM_TIMEOUT_MS = 30_000
@@ -79,6 +88,7 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
     SessionCreatedEvent,
     Identifier,
     ModelCache,
+    getFimConfig,
   } = deps
 
   const Organization = z.object({
@@ -317,56 +327,94 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
         }),
       ),
       async (c: any) => {
-        const auth = await Auth.get("kilo")
-
-        if (!auth) {
-          return c.json({ error: "Not authenticated with Kilo Gateway" }, 401)
-        }
-
-        const token = auth.type === "api" ? auth.key : auth.type === "oauth" ? auth.access : undefined
-        if (!token) {
-          return c.json({ error: "No valid token found" }, 401)
-        }
-
-        const organizationId = auth.type === "oauth" ? auth.accountId : undefined
-
         const { prefix, suffix, model, maxTokens, temperature } = c.req.valid("json")
-        const fimModel = model ?? "mistralai/codestral-2501"
         const fimMaxTokens = maxTokens ?? 256
         const fimTemperature = temperature ?? 0.2
 
-        const baseApiUrl = KILO_API_BASE + "/api/"
-        const endpoint = new URL("fim/completions", baseApiUrl)
-
-        const headers = {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          ...buildKiloHeaders(undefined, { kilocodeOrganizationId: organizationId }),
-          [HEADER_FEATURE]: "autocomplete",
-        }
+        // Check for a custom FIM provider in the user's config
+        const fim = getFimConfig ? await getFimConfig().catch(() => undefined) : undefined
+        const custom = fim?.baseURL && fim?.apiKey
 
         const signal = AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(FIM_TIMEOUT_MS)])
 
         let response: Response
-        try {
-          response = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            signal,
-            body: JSON.stringify({
-              model: fimModel,
-              prompt: prefix,
-              suffix,
-              max_tokens: fimMaxTokens,
-              temperature: fimTemperature,
-              stream: true,
-            }),
-          })
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "TimeoutError")
-            return c.json({ error: "FIM request timed out" }, 504 as any)
-          if (signal.aborted) return c.json({ error: "FIM request canceled" }, 499 as any)
-          throw err
+
+        if (custom) {
+          // Direct call to the custom FIM endpoint (e.g. Mistral Codestral)
+          const base = fim.baseURL!.replace(/\/+$/, "")
+          const endpoint = `${base}/v1/fim/completions`
+          // Config model takes precedence — the client doesn't know about the custom endpoint
+          const fimModel = fim.model ?? model ?? "mistralai/codestral-2501"
+
+          try {
+            response = await fetch(endpoint, {
+              method: "POST",
+              signal,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${fim.apiKey}`,
+              },
+              body: JSON.stringify({
+                model: fimModel,
+                prompt: prefix,
+                suffix,
+                max_tokens: fimMaxTokens,
+                temperature: fimTemperature,
+                stream: true,
+              }),
+            })
+          } catch (err) {
+            if (err instanceof DOMException && err.name === "TimeoutError")
+              return c.json({ error: "FIM request timed out" }, 504 as any)
+            if (signal.aborted) return c.json({ error: "FIM request canceled" }, 499 as any)
+            throw err
+          }
+        } else {
+          // Default path: proxy through Kilo Gateway
+          const auth = await Auth.get("kilo")
+
+          if (!auth) {
+            return c.json({ error: "Not authenticated with Kilo Gateway" }, 401)
+          }
+
+          const token = auth.type === "api" ? auth.key : auth.type === "oauth" ? auth.access : undefined
+          if (!token) {
+            return c.json({ error: "No valid token found" }, 401)
+          }
+
+          const organizationId = auth.type === "oauth" ? auth.accountId : undefined
+          const fimModel = model ?? "mistralai/codestral-2501"
+
+          const baseApiUrl = KILO_API_BASE + "/api/"
+          const endpoint = new URL("fim/completions", baseApiUrl)
+
+          const headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            ...buildKiloHeaders(undefined, { kilocodeOrganizationId: organizationId }),
+            [HEADER_FEATURE]: "autocomplete",
+          }
+
+          try {
+            response = await fetch(endpoint, {
+              method: "POST",
+              headers,
+              signal,
+              body: JSON.stringify({
+                model: fimModel,
+                prompt: prefix,
+                suffix,
+                max_tokens: fimMaxTokens,
+                temperature: fimTemperature,
+                stream: true,
+              }),
+            })
+          } catch (err) {
+            if (err instanceof DOMException && err.name === "TimeoutError")
+              return c.json({ error: "FIM request timed out" }, 504 as any)
+            if (signal.aborted) return c.json({ error: "FIM request canceled" }, 499 as any)
+            throw err
+          }
         }
 
         if (!response.ok) {

@@ -304,69 +304,12 @@ After running the merge script, you may have remaining conflicts. To resolve:
 
 1. Open each conflicted file
 2. Look for `kilocode_change` markers to identify Kilo-specific code
-3. Review `upstream-merge-report-<version>.md` when present for the conflict
-   summary and manual-resolution guidance.
-4. From the merge branch worktree, optionally start the project slash command:
-   ```bash
-   kilo run --command upstream-manual-merge v1.1.50
-   ```
-   The command is defined in `.kilo/command/upstream-manual-merge.md` and is
-   discovered from the repository root. It is available when Kilo is started in
-   the merge worktree; it will not appear if Kilo is started from one of the
-   reference worktrees under `.worktrees/opencode-merge/`.
-5. Resolve conflicts one file at a time. For each manual file, first present
-   the intended strategy and wait for user approval. Keep Kilo-specific changes
-   and favor upstream code and architecture when it is compatible with Kilo
-   behavior.
-6. Verify each resolved file before moving on: confirm conflict markers are
-   gone, compare against the reference worktrees when present, run the smallest
-   practical check for the touched area, summarize the tradeoff and result, and
-   get user approval for the resolved file.
-7. Stage and commit:
+3. Resolve conflicts, keeping Kilo-specific changes
+4. Stage and commit:
    ```bash
    git add -A
    git commit -m "resolve merge conflicts"
    ```
-
-During merge runs, the script sets `merge.conflictStyle=zdiff3` in the local
-repo config so conflicts include the `|||||||` base section. Keep using those
-base-aware markers for manual resolution: they help compare Kilo's side,
-upstream's side, and the common ancestor without reconstructing the merge.
-
-### Common Pitfalls
-
-These come up repeatedly during manual resolution and are easy to miss. Read
-through before starting:
-
-1. **Auto-merged code outside the conflict can depend on declarations inside
-   it.** When picking between ours / theirs / hybrid, scan the non-conflicting
-   parts of the same file for references whose declaration lives in the
-   conflict block. A naive resolution can leave callers pointing at removed or
-   renamed symbols. Always run typecheck after each decision batch to catch
-   these.
-
-2. **Related files can need edits even when they are not listed as unmerged.**
-   Upstream refactors sometimes split logic across sibling files or move the
-   relevant behavior to a new location. Kilo behavior may need to be ported into
-   the new shape even though git only reports the original file as conflicted.
-   Mention every touched sibling in the final summary so reviewers can find the
-   diff.
-
-3. **`renamed` is stricter than it sounds.** Treat a resolution as `renamed`
-   only when the Kilo behavior moves from the conflicted file to a different
-   file. If git already recorded the rename during automerge and the work is
-   just adapting content at the new path, use `hybrid`.
-
-4. **Function signatures can drift across a conflict boundary.** Automerge can
-   pick one side of a paired change without noticing that a non-conflicting
-   consumer relied on the other side's shape. Re-read call sites and exported
-   contracts after resolving, not only the conflict block itself.
-
-5. **Always run full turbo typecheck before declaring done.** Visually clean
-   resolutions can still break typing at an unrelated call site. `bun run
-   typecheck` from the repo root is the cheapest catch-all. Targeted per-package
-   typechecks are not enough -- the failing call site can live in a
-   non-conflicted file.
 
 ## Rollback
 

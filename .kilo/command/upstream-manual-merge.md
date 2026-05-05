@@ -68,8 +68,9 @@ again after verification. Be especially cautious when a decision is destructive,
 changes auth, billing, data deletion, public API compatibility, config schema
 behavior, migrations, provider routing, or security posture.
 
-Read `script/upstream/README.md` -> `Common Pitfalls` before resolving. Watch
-for auto-merged code referencing conflict-block declarations, related sibling
-files that need edits but are not unmerged, when to prefer `hybrid` over
-`renamed`, function signatures drifting across a conflict boundary, and why
-full turbo typecheck is the right catch-all.
+Common pitfalls to watch for:
+- auto-merged code can reference declarations that still live inside conflict blocks
+- related sibling files can need edits even when they are not listed as unmerged
+- `renamed` should be used only when behavior moves to a different file
+- function signatures can drift across conflict boundaries
+- full repo typecheck is the catch-all for non-conflicted call-site breakage

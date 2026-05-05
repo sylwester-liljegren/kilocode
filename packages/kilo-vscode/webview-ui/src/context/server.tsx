@@ -17,6 +17,7 @@ interface ServerContextValue {
   profileData: Accessor<ProfileData | null>
   deviceAuth: Accessor<DeviceAuthState>
   startLogin: () => void
+  goToLogin: () => void
   vscodeLanguage: Accessor<string | undefined>
   languageOverride: Accessor<string | undefined>
   workspaceDirectory: Accessor<string>
@@ -147,6 +148,19 @@ export const ServerProvider: ParentComponent = (props) => {
     vscode.postMessage({ type: "login" })
   }
 
+  /**
+   * Route any "Sign In" action through the Profile view so the user always
+   * sees the device-auth UI (URL, QR, code, timer, cancel). Entry points
+   * outside the Profile page — e.g. the Kilo Gateway card in the Providers
+   * settings tab, or the provider picker — must call this helper instead of
+   * `startLogin()` directly. Otherwise the login flow runs silently and the
+   * user has no way to see the code or cancel if the browser is dismissed.
+   */
+  const goToLogin = () => {
+    window.postMessage({ type: "navigate", view: "profile" }, "*")
+    startLogin()
+  }
+
   const value: ServerContextValue = {
     connectionState,
     serverInfo,
@@ -157,6 +171,7 @@ export const ServerProvider: ParentComponent = (props) => {
     profileData,
     deviceAuth,
     startLogin,
+    goToLogin,
     vscodeLanguage,
     languageOverride,
     workspaceDirectory,

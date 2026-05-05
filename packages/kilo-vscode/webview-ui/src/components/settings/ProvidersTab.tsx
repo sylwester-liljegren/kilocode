@@ -140,7 +140,11 @@ const ProvidersTab: Component = () => {
 
   function connectProvider(item: Provider) {
     if (item.id === KILO_PROVIDER_ID) {
-      server.startLogin()
+      // Route Kilo Gateway sign-in through the Profile view so the user sees
+      // the full device-auth UI (URL, QR, code, timer, cancel). Triggering
+      // `startLogin()` from here alone would run the flow silently with no
+      // way to recover if the browser is dismissed.
+      server.goToLogin()
       return
     }
     dialog.show(() => <ProviderConnectDialog providerID={item.id} />)
@@ -177,7 +181,7 @@ const ProvidersTab: Component = () => {
             <Show
               when={kiloLoggedIn()}
               fallback={
-                <Button size="small" variant="secondary" onClick={() => server.startLogin()}>
+                <Button size="small" variant="secondary" onClick={() => server.goToLogin()}>
                   {language.t("common.signIn")}
                 </Button>
               }

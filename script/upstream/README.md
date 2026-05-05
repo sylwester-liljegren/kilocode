@@ -36,6 +36,7 @@ bun run merge.ts --version v1.1.50 --base-branch catrielmuller/kilo-opencode-v1.
 | `analyze.ts` | Analyze changes without merging |
 | `fix-kilocode-markers.ts` | Rebuild `kilocode_change` markers for one file against the last merged upstream |
 | `reset-to-upstream.ts` | Reset one file to the transformed last merged upstream version |
+| `find-reset-candidates.ts` | Bulk-find files that have drifted insignificantly from upstream and (optionally) reset them |
 
 ### Transform Scripts
 
@@ -255,6 +256,41 @@ Options:
 ```
 
 The command finds the newest upstream tag already merged into `HEAD`, reads that upstream version of the file, applies the same branding transforms used by upstream merge automation for text files, and writes the result to the working tree. Binary files are restored as raw upstream bytes without text transforms. If the file does not exist upstream, the local file is deleted.
+
+### find-reset-candidates.ts
+
+```
+Usage:
+  bun run script/upstream/find-reset-candidates.ts [path] [options]
+
+Arguments:
+  path                     Optional repo-relative subdirectory to scope to.
+                           Defaults to all tracked shared paths.
+
+Options:
+  --review-limit <n>       Max non-marker, non-whitespace diff lines that
+                           still auto-resets (default: 5).
+  --dry-run                Classify and report only; do not write any files.
+  --concurrency <n>        Parallel classifications (default: 8).
+```
+
+The command pre-filters with `git diff --name-only <last-merged-upstream>..HEAD`, excluding kilo-only paths (`packages/kilo-*`, `packages/opencode/src/kilocode/`, `packages/opencode/test/kilocode/`, `script/upstream/`), then classifies each file against the transformed upstream baseline:
+
+| Bucket | Meaning | Action |
+|---|---|---|
+| `identical` | Local bytes already match transformed upstream (branding-only drift in raw git diff) | none |
+| `markers-only` | Stripping `kilocode_change` markers makes local match upstream | reset |
+| `whitespace-only` | Only non-marker diff is whitespace | reset |
+| `small-diff` | ≤ `--review-limit` non-marker, non-whitespace diff lines | reset |
+| `large-diff` | > `--review-limit` non-marker, non-whitespace diff lines | skipped |
+| `upstream-missing` | File does not exist upstream (kilo-only, intentional) | skipped |
+| `local-missing` | File tracked but missing locally (deleted in Kilo) | skipped |
+| `binary-diff` | Binary file differs | skipped (use `reset-to-upstream.ts` per file) |
+| `binary-identical` | Binary file already matches | none |
+
+`markers-only`, `whitespace-only`, and `small-diff` buckets are auto-reset unless `--dry-run` is passed. A markdown summary is printed to stdout so you can review what happened and spot-check the resulting `git diff`. All resets land as uncommitted working-tree changes; `git diff` / `git checkout` is your safety net.
+
+Tighten the blast radius with `--review-limit 0` (only `markers-only` and `whitespace-only`) or by scoping with a `path` argument (e.g. `packages/opencode/src/mcp`).
 
 ## Using Custom Base Branches
 

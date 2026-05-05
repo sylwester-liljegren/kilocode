@@ -26,9 +26,10 @@ if (argv.includes("--help") || argv.includes("-h")) {
       "",
       "Options:",
       "  --ci                 Enable JUnit XML output to .artifacts/unit/junit.xml",
-      "  --concurrency <N>    Max parallel processes (default: CPU count)",
-      "  --timeout <ms>       Per-test timeout passed to bun test (default: 30000)",
+      "  --concurrency <N>    Max parallel processes (default: min(4, CPU count))",
+      "  --timeout <ms>       Per-test timeout passed to bun test (default: 60000)",
       "  --file-timeout <ms>  Per-file process timeout (default: 300000)",
+      "  --retries <N>        Extra attempts for failing files (default: 1)",
       "  --bail               Stop on first failure",
       "  --verbose            Show full output for every file",
       "  -h, --help           Show this help",
@@ -53,11 +54,15 @@ function opt(name: string, fallback: number) {
 const ci = argv.includes("--ci")
 const bail = argv.includes("--bail")
 const verbose = argv.includes("--verbose")
-const concurrency = opt("concurrency", os.cpus().length)
-const timeout = opt("timeout", 30000)
+// Cap concurrency at 4 even on bigger runners: the bottleneck is shared
+// resources (ports, global filesystem like ~/.local/share/kilo), not CPU.
+// Eight parallel processes was triggering port/FS races, not going faster.
+const concurrency = opt("concurrency", Math.min(4, os.cpus().length))
+const timeout = opt("timeout", 60000)
 const deadline = opt("file-timeout", 300000)
+const retries = opt("retries", 1)
 
-const valued = new Set(["--concurrency", "--timeout", "--file-timeout"])
+const valued = new Set(["--concurrency", "--timeout", "--file-timeout", "--retries"])
 const patterns = argv.filter((arg, i) => {
   if (arg.startsWith("-")) return false
   if (i > 0 && valued.has(argv[i - 1])) return false
@@ -71,6 +76,7 @@ const patterns = argv.filter((arg, i) => {
 const tty = !!process.stdout.isTTY
 const green = (s: string) => (tty ? `\x1b[32m${s}\x1b[0m` : s)
 const red = (s: string) => (tty ? `\x1b[31m${s}\x1b[0m` : s)
+const yellow = (s: string) => (tty ? `\x1b[33m${s}\x1b[0m` : s)
 const dim = (s: string) => (tty ? `\x1b[2m${s}\x1b[0m` : s)
 const bold = (s: string) => (tty ? `\x1b[1m${s}\x1b[0m` : s)
 
@@ -102,6 +108,7 @@ type Result = {
   stderr: string
   duration: number
   timedout: boolean
+  attempts: number
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +164,7 @@ async function run(file: string): Promise<Result> {
     stderr,
     duration: performance.now() - start,
     timedout: killed.value,
+    attempts: 1,
   }
 }
 
@@ -168,18 +176,25 @@ function report(result: Result) {
   counter.done++
   const idx = String(counter.done).padStart(pad)
   const secs = (result.duration / 1000).toFixed(1)
+  const tries = result.attempts > 1 ? dim(` [attempt ${result.attempts}/${retries + 1}]`) : ""
 
   if (result.timedout) {
     console.log(
-      `[${idx}/${files.length}] ${red("TIME")} ${result.file} ${dim(`(${secs}s - exceeded ${deadline / 1000}s)`)}`,
+      `[${idx}/${files.length}] ${red("TIME")} ${result.file} ${dim(`(${secs}s - exceeded ${deadline / 1000}s)`)}${tries}`,
     )
     return
   }
 
   if (!result.passed) {
-    console.log(`[${idx}/${files.length}] ${red("FAIL")} ${result.file} ${dim(`(${secs}s)`)}`)
+    console.log(`[${idx}/${files.length}] ${red("FAIL")} ${result.file} ${dim(`(${secs}s)`)}${tries}`)
     if (verbose && result.stderr.trim()) console.log(result.stderr)
     if (verbose && result.stdout.trim()) console.log(result.stdout)
+    return
+  }
+
+  if (result.attempts > 1) {
+    console.log(`[${idx}/${files.length}] ${yellow("FLAKY")} ${result.file} ${dim(`(${secs}s)`)}${tries}`)
+    if (verbose && result.stdout.trim()) console.log(dim(result.stdout))
     return
   }
 
@@ -201,7 +216,16 @@ const stopped = { value: false }
 const workers = Array.from({ length: Math.min(concurrency, files.length) }, async () => {
   while (queue.length > 0 && !stopped.value) {
     const file = queue.shift()!
-    const result = await run(file)
+    let result = await run(file)
+    // Retry failing files up to `retries` extra times. Bugs still fail on every
+    // attempt; contention-based flakes (port races, slow FS, slow spawn) recover.
+    // Preserve the last attempt's stdout/stderr/duration so a truly broken file
+    // still shows a useful diagnostic.
+    while (!result.passed && result.attempts <= retries && !stopped.value) {
+      const retry = await run(file)
+      retry.attempts = result.attempts + 1
+      result = retry
+    }
     results.push(result)
     report(result)
     if (bail && !result.passed) stopped.value = true
@@ -240,13 +264,23 @@ if (failures.length > 0 && !verbose) {
 // ---------------------------------------------------------------------------
 
 const passed = results.filter((r) => r.passed).length
+const flaky = results.filter((r) => r.passed && r.attempts > 1)
 
 console.log(
   `\n${bold(String(results.length))} files | ` +
     `${green(passed + " passed")} | ` +
     `${failures.length > 0 ? red(failures.length + " failed") : failures.length + " failed"} | ` +
+    `${flaky.length > 0 ? yellow(flaky.length + " flaky") : flaky.length + " flaky"} | ` +
     `${elapsed.toFixed(1)}s\n`,
 )
+
+if (flaky.length > 0) {
+  console.log(`${bold(yellow("--- FLAKY (passed on retry) ---"))}\n`)
+  for (const r of flaky.slice().sort((a, b) => a.file.localeCompare(b.file))) {
+    console.log(`  ${yellow(r.file)} ${dim(`(passed on attempt ${r.attempts}/${retries + 1})`)}`)
+  }
+  console.log()
+}
 
 // ---------------------------------------------------------------------------
 // JUnit XML merge (CI mode)

@@ -55,7 +55,19 @@ export namespace Encoding {
     return le || be
   }
 
-  /** Remap chardet labels to iconv-lite compatible names. */
+  /**
+   * Canonicalize chardet labels to a stable lowercase-hyphenated form.
+   *
+   * iconv-lite already accepts every label chardet emits (e.g. "UTF-16 LE",
+   * "Shift_JIS", "KOI8-R"), so this map is not required to make decode/encode
+   * work. Its job is to give the rest of the codebase a consistent label —
+   * callers compare against `"utf-16le"`, `"windows-1251"`, etc., and should
+   * not have to account for chardet's casing or whitespace conventions.
+   *
+   * (ISO-2022-* is the one family iconv-lite does not support under any
+   * alias; those labels fall through to the `encodingExists` guard in
+   * `detect()` and are rejected to UTF-8.)
+   */
   function normalize(name: string): string {
     const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "")
     const map: Record<string, string> = {

@@ -37,3 +37,6 @@ jobs:
           else
             echo "No PR base SHA available (workflow_dispatch without PR context) — skipping."
           fi
+
+      - name: Check workflow allowlist
+        run: bun run script/check-workflows.ts

@@ -33,26 +33,32 @@ export namespace Encoding {
    * track the "with BOM" case explicitly to round-trip it faithfully.
    */
   export const UTF8_BOM = "utf-8-bom"
-  const UTF8_BOM_BYTES = Buffer.from([0xef, 0xbb, 0xbf])
+  const BOMS = {
+    "utf-8-bom": Buffer.from([0xef, 0xbb, 0xbf]),
+    "utf-16le": Buffer.from([0xff, 0xfe]),
+    "utf-16be": Buffer.from([0xfe, 0xff]),
+    "utf-32le": Buffer.from([0xff, 0xfe, 0x00, 0x00]),
+    "utf-32be": Buffer.from([0x00, 0x00, 0xfe, 0xff]),
+  }
+
+  function startsWith(bytes: Buffer, bom: Buffer, limit: number): boolean {
+    return limit >= bom.length && bytes.subarray(0, bom.length).equals(bom)
+  }
 
   function hasUtf8Bom(bytes: Buffer): boolean {
-    return bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf
+    return startsWith(bytes, BOMS["utf-8-bom"], bytes.length)
   }
 
   /** True if `bytes[0..limit]` starts with a UTF-16 LE or BE byte-order mark. */
   export function hasUtf16Bom(bytes: Buffer, limit = bytes.length): boolean {
-    if (limit < 2) return false
-    // UTF-32 LE starts with FF FE 00 00, so exclude that to avoid misclassifying it as UTF-16 LE.
+    // UTF-32 LE starts with FF FE 00 00, so exclude it to avoid misclassifying as UTF-16 LE.
     if (hasUtf32Bom(bytes, limit)) return false
-    return (bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff)
+    return startsWith(bytes, BOMS["utf-16le"], limit) || startsWith(bytes, BOMS["utf-16be"], limit)
   }
 
   /** True if `bytes[0..limit]` starts with a UTF-32 LE or BE byte-order mark. */
   export function hasUtf32Bom(bytes: Buffer, limit = bytes.length): boolean {
-    if (limit < 4) return false
-    const le = bytes[0] === 0xff && bytes[1] === 0xfe && bytes[2] === 0x00 && bytes[3] === 0x00
-    const be = bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0xfe && bytes[3] === 0xff
-    return le || be
+    return startsWith(bytes, BOMS["utf-32le"], limit) || startsWith(bytes, BOMS["utf-32be"], limit)
   }
 
   /**
@@ -130,14 +136,9 @@ export namespace Encoding {
     // first so we never emit a double BOM when the decoded text already
     // contains one (e.g. if a tool round-trips content verbatim).
     const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
-    if (encoding === UTF8_BOM) return Buffer.concat([UTF8_BOM_BYTES, iconv.encode(body, "utf-8")])
-    const lower = encoding.toLowerCase()
-    if (lower === "utf-16le") return Buffer.concat([Buffer.from([0xff, 0xfe]), iconv.encode(body, encoding)])
-    if (lower === "utf-16be") return Buffer.concat([Buffer.from([0xfe, 0xff]), iconv.encode(body, encoding)])
-    if (lower === "utf-32le")
-      return Buffer.concat([Buffer.from([0xff, 0xfe, 0x00, 0x00]), iconv.encode(body, encoding)])
-    if (lower === "utf-32be")
-      return Buffer.concat([Buffer.from([0x00, 0x00, 0xfe, 0xff]), iconv.encode(body, encoding)])
+    const key = encoding === UTF8_BOM ? UTF8_BOM : encoding.toLowerCase()
+    const bom = BOMS[key as keyof typeof BOMS]
+    if (bom) return Buffer.concat([bom, iconv.encode(body, key === UTF8_BOM ? "utf-8" : key)])
     return iconv.encode(text, encoding)
   }
 

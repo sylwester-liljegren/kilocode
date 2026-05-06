@@ -75,7 +75,7 @@ const DiffVirtualContent: Component = () => {
   })
 
   return (
-    <div class="am-review-layout kilo-diff-theme">
+    <div class="am-review-layout">
       <Show when={diff()}>
         {(d) => (
           <>

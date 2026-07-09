@@ -1832,4 +1832,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "جارٍ تحميل الفروع…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "الخطة جاهزة:",
+
+  "timeline.menu.goToStep": "الانتقال إلى الخطوة",
+  "timeline.menu.showDetails": "عرض التفاصيل",
+  "timeline.dialog.agent": "الوكيل",
+  "timeline.dialog.model": "النموذج",
+  "timeline.dialog.started": "بدأ",
+  "timeline.dialog.duration": "المدة",
+  "timeline.dialog.tokens": "الرموز",
+  "timeline.dialog.tokensInOut": "إدخال {{input}} · إخراج {{output}} · تفكير {{reasoning}}",
+  "timeline.dialog.cache": "ذاكرة التخزين المؤقت",
+  "timeline.dialog.cacheReadWrite": "قراءة {{read}} · كتابة {{write}}",
+  "timeline.dialog.cost": "التكلفة",
 }

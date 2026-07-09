@@ -1787,4 +1787,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "正在加载分支…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "计划已准备就绪：",
+
+  "timeline.menu.goToStep": "跳转到步骤",
+  "timeline.menu.showDetails": "显示详情",
+  "timeline.dialog.agent": "智能体",
+  "timeline.dialog.model": "模型",
+  "timeline.dialog.started": "开始时间",
+  "timeline.dialog.duration": "时长",
+  "timeline.dialog.tokens": "令牌",
+  "timeline.dialog.tokensInOut": "输入 {{input}} · 输出 {{output}} · 推理 {{reasoning}}",
+  "timeline.dialog.cache": "缓存",
+  "timeline.dialog.cacheReadWrite": "读取 {{read}} · 写入 {{write}}",
+  "timeline.dialog.cost": "费用",
 } satisfies Partial<Record<Keys, string>>

@@ -22,7 +22,7 @@ describe("TaskTimeline delegated tooltip contract", () => {
   it("delegates SVG hit testing to one portal tooltip", () => {
     expect(src).toMatch(/hit\(layout\(\)\.items, e\.clientX - rect\.left \+ ref\.scrollLeft\)/)
     expect(src).toMatch(/const bar = bars\(\)\[idx\]/)
-    expect(src).toMatch(/text: bar\.tip/)
+    expect(src).toMatch(/lines: tipLines\(bar\)/)
     expect(src).toMatch(/<Portal>/)
     expect(src).toMatch(/class="task-timeline-tooltip"/)
   })

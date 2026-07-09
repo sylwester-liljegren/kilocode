@@ -1840,4 +1840,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "브랜치 로딩 중…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "계획이 준비되었습니다:",
+
+  "timeline.menu.goToStep": "단계로 이동",
+  "timeline.menu.showDetails": "세부 정보 표시",
+  "timeline.dialog.agent": "에이전트",
+  "timeline.dialog.model": "모델",
+  "timeline.dialog.started": "시작",
+  "timeline.dialog.duration": "소요 시간",
+  "timeline.dialog.tokens": "토큰",
+  "timeline.dialog.tokensInOut": "입력 {{input}} · 출력 {{output}} · 추론 {{reasoning}}",
+  "timeline.dialog.cache": "캐시",
+  "timeline.dialog.cacheReadWrite": "읽기 {{read}} · 쓰기 {{write}}",
+  "timeline.dialog.cost": "비용",
 }

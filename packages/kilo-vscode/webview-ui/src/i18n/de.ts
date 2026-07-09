@@ -1903,4 +1903,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Branches werden geladen…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Plan ist bereit:",
+
+  "timeline.menu.goToStep": "Zum Schritt springen",
+  "timeline.menu.showDetails": "Details anzeigen",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Modell",
+  "timeline.dialog.started": "Gestartet",
+  "timeline.dialog.duration": "Dauer",
+  "timeline.dialog.tokens": "Tokens",
+  "timeline.dialog.tokensInOut": "Eingabe {{input}} · Ausgabe {{output}} · Denken {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Lesen {{read}} · Schreiben {{write}}",
+  "timeline.dialog.cost": "Kosten",
 } satisfies Partial<Record<Keys, string>>

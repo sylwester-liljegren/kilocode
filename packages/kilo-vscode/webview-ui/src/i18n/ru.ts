@@ -1869,4 +1869,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Загрузка веток…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "План готов:",
+
+  "timeline.menu.goToStep": "Перейти к шагу",
+  "timeline.menu.showDetails": "Показать подробности",
+  "timeline.dialog.agent": "Агент",
+  "timeline.dialog.model": "Модель",
+  "timeline.dialog.started": "Начато",
+  "timeline.dialog.duration": "Длительность",
+  "timeline.dialog.tokens": "Токены",
+  "timeline.dialog.tokensInOut": "Вход {{input}} · Выход {{output}} · Рассуждение {{reasoning}}",
+  "timeline.dialog.cache": "Кэш",
+  "timeline.dialog.cacheReadWrite": "Чтение {{read}} · Запись {{write}}",
+  "timeline.dialog.cost": "Стоимость",
 }

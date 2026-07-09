@@ -1865,4 +1865,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Planen er klar:",
+
+  "timeline.menu.goToStep": "Gå til trin",
+  "timeline.menu.showDetails": "Vis detaljer",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Model",
+  "timeline.dialog.started": "Startet",
+  "timeline.dialog.duration": "Varighed",
+  "timeline.dialog.tokens": "Tokens",
+  "timeline.dialog.tokensInOut": "Ind {{input}} · Ud {{output}} · Ræsonnement {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Læs {{read}} · Skriv {{write}}",
+  "timeline.dialog.cost": "Omkostning",
 }

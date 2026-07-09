@@ -164,10 +164,69 @@
 
 .task-timeline-tooltip {
   position: fixed;
-  max-width: min(320px, calc(100vw - 16px));
-  transform: translate(-50%, calc(-100% - 4px));
-  white-space: normal;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 6px 10px;
   pointer-events: none;
+}
+
+.task-timeline-tooltip[data-side="right"] {
+  transform: translate(8px, -50%);
+}
+
+.task-timeline-tooltip[data-side="left"] {
+  transform: translate(calc(-100% - 8px), -50%);
+}
+
+/* Keep each metadata field on its own single line; truncate rather than wrap
+   (wrapping grew the tooltip tall enough to clip off the top of the panel). */
+.task-timeline-tooltip-line {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-timeline-tooltip-line + .task-timeline-tooltip-line {
+  margin-top: 2px;
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+
+/* ============================================
+   Task Timeline Step Details Dialog
+   ============================================ */
+
+.timeline-dialog {
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  padding: 0 20px 16px;
+}
+
+.timeline-dialog-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: var(--kilo-font-size-12);
+  border-bottom: 1px solid var(--border-weak-base);
+}
+
+.timeline-dialog-label {
+  color: var(--vscode-descriptionForeground);
+}
+
+.timeline-dialog-value {
+  color: var(--vscode-foreground);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 @keyframes timeline-pulse {

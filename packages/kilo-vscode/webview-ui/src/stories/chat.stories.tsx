@@ -832,6 +832,7 @@ const headerParts: Record<string, Part[]> = {
         input: { filePath: "packages/opencode/src/cli/index.ts" },
         output: "export async function main() { /* existing CLI bootstrap */ }",
         title: "Read CLI entrypoint",
+        time: { start: 1_000, end: 1_200 },
       },
     },
     {
@@ -853,6 +854,7 @@ const headerParts: Record<string, Part[]> = {
         output:
           "packages/opencode/src/cli/index.ts\npackages/opencode/src/command/run.ts\npackages/opencode/src/config/config.ts",
         title: "Find CLI files",
+        time: { start: 1_500, end: 1_700 },
       },
     },
     {
@@ -866,6 +868,7 @@ const headerParts: Record<string, Part[]> = {
         input: { filePath: "packages/opencode/src/cli/index.ts" },
         output: "Updated the command registry to expose the new interface hook.",
         title: "Update CLI registry",
+        time: { start: 2_000, end: 2_400 },
       },
     },
     {
@@ -879,6 +882,7 @@ const headerParts: Record<string, Part[]> = {
         input: { command: "bun run check-types:webview", description: "Typecheck webview" },
         output: "Checked 1 project. No type errors found.",
         title: "Run typecheck",
+        time: { start: 2_500, end: 4_500 },
       },
     },
     {
@@ -892,6 +896,7 @@ const headerParts: Record<string, Part[]> = {
         input: { filePath: "packages/opencode/src/cli/interface.ts" },
         output: "Created the CLI interface implementation scaffold.",
         title: "Create interface scaffold",
+        time: { start: 5_000, end: 5_300 },
       },
     },
     {
@@ -911,6 +916,7 @@ const headerParts: Record<string, Part[]> = {
         status: "running",
         input: { command: "bun test packages/opencode/test/cli.test.ts", description: "Run CLI tests" },
         title: "Run CLI tests",
+        time: { start: 6_000 },
       },
     },
   ],

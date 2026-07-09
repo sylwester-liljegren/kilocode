@@ -1860,4 +1860,16 @@ export const dict = {
   "diffViewer.baseBranch.none": "—",
 
   "plan.exit.ready": "Plan is ready:",
+
+  "timeline.menu.goToStep": "Go to step",
+  "timeline.menu.showDetails": "Show details",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Model",
+  "timeline.dialog.started": "Started",
+  "timeline.dialog.duration": "Duration",
+  "timeline.dialog.tokens": "Tokens",
+  "timeline.dialog.tokensInOut": "In {{input}} · Out {{output}} · Reason {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Read {{read}} · Write {{write}}",
+  "timeline.dialog.cost": "Cost",
 }

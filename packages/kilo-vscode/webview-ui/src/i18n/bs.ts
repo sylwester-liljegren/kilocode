@@ -1873,4 +1873,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Plan je spreman:",
+
+  "timeline.menu.goToStep": "Idi na korak",
+  "timeline.menu.showDetails": "Prikaži detalje",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Model",
+  "timeline.dialog.started": "Započeto",
+  "timeline.dialog.duration": "Trajanje",
+  "timeline.dialog.tokens": "Tokeni",
+  "timeline.dialog.tokensInOut": "Ulaz {{input}} · Izlaz {{output}} · Rezonovanje {{reasoning}}",
+  "timeline.dialog.cache": "Keš",
+  "timeline.dialog.cacheReadWrite": "Čitanje {{read}} · Pisanje {{write}}",
+  "timeline.dialog.cost": "Trošak",
 }

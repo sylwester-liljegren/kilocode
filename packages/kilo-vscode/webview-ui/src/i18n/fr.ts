@@ -1913,4 +1913,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Chargement des branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Le plan est prêt :",
+
+  "timeline.menu.goToStep": "Aller à l'étape",
+  "timeline.menu.showDetails": "Afficher les détails",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Modèle",
+  "timeline.dialog.started": "Démarré",
+  "timeline.dialog.duration": "Durée",
+  "timeline.dialog.tokens": "Jetons",
+  "timeline.dialog.tokensInOut": "Entrée {{input}} · Sortie {{output}} · Raisonnement {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Lecture {{read}} · Écriture {{write}}",
+  "timeline.dialog.cost": "Coût",
 }

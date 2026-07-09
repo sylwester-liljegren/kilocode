@@ -1884,4 +1884,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "План готовий:",
+
+  "timeline.menu.goToStep": "Перейти до кроку",
+  "timeline.menu.showDetails": "Показати деталі",
+  "timeline.dialog.agent": "Агент",
+  "timeline.dialog.model": "Модель",
+  "timeline.dialog.started": "Початок",
+  "timeline.dialog.duration": "Тривалість",
+  "timeline.dialog.tokens": "Токени",
+  "timeline.dialog.tokensInOut": "Вхід {{input}} · Вихід {{output}} · Міркування {{reasoning}}",
+  "timeline.dialog.cache": "Кеш",
+  "timeline.dialog.cacheReadWrite": "Читання {{read}} · Запис {{write}}",
+  "timeline.dialog.cost": "Вартість",
 }

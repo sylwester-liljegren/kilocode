@@ -1858,4 +1858,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Planen er klar:",
+
+  "timeline.menu.goToStep": "Gå til trinn",
+  "timeline.menu.showDetails": "Vis detaljer",
+  "timeline.dialog.agent": "Agent",
+  "timeline.dialog.model": "Modell",
+  "timeline.dialog.started": "Startet",
+  "timeline.dialog.duration": "Varighet",
+  "timeline.dialog.tokens": "Tokens",
+  "timeline.dialog.tokensInOut": "Inn {{input}} · Ut {{output}} · Resonnement {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Les {{read}} · Skriv {{write}}",
+  "timeline.dialog.cost": "Kostnad",
 } satisfies Partial<Record<Keys, string>>

@@ -1858,4 +1858,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "ブランチを読み込み中…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "プランの準備ができました:",
+
+  "timeline.menu.goToStep": "ステップへ移動",
+  "timeline.menu.showDetails": "詳細を表示",
+  "timeline.dialog.agent": "エージェント",
+  "timeline.dialog.model": "モデル",
+  "timeline.dialog.started": "開始",
+  "timeline.dialog.duration": "所要時間",
+  "timeline.dialog.tokens": "トークン",
+  "timeline.dialog.tokensInOut": "入力 {{input}} · 出力 {{output}} · 推論 {{reasoning}}",
+  "timeline.dialog.cache": "キャッシュ",
+  "timeline.dialog.cacheReadWrite": "読み取り {{read}} · 書き込み {{write}}",
+  "timeline.dialog.cost": "コスト",
 }

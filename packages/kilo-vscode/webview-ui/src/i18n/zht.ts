@@ -1793,4 +1793,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "正在載入分支…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "計畫已準備就緒：",
+
+  "timeline.menu.goToStep": "跳至步驟",
+  "timeline.menu.showDetails": "顯示詳細資訊",
+  "timeline.dialog.agent": "智能體",
+  "timeline.dialog.model": "模型",
+  "timeline.dialog.started": "開始時間",
+  "timeline.dialog.duration": "時長",
+  "timeline.dialog.tokens": "權杖",
+  "timeline.dialog.tokensInOut": "輸入 {{input}} · 輸出 {{output}} · 推理 {{reasoning}}",
+  "timeline.dialog.cache": "快取",
+  "timeline.dialog.cacheReadWrite": "讀取 {{read}} · 寫入 {{write}}",
+  "timeline.dialog.cost": "費用",
 } satisfies Partial<Record<Keys, string>>

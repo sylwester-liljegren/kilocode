@@ -1773,6 +1773,18 @@ export const dict = {
   // Plan exit
   "plan.exit.ready": "Il piano è pronto:",
 
+  "timeline.menu.goToStep": "Vai al passaggio",
+  "timeline.menu.showDetails": "Mostra dettagli",
+  "timeline.dialog.agent": "Agente",
+  "timeline.dialog.model": "Modello",
+  "timeline.dialog.started": "Avviato",
+  "timeline.dialog.duration": "Durata",
+  "timeline.dialog.tokens": "Token",
+  "timeline.dialog.tokensInOut": "In {{input}} · Out {{output}} · Ragionamento {{reasoning}}",
+  "timeline.dialog.cache": "Cache",
+  "timeline.dialog.cacheReadWrite": "Lettura {{read}} · Scrittura {{write}}",
+  "timeline.dialog.cost": "Costo",
+
   // Toast
   "toast.session.rename.invalid.title": "Titolo sessione non valido",
 

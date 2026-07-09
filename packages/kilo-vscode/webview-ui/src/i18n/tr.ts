@@ -1887,4 +1887,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "Plan hazır:",
+
+  "timeline.menu.goToStep": "Adıma git",
+  "timeline.menu.showDetails": "Ayrıntıları göster",
+  "timeline.dialog.agent": "Aracı",
+  "timeline.dialog.model": "Model",
+  "timeline.dialog.started": "Başladı",
+  "timeline.dialog.duration": "Süre",
+  "timeline.dialog.tokens": "Token",
+  "timeline.dialog.tokensInOut": "Giriş {{input}} · Çıkış {{output}} · Akıl yürütme {{reasoning}}",
+  "timeline.dialog.cache": "Önbellek",
+  "timeline.dialog.cacheReadWrite": "Okuma {{read}} · Yazma {{write}}",
+  "timeline.dialog.cost": "Maliyet",
 }

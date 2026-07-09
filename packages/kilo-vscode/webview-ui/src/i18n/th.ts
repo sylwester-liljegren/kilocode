@@ -1838,4 +1838,16 @@ export const dict = {
   "diffViewer.baseBranch.loading": "Loading branches…",
   "diffViewer.baseBranch.none": "—",
   "plan.exit.ready": "แผนพร้อมแล้ว:",
+
+  "timeline.menu.goToStep": "ไปที่ขั้นตอน",
+  "timeline.menu.showDetails": "แสดงรายละเอียด",
+  "timeline.dialog.agent": "เอเจนต์",
+  "timeline.dialog.model": "โมเดล",
+  "timeline.dialog.started": "เริ่ม",
+  "timeline.dialog.duration": "ระยะเวลา",
+  "timeline.dialog.tokens": "โทเค็น",
+  "timeline.dialog.tokensInOut": "เข้า {{input}} · ออก {{output}} · การให้เหตุผล {{reasoning}}",
+  "timeline.dialog.cache": "แคช",
+  "timeline.dialog.cacheReadWrite": "อ่าน {{read}} · เขียน {{write}}",
+  "timeline.dialog.cost": "ค่าใช้จ่าย",
 }

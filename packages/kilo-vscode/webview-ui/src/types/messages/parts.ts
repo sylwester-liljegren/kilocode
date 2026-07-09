@@ -1,15 +1,16 @@
 // Tool state for tool parts
 export type ToolState =
   | { status: "pending"; input: Record<string, unknown> }
-  | { status: "running"; input: Record<string, unknown>; title?: string }
+  | { status: "running"; input: Record<string, unknown>; title?: string; time: { start: number } }
   | {
       status: "completed"
       input: Record<string, unknown>
       output: string
       title: string
       metadata?: Record<string, unknown>
+      time: { start: number; end: number }
     }
-  | { status: "error"; input: Record<string, unknown>; error: string }
+  | { status: "error"; input: Record<string, unknown>; error: string; time: { start: number; end: number } }
 
 // Base part interface - all parts have these fields
 export interface BasePart {

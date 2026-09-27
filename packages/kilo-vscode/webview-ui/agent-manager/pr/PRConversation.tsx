@@ -13,6 +13,7 @@ import { SectionHeading } from "./SectionHeading"
 import { actionableConversation, sendConversation } from "./pr-actions"
 import { commentState, createReactionController, patchCommentState } from "./pr-comment-state"
 import { githubUrl, prConversationMarkdown, preview, SEND_LIMIT } from "./pr-comment-payload"
+import { openLabel, reactionChoices } from "./pr-host"
 import type {
   PRCommitItem,
   PRConversationComment,
@@ -140,6 +141,7 @@ function PRConversationCard(props: CardProps) {
           <Show when={props.onReaction}>
             <PRReactions
               reactions={props.reactions ?? props.comment.reactions}
+              choices={reactionChoices(props.prUrl)}
               pending={props.reactionPending}
               onToggle={(content, add) => props.onReaction?.(content, add)}
             />
@@ -154,12 +156,12 @@ function PRConversationCard(props: CardProps) {
             )}
           </Show>
           <Show when={props.onOpenUrl}>
-            <Tooltip value={t("agentManager.pr.comment.openOnGitHub")} placement="top">
+            <Tooltip value={t(openLabel(props.prUrl))} placement="top">
               <IconButton
                 icon="square-arrow-top-right"
                 size="small"
                 variant="ghost"
-                label={t("agentManager.pr.comment.openOnGitHub")}
+                label={t(openLabel(props.prUrl))}
                 onClick={() => props.onOpenUrl?.()}
               />
             </Tooltip>

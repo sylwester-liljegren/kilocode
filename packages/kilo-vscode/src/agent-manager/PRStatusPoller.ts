@@ -24,6 +24,8 @@ import type { SeedHost, Seeds } from "./pr/am-pr-seed"
 import type { PRResult, GhThread, GhReviewRequest, GhReview, GhTimelineItem } from "./pr/am-pr-types"
 import { withContext } from "./pr/pr-comment-context"
 import { oid } from "../shared/pr-comment-preview"
+import { resolveRemote } from "./providers/registry"
+import { decision, type PrRef, type Provider, type ProviderLabels } from "./providers/provider"
 
 interface PRStatusPollerOptions {
   getWorktrees: () => Worktree[]
@@ -33,6 +35,8 @@ interface PRStatusPollerOptions {
     pr: PRStatus | null,
     error?: "gh_missing" | "gh_auth" | "fetch_failed",
     branch?: string,
+    /** Set when the error came from a non-GitHub provider, so the toast names the right tool. */
+    source?: ProviderLabels,
   ) => void
   log: (...args: unknown[]) => void
   intervalMs?: number
@@ -86,6 +90,10 @@ export class PRStatusPoller {
   private generation = 0
   /** Per-worktree failure isolation, so one broken worktree cannot back off the whole loop. */
   private readonly quarantine = new Quarantine()
+  /** Which non-GitHub provider (if any) a worktree's `origin` remote belongs to, cached per root. */
+  private providerCache:
+    | { root: string; result: { provider: Provider; base: Omit<PrRef, "number"> } | undefined; expires: number }
+    | undefined
 
   private stale(generation: number): boolean {
     return generation !== this.generation
@@ -168,6 +176,7 @@ export class PRStatusPoller {
     this.resolvedAvatars.clear()
     this.lastFullSync = 0
     this.quarantine.reset()
+    this.providerCache = undefined
     this.clearRefreshTimers()
   }
 
@@ -370,6 +379,21 @@ export class PRStatusPoller {
     }
   }
 
+  /** `true` when a non-GitHub provider handled (or attempted) this worktree — caller should stop. */
+  private async dispatchProvider(
+    worktreeId: string,
+    wt: Worktree,
+    generation: number,
+    full: boolean,
+  ): Promise<boolean> {
+    const found = await this.remoteProvider(wt.path).catch(() => undefined)
+    if (this.stale(generation) || !found) return this.stale(generation)
+    const branch = (this.options.getBranch ? await this.options.getBranch(wt) : wt.branch) ?? wt.branch
+    if (this.stale(generation)) return true
+    await this.fetchOneProvider(worktreeId, wt, branch, found.provider, found.base, full)
+    return true
+  }
+
   private async fetchOne(
     worktreeId: string,
     generation = this.generation,
@@ -378,6 +402,7 @@ export class PRStatusPoller {
   ): Promise<void> {
     const wt = this.target(worktreeId)
     if (!wt) return
+    if (await this.dispatchProvider(worktreeId, wt, generation, full)) return
 
     let branch: string | undefined
     try {
@@ -385,51 +410,62 @@ export class PRStatusPoller {
       if (this.stale(generation)) return
       const found = seeded === undefined ? await this.cachedFetchPR(branch ?? wt.branch, wt.path) : seeded
       if (this.stale(generation)) return
-      const pr = await this.claimed(found, wt.path)
-      if (this.stale(generation)) return
-      if (!pr) return this.empty(worktreeId, branch ?? wt.branch, branch)
-
-      const repo = await this.getRepoInfo(wt.path)
-      const [checks, reviewers, threads] = await Promise.all([
-        ...this.extras(pr, wt.path),
-        this.fetchThreads(pr.number, wt.path, full),
-      ])
-      if (this.stale(generation)) return
-      this.invalidateThreadCache(pr, threads, branch ?? wt.branch, wt.path)
-
-      const merge = mergeStatus(pr.merge, repo, this.options.getPRMergeMethod?.(`${repo.owner}/${repo.name}`))
-      const status: PRStatus = {
-        id: pr.id,
-        number: pr.number,
-        baseRefOid: pr.baseRefOid,
-        headRefOid: pr.headRefOid,
-        title: pr.title,
-        body: pr.body,
-        author: pr.author,
-        createdAt: pr.createdAt,
-        url: pr.url,
-        state: pr.state,
-        review: pr.review,
-        ...(merge ? { merge } : {}),
-        checks,
-        reviewers,
-        ...threads,
-        additions: pr.additions,
-        deletions: pr.deletions,
-        files: pr.files,
-      }
-
-      this.quarantine.clear(worktreeId)
-      const hash = `${worktreeId}:${branch ?? wt.branch}:${signature(status)}`
-      if (this.lastHash.get(worktreeId) === hash) return
-      this.lastHash.set(worktreeId, hash)
-
-      this.options.onStatus(worktreeId, status, undefined, branch)
+      await this.emitFetched(worktreeId, wt, branch, generation, full, found)
     } catch (err) {
       if (this.stale(generation)) return
       this.handleError(worktreeId, branch, wt.path, err)
       throw err // propagate so fetchAll can track failures for backoff
     }
+  }
+
+  private async emitFetched(
+    worktreeId: string,
+    wt: Worktree,
+    branch: string | undefined,
+    generation: number,
+    full: boolean,
+    found: PRResult | null,
+  ): Promise<void> {
+    const pr = await this.claimed(found, wt.path)
+    if (this.stale(generation)) return
+    if (!pr) return this.empty(worktreeId, branch ?? wt.branch, branch)
+
+    const repo = await this.getRepoInfo(wt.path)
+    const [checks, reviewers, threads] = await Promise.all([
+      ...this.extras(pr, wt.path),
+      this.fetchThreads(pr.number, wt.path, full),
+    ])
+    if (this.stale(generation)) return
+    this.invalidateThreadCache(pr, threads, branch ?? wt.branch, wt.path)
+
+    const merge = mergeStatus(pr.merge, repo, this.options.getPRMergeMethod?.(`${repo.owner}/${repo.name}`))
+    const status: PRStatus = {
+      id: pr.id,
+      number: pr.number,
+      baseRefOid: pr.baseRefOid,
+      headRefOid: pr.headRefOid,
+      title: pr.title,
+      body: pr.body,
+      author: pr.author,
+      createdAt: pr.createdAt,
+      url: pr.url,
+      state: pr.state,
+      review: pr.review,
+      ...(merge ? { merge } : {}),
+      checks,
+      reviewers,
+      ...threads,
+      additions: pr.additions,
+      deletions: pr.deletions,
+      files: pr.files,
+    }
+
+    this.quarantine.clear(worktreeId)
+    const hash = `${worktreeId}:${branch ?? wt.branch}:${signature(status)}`
+    if (this.lastHash.get(worktreeId) === hash) return
+    this.lastHash.set(worktreeId, hash)
+
+    this.options.onStatus(worktreeId, status, undefined, branch)
   }
 
   /** Drop a merged or closed PR that a recreated branch name inherited from its old branch. */
@@ -481,6 +517,146 @@ export class PRStatusPoller {
       }
     }
     return list.map((item) => (item.avatar ? item : { ...item, avatar: this.avatars.get(item.login) }))
+  }
+
+  /** Which provider (if any) owns a worktree's `origin` remote, cached per workspace root. */
+  private async remoteProvider(cwd: string): Promise<{ provider: Provider; base: Omit<PrRef, "number"> } | undefined> {
+    const root = this.options.getWorkspaceRoot() ?? cwd
+    const now = Date.now()
+    if (this.providerCache?.root === root && now < this.providerCache.expires) return this.providerCache.result
+    const result = await this.metadata(["remote", "get-url", "origin"], cwd)
+      .then((url) => resolveRemote(url, cwd))
+      .catch(() => undefined)
+    this.providerCache = { root, result, expires: now + GH_PROBE_TTL }
+    return result
+  }
+
+  /**
+   * A git metadata read, gated by the shared semaphore. Deliberately not `shell`: that is for content
+   * reads, which must not start before review-thread pages settle.
+   */
+  private metadata(args: string[], cwd: string): Promise<string> {
+    const probe = () => execWithShellEnv("git", args, { cwd, timeout: BUDGET.probe })
+    return (this.semaphore ? this.semaphore.run(probe) : probe()).then((r) => r.stdout.trim())
+  }
+
+  /**
+   * The open PR for a branch. A fork PR's branch is checked out as `<fork>/<branch>`, which the host
+   * doesn't know, so fall back to the name of the branch it tracks.
+   */
+  private async findProviderPr(provider: Provider, base: Omit<PrRef, "number">, branch: string, cwd: string) {
+    const found = await provider.findOpenByBranch(base, branch, cwd)
+    if (found) return found
+    const upstream = await this.metadata(["config", "--get", `branch.${branch}.merge`], cwd).catch(() => "")
+    const name = upstream.replace(/^refs\/heads\//, "")
+    if (!name || name === branch) return null
+    return provider.findOpenByBranch(base, name, cwd)
+  }
+
+  /**
+   * Status fetch for a GitLab/Azure DevOps worktree. Like the GitHub path, threads and conversation
+   * are only loaded for the active worktree (`full`); there is no full-sync batching. Errors are
+   * handled and reported here rather than rethrown, so they never reach the GitHub-specific `catch`
+   * this method is called ahead of.
+   */
+  private async fetchOneProvider(
+    worktreeId: string,
+    wt: Worktree,
+    branch: string,
+    provider: Provider,
+    base: Omit<PrRef, "number">,
+    full: boolean,
+  ): Promise<void> {
+    try {
+      const ref = await this.findProviderPr(provider, base, branch, wt.path)
+      if (!ref) return this.empty(worktreeId, branch, branch)
+      const found = await provider.fetchStatus(ref, wt.path)
+      const threads = full ? await this.providerThreads(provider, ref, wt.path, found) : undefined
+      const saved = this.options.getPRMergeMethod?.(`${ref.owner}/${ref.repo}`)
+      const merge = found.merge && {
+        ...found.merge,
+        method:
+          saved && found.merge.methods.includes(saved)
+            ? saved
+            : (found.merge.methods.find((item) => item === "squash") ?? found.merge.methods.at(0) ?? "merge"),
+      }
+
+      const status: PRStatus = {
+        viewerDidAuthor: found.viewerDidAuthor,
+        number: ref.number,
+        baseRefOid: found.baseRefOid,
+        headRefOid: found.headRefOid,
+        title: found.title,
+        body: found.body ?? "",
+        url: found.url,
+        state: found.state,
+        review: decision(found.reviewers),
+        ...(merge ? { merge } : {}),
+        author: found.author,
+        createdAt: found.createdAt,
+        checks: found.checks,
+        reviewers: found.reviewers,
+        ...threads,
+        additions: 0,
+        deletions: 0,
+        files: 0,
+      }
+
+      this.quarantine.clear(worktreeId)
+      const hash = `${worktreeId}:${branch}:${signature(status)}`
+      if (this.lastHash.get(worktreeId) === hash) return
+      this.lastHash.set(worktreeId, hash)
+      this.options.onStatus(worktreeId, status, undefined, branch)
+    } catch (err) {
+      this.handleProviderError(worktreeId, branch, wt.path, provider, err)
+    }
+  }
+
+  private handleProviderError(worktreeId: string, branch: string, cwd: string, provider: Provider, err: unknown): void {
+    const msg = err instanceof Error ? err.message : String(err)
+    const kind = isTimeout(err) ? undefined : existsSync(cwd) ? provider.classifyCliError(msg) : undefined
+    this.options.log(`PR fetch failed for ${branch} (${provider.id}):`, msg)
+    if (this.quarantine.fail(worktreeId)) {
+      this.options.log(
+        `PR polling paused for ${branch || worktreeId} after ${this.quarantine.failures(worktreeId)} consecutive failures`,
+      )
+    }
+    const key = kind === "cli_missing" ? "gh_missing" : kind === "cli_auth" ? "gh_auth" : "fetch_failed"
+    const hash = `${worktreeId}:${branch}:error:${key}`
+    if (this.lastHash.get(worktreeId) === hash) return
+    this.lastHash.set(worktreeId, hash)
+    this.options.onStatus(worktreeId, null, key, branch, provider.labels)
+  }
+
+  /** Threads mapped by the provider, with diff previews built from the worktree's local git history. */
+  private async providerThreads(
+    provider: Provider,
+    ref: PrRef,
+    cwd: string,
+    found: { baseRefOid?: string; headRefOid?: string },
+  ): Promise<Pick<PRStatus, "comments" | "unresolvedThreads" | "conversation"> | undefined> {
+    const threads = await provider.fetchThreads(ref, cwd, found.headRefOid).catch((err: unknown) => {
+      this.options.log(`Failed to fetch ${provider.id} review threads:`, err instanceof Error ? err.message : err)
+      return undefined
+    })
+    if (!threads) return undefined
+    const comments =
+      found.baseRefOid && found.headRefOid
+        ? await withContext(cwd, threads.comments, {
+            repo: { owner: ref.owner, name: ref.repo },
+            base: found.baseRefOid,
+            head: found.headRefOid,
+            shell: (cmd, args, options) => this.shell(cmd, args, options),
+            // The remote fallback is GitHub's compare API; without it previews come from local git only.
+            gh: () => Promise.reject(new Error(`No remote compare for ${provider.id}`)),
+          })
+        : threads.comments
+    const unresolved = comments.filter((item) => !item.resolved).length
+    return {
+      unresolvedThreads: unresolved,
+      comments: { total: comments.length, unresolved, comments },
+      conversation: threads.conversation,
+    }
   }
 
   private handleError(worktreeId: string, branch: string | undefined, cwd: string, err: unknown): void {

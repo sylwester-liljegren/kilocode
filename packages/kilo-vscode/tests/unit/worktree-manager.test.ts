@@ -13,6 +13,7 @@ import {
 import { WorktreeStateManager } from "../../src/agent-manager/WorktreeStateManager"
 import { GitOps } from "../../src/agent-manager/GitOps"
 import type { PRInfo } from "../../src/agent-manager/git-import"
+import type { ProviderPrInfo } from "../../src/agent-manager/providers/provider"
 import { BUDGET } from "../../src/agent-manager/command-budget"
 import simpleGit from "simple-git"
 
@@ -1107,6 +1108,114 @@ describe("WorktreeManager.createFromPR", () => {
 
     expect(failure).toBe("GitHub CLI (gh) did not respond in time. Try again.")
     expect(budgets).toEqual([BUDGET.gh])
+  })
+})
+
+describe("WorktreeManager.createFromPR — non-GitHub providers", () => {
+  it("creates a worktree from a GitLab merge request URL", async () => {
+    const { clone } = await createTempRepoWithOrigin()
+    const git = simpleGit(clone)
+    await git.checkoutLocalBranch("topic")
+    await fs.writeFile(path.join(clone, "topic.txt"), "topic")
+    await git.add(".")
+    await git.commit("topic commit")
+    await git.push("origin", "topic")
+    await git.checkout("main")
+
+    const manager = createManager(clone)
+    const internal = manager as unknown as {
+      fetchProviderPrInfo: (provider: unknown, ref: unknown) => Promise<ProviderPrInfo>
+    }
+    internal.fetchProviderPrInfo = async () => ({
+      headRefName: "topic",
+      baseRefName: "main",
+      isCrossRepository: false,
+      title: "Topic MR",
+    })
+
+    const result = await manager.createFromPR("https://gitlab.com/group/project/-/merge_requests/1")
+    const remoteHead = (await git.revparse(["refs/remotes/origin/topic"])).trim()
+    const worktreeHead = (await simpleGit(result.path).revparse(["HEAD"])).trim()
+
+    expect(worktreeHead).toBe(remoteHead)
+    expect(result.parentBranch).toBe("main")
+    expect(result.remote).toBe("origin")
+  })
+
+  it("creates a worktree from an Azure DevOps pull request URL", async () => {
+    const { clone } = await createTempRepoWithOrigin()
+    const git = simpleGit(clone)
+    await git.checkoutLocalBranch("topic")
+    await fs.writeFile(path.join(clone, "topic.txt"), "topic")
+    await git.add(".")
+    await git.commit("topic commit")
+    await git.push("origin", "topic")
+    await git.checkout("main")
+
+    const manager = createManager(clone)
+    const internal = manager as unknown as {
+      fetchProviderPrInfo: (provider: unknown, ref: unknown) => Promise<ProviderPrInfo>
+    }
+    internal.fetchProviderPrInfo = async () => ({
+      headRefName: "topic",
+      baseRefName: "main",
+      isCrossRepository: false,
+      title: "Topic PR",
+    })
+
+    const result = await manager.createFromPR("https://dev.azure.com/myorg/myproject/_git/myrepo/pullrequest/1")
+    const remoteHead = (await git.revparse(["refs/remotes/origin/topic"])).trim()
+    const worktreeHead = (await simpleGit(result.path).revparse(["HEAD"])).trim()
+
+    expect(worktreeHead).toBe(remoteHead)
+    expect(result.parentBranch).toBe("main")
+  })
+
+  it("creates a worktree from a forked Azure DevOps pull request that tracks the fork", async () => {
+    const { bare, clone } = await createTempRepoWithOrigin()
+    const fork = await fs.mkdtemp(path.join(os.tmpdir(), "kilo-wt-fork-"))
+    tempDirs.push(fork)
+    await fs.rm(fork, { recursive: true, force: true })
+    gitExec(["git", "clone", "--bare", bare, fork])
+    const git = simpleGit(clone)
+    await git.checkoutLocalBranch("topic")
+    await fs.writeFile(path.join(clone, "fork.txt"), "fork")
+    await git.add(".")
+    await git.commit("fork commit")
+    const head = (await git.revparse(["HEAD"])).trim()
+    await git.push(fork, "topic")
+    await git.checkout("main")
+    await git.branch(["-D", "topic"])
+
+    const manager = createManager(clone)
+    const internal = manager as unknown as {
+      fetchProviderPrInfo: (provider: unknown, ref: unknown) => Promise<ProviderPrInfo>
+    }
+    internal.fetchProviderPrInfo = async () => ({
+      headRefName: "topic",
+      baseRefName: "main",
+      isCrossRepository: true,
+      forkOwnerKey: "fork-proj-repo",
+      forkRemoteUrl: fork,
+      title: "Fork PR",
+    })
+
+    const result = await manager.createFromPR("https://dev.azure.com/myorg/myproject/_git/myrepo/pullrequest/5")
+
+    expect(result.branch).toBe("fork-proj-repo/topic")
+    expect((await simpleGit(result.path).revparse(["HEAD"])).trim()).toBe(head)
+    expect(result.parentBranch).toBe("main")
+    expect((await git.raw(["config", "--get", "branch.fork-proj-repo/topic.remote"])).trim()).toBe("fork-proj-repo")
+    expect((await git.raw(["config", "--get", "branch.fork-proj-repo/topic.merge"])).trim()).toBe("refs/heads/topic")
+  })
+
+  it("rejects a URL matching no known provider", async () => {
+    const root = await createTempRepo()
+    const manager = createManager(root)
+
+    await expect(manager.createFromPR("https://example.test/not/a/pr")).rejects.toThrow(
+      "Invalid PR URL. Expected a GitHub pull request, GitLab merge request, or Azure DevOps pull request URL.",
+    )
   })
 })
 

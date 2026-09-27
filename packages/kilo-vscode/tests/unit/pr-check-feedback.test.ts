@@ -76,8 +76,27 @@ describe("CI check feedback", () => {
       { ...failed, url: undefined },
     ])!
     expect(item.body).toContain("https://ci.example.com/build/123")
-    expect(item.body).toContain("no GitHub Actions log command available")
+    expect(item.body).toContain("no log command is available for this check")
     expect(item.body).not.toContain("gh run view")
+  })
+
+  it("builds a glab log command for GitLab job links, including self-managed hosts and subgroups", () => {
+    const item = feedback(
+      [{ ...failed, url: "https://git.example.com/group/sub/repo/-/jobs/789" }],
+      "https://git.example.com/group/sub/repo/-/merge_requests/42",
+    )!
+    expect(item.body).toContain("glab ci trace 789 --repo https://git.example.com/group/sub/repo")
+    expect(item.body).not.toContain("gh run view")
+  })
+
+  it("does not build a glab command from a GitLab job link on another host or with shell characters", () => {
+    for (const url of [
+      "https://evil.example/group/repo/-/jobs/789",
+      "https://git.example.com/group/repo;touch%20bad/-/jobs/789",
+    ]) {
+      const item = feedback([{ ...failed, url }], "https://git.example.com/group/repo/-/merge_requests/42")!
+      expect(item.body).not.toContain("glab ci trace")
+    }
   })
 
   it.each([

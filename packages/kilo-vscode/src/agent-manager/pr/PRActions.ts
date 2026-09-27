@@ -5,6 +5,17 @@ import { join } from "node:path"
 import { execGhRead } from "../gh"
 import { GH_MUTATION_TIMEOUT } from "./pr-constants"
 import { PR_REACTION_CONTENT, type PRReactionContent } from "../../../webview-ui/agent-manager/pr/pr-types"
+import { decodeThreadId } from "../providers/provider"
+import { providerById } from "../providers/registry"
+
+/** Non-GitHub thread/comment ids are self-describing (see `encodeThreadId`) — decode and dispatch,
+ *  or fall through to the GitHub GraphQL path below for a plain opaque GitHub node id. */
+function nonGitHubProvider(id: string) {
+  const decoded = decodeThreadId(id)
+  if (!decoded) return undefined
+  const provider = providerById(decoded.providerId)
+  return provider ? { provider, id } : undefined
+}
 
 export async function execGhInput(
   args: string[],
@@ -49,14 +60,20 @@ async function mutateReaction(subjectId: string, content: PRReactionContent, add
 }
 
 export function addCommentReaction(subjectId: string, content: PRReactionContent, cwd: string): Promise<void> {
+  const found = nonGitHubProvider(subjectId)
+  if (found) return found.provider.react(found.id, content, true, cwd)
   return mutateReaction(subjectId, content, true, cwd)
 }
 
 export function removeCommentReaction(subjectId: string, content: PRReactionContent, cwd: string): Promise<void> {
+  const found = nonGitHubProvider(subjectId)
+  if (found) return found.provider.react(found.id, content, false, cwd)
   return mutateReaction(subjectId, content, false, cwd)
 }
 
 export async function replyComment(threadId: string, body: string, cwd: string): Promise<void> {
+  const found = nonGitHubProvider(threadId)
+  if (found) return found.provider.replyThread(found.id, body, cwd)
   const mutation = `mutation($id: ID!, $body: String!) {
     addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $id, body: $body }) {
       comment { id }
@@ -86,6 +103,9 @@ export function unresolveComment(threadId: string, cwd: string): Promise<void> {
 }
 
 async function resolve(action: "resolve" | "unresolve", id: string, cwd: string): Promise<void> {
+  const found = nonGitHubProvider(id)
+  if (found) return found.provider.resolveThread(found.id, action === "resolve", cwd)
+
   const mutation = `mutation($id: ID!) { ${action}ReviewThread(input: { threadId: $id }) { thread { isResolved } } }`
   try {
     await execGhRead(["api", "graphql", "-f", `query=${mutation}`, "-F", `id=${id}`], {

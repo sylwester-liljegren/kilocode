@@ -346,6 +346,13 @@ export const dict = {
   "agentManager.pr.comment.copy": "Yorumu kopyala",
   "agentManager.pr.comment.copyLink": "Yorum bağlantısını kopyala",
   "agentManager.pr.comment.openOnGitHub": "GitHub'da aç",
+  "agentManager.pr.comment.openOnGitLab": "GitLab'da aç",
+  "agentManager.pr.comment.openOnAzureDevOps": "Azure DevOps'da aç",
+  "agentManager.pr.error.cli_auth.title": "{{service}} kimlik doğrulaması gerekli",
+  "agentManager.pr.error.cli_auth.description":
+    "PR durumunu geri yüklemek için terminalinizde '{{login}}' komutunu çalıştırın.",
+  "agentManager.pr.error.cli_missing.title": "{{tool}} yüklü değil",
+  "agentManager.pr.error.cli_missing.description": "PR durumunu etkinleştirmek için {{tool}}'yi yükleyin.",
   "agentManager.pr.comment.showInDiff": "diff'te göster",
   "agentManager.pr.comment.unplaced": "Geçerli diff dışındaki yorumlar",
   "agentManager.pr.comment.unplacedHint": "Bu yorumlar için bu diff'te eşleşen bir satır yok.",

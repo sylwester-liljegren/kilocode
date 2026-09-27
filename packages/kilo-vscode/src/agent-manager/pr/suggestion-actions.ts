@@ -7,6 +7,8 @@ import { exec } from "../../util/process"
 import type { PRReviewResult, PRTarget } from "../../shared/pr-comment-actions"
 import { execGhRead } from "../gh"
 import type { PRReviewContext, PRReviewHost } from "./review-context"
+import { identifyPr } from "../providers/registry"
+import type { Provider } from "../providers/provider"
 
 const limit = 1024 * 1024
 const lifetime = 120_000
@@ -285,6 +287,13 @@ export class PRSuggestionActions {
       ) ?? []
     require(roots.length === 1 && roots[0]?.threadId, "Suggestion comment is not in the current review")
     const thread = roots[0].threadId
+    const identified = identifyPr(context.pr.url)
+    if (identified && identified.provider !== "github")
+      return this.providerSource(identified.provider, context, comment, thread, index)
+    return this.githubSource(context, comment, thread, index)
+  }
+
+  private async githubSource(context: PRReviewContext, comment: string, thread: string, index: number) {
     const response = await execGhRead(["api", "graphql", "-f", `query=${query}`, "-f", `thread=${thread}`], {
       cwd: context.directory,
       maxBuffer: 2 * limit,
@@ -314,6 +323,47 @@ export class PRSuggestionActions {
       block.lang === "suggestion" &&
       /^ {0,3}(?:`{3,}|~{3,})suggestion\s*\r?\n/.test(block.raw), "Only plain suggestion fences are supported")
     return { node, start, end, thread, body, block }
+  }
+
+  /**
+   * GitLab/Azure DevOps equivalent of the GitHub verification above. GitLab's `suggestion:-A+B`
+   * fences extend the replaced range A lines above and B lines below the commented lines.
+   */
+  private async providerSource(
+    provider: Provider,
+    context: PRReviewContext,
+    comment: string,
+    thread: string,
+    index: number,
+  ) {
+    const source = await provider.fetchSuggestionSource(comment, context.directory)
+    require(!source.outdated && source.side === "RIGHT", "Suggestion requires a current right-side thread")
+    require(/^[a-f0-9]{40,64}$/.test(source.headRefOid) &&
+      source.headRefOid === context.pr.headRefOid, "Pull request identity could not be verified")
+    require(Buffer.byteLength(source.body) <= limit, "Suggestion comment could not be verified")
+    const blocks = marked
+      .lexer(source.body)
+      // Same pattern the webview numbers blocks with, so `index` points at the block the user clicked.
+      .filter((token) => token.type === "code" && /^suggestion(?::[-+]?\d+[-+]\d+)?$/.test(token.lang ?? ""))
+    const block = blocks.at(index)
+    require(block?.type === "code" &&
+      /^ {0,3}(?:`{3,}|~{3,})suggestion(?::-\d+\+\d+)?\s*\r?\n/.test(
+        block.raw,
+      ), "Only plain suggestion fences are supported")
+    const offset = /^suggestion:-(\d+)\+(\d+)$/.exec(block.lang ?? "")
+    const start = (source.startLine ?? source.line) - Number(offset?.[1] ?? 0)
+    const end = source.line + Number(offset?.[2] ?? 0)
+    require(Number.isSafeInteger(start) &&
+      Number.isSafeInteger(end) &&
+      start > 0 &&
+      end >= start, "Invalid suggestion range")
+    const node = {
+      path: source.path,
+      diffSide: "RIGHT",
+      startDiffSide: source.startLine === undefined ? null : "RIGHT",
+      pullRequest: { headRefOid: source.headRefOid },
+    }
+    return { node, start, end, thread, body: source.body, block }
   }
 
   private async snapshot(context: PRReviewContext, comment: string, index: number) {

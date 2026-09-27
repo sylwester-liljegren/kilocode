@@ -1300,6 +1300,8 @@ export interface AgentManagerPRErrorMessage {
   type: "agentManager.prError"
   projectId?: string
   error: "gh_missing" | "gh_auth" | "fetch_failed"
+  /** Present for GitLab/Azure DevOps so the toast names the right service and CLI. */
+  source?: { service: string; tool: string; login: string }
 }
 
 export interface AgentManagerCommentReactionResultMessage {

@@ -5,6 +5,8 @@ import type { PRMergeMethod } from "../types"
 import { ghErrorReason } from "./am-pr-utils"
 import type { PRReviewContext, PRReviewHost } from "./review-context"
 import { endpoint } from "./review-actions"
+import { identifyPr } from "../providers/registry"
+import type { PrRef, Provider } from "../providers/provider"
 
 function request(message: Record<string, unknown>): PRMergeRequest | undefined {
   const base = {
@@ -132,6 +134,13 @@ export class PRMergeActions {
       const files = (await this.host.conflicts?.(context, request.base, request.head)) ?? []
       return { files } as Partial<PRMergeResult>
     }
+
+    const identified = identifyPr(context.pr.url)
+    if (identified && identified.provider !== "github") {
+      await this.executeNonGitHub(request, context, identified.provider, identified.ref)
+      return {}
+    }
+
     const path = endpoint(context)
     if (request.type === "agentManager.updatePRBranch") {
       await execGhRead(
@@ -172,6 +181,26 @@ export class PRMergeActions {
     const repo = new URL(context.pr.url).pathname.split("/").slice(1, 3).join("/")
     await this.save(repo, request.method)
     return {}
+  }
+
+  private async executeNonGitHub(
+    request: PRMergeRequest,
+    context: PRReviewContext,
+    provider: Provider,
+    ref: PrRef,
+  ): Promise<void> {
+    const root = context.directory
+    if (request.type === "agentManager.updatePRBranch") {
+      await provider.updateBranchFromBase(ref, root)
+      return
+    }
+    if (request.type === "agentManager.disablePRAutoMerge") {
+      await provider.disableAutoMerge(ref, root)
+      return
+    }
+    if (request.type !== "agentManager.mergePR") throw new Error("Invalid pull request merge request.")
+    await provider.mergePr(ref, request.method, request.auto, request.head, root)
+    await this.save(`${ref.owner}/${ref.repo}`, request.method)
   }
 
   private async save(repo: string, method: PRMergeMethod): Promise<void> {

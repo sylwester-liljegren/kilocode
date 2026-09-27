@@ -23,6 +23,7 @@ import { PRReviewActions } from "./pr/review-actions"
 import { PRMergeActions } from "./pr/merge-actions"
 import { PRSuggestionActions } from "./pr/suggestion-actions"
 import type { PRReviewContext, PRReviewHost } from "./pr/review-context"
+import type { ProviderLabels } from "./providers/provider"
 
 interface PRBridgeHost {
   getWorktrees(): Worktree[]
@@ -82,6 +83,7 @@ export class PRStatusBridge {
   private readonly host: PRBridgeHost
   private readonly actionHost: PRReviewHost
   private lastErrorNotified: "gh_missing" | "gh_auth" | "fetch_failed" | undefined
+  private lastErrorSource: ProviderLabels | undefined
 
   constructor(host: PRBridgeHost) {
     this.host = host
@@ -135,7 +137,7 @@ export class PRStatusBridge {
   replay(): void {
     this.cache.forEach((msg) => this.host.postToWebview(msg))
     if (this.lastErrorNotified === "gh_auth" || this.lastErrorNotified === "gh_missing")
-      this.error(this.lastErrorNotified)
+      this.error(this.lastErrorNotified, this.lastErrorSource)
   }
 
   snapshot(): Map<string, PRStatus> {
@@ -333,19 +335,22 @@ export class PRStatusBridge {
     this.cache.clear()
     this.branches.clear()
     this.lastErrorNotified = undefined
+    this.lastErrorSource = undefined
   }
 
-  notifyError(err: "gh_missing" | "gh_auth" | "fetch_failed"): void {
-    if (this.lastErrorNotified === err) return
+  notifyError(err: "gh_missing" | "gh_auth" | "fetch_failed", source?: ProviderLabels): void {
+    if (this.lastErrorNotified === err && this.lastErrorSource?.service === source?.service) return
     this.lastErrorNotified = err
-    this.error(err)
+    this.lastErrorSource = source
+    this.error(err, source)
   }
 
-  private error(err: "gh_missing" | "gh_auth" | "fetch_failed"): void {
+  private error(err: "gh_missing" | "gh_auth" | "fetch_failed", source?: ProviderLabels): void {
     const project = this.host.projectId?.()
     this.host.postToWebview({
       type: "agentManager.prError",
       error: err,
+      ...(source ? { source } : {}),
       ...(project ? { projectId: project } : undefined),
     })
   }
@@ -357,9 +362,15 @@ function bridgePollerOpts(bridge: PRStatusBridge, host: PRBridgeHost) {
     getWorktrees: () => host.getWorktrees(),
     getWorkspaceRoot: () => host.getWorkspaceRoot(),
     semaphore: host.semaphore,
-    onStatus: (id: string, pr: PRStatus | null, err?: "gh_missing" | "gh_auth" | "fetch_failed") => {
+    onStatus: (
+      id: string,
+      pr: PRStatus | null,
+      err?: "gh_missing" | "gh_auth" | "fetch_failed",
+      _branch?: string,
+      source?: ProviderLabels,
+    ) => {
       if (err) {
-        reportError(bridge, host, id, err)
+        reportError(bridge, host, id, err, source)
         return
       }
       accept(bridge, host, id, pr)
@@ -375,6 +386,7 @@ function reportError(
   host: PRBridgeHost,
   id: string,
   err: "gh_missing" | "gh_auth" | "fetch_failed",
+  source?: ProviderLabels,
 ): void {
   // Don't forward errors to the webview when we have prior PR data
   // (in-memory cache or persisted prNumber) — that would overwrite
@@ -391,7 +403,7 @@ function reportError(
   // Always forward auth/missing errors so the webview can show a toast,
   // regardless of whether prior data exists. Deduplicate per error type
   // so multiple failing worktrees don't produce multiple toasts.
-  if (err === "gh_auth" || err === "gh_missing") bridge.notifyError(err)
+  if (err === "gh_auth" || err === "gh_missing") bridge.notifyError(err, source)
 }
 
 function accept(bridge: PRStatusBridge, host: PRBridgeHost, id: string, pr: PRStatus | null): void {

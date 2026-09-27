@@ -338,6 +338,13 @@ export const dict = {
   "agentManager.pr.comment.copy": "コメントをコピー",
   "agentManager.pr.comment.copyLink": "コメントのリンクをコピー",
   "agentManager.pr.comment.openOnGitHub": "GitHubで開く",
+  "agentManager.pr.comment.openOnGitLab": "GitLabで開く",
+  "agentManager.pr.comment.openOnAzureDevOps": "Azure DevOpsで開く",
+  "agentManager.pr.error.cli_auth.title": "{{service}}認証が必要です",
+  "agentManager.pr.error.cli_auth.description":
+    "PRステータスを復元するには、ターミナルで '{{login}}' を実行してください。",
+  "agentManager.pr.error.cli_missing.title": "{{tool}}がインストールされていません",
+  "agentManager.pr.error.cli_missing.description": "PRステータスを有効にするには、{{tool}}をインストールしてください。",
   "agentManager.pr.comment.showInDiff": "差分で表示",
   "agentManager.pr.comment.unplaced": "現在の差分にないコメント",
   "agentManager.pr.comment.unplacedHint": "これらのコメントに対応する行がこの差分にありません。",

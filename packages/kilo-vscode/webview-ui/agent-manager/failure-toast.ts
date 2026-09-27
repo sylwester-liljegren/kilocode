@@ -13,7 +13,7 @@ type Failure = { type?: string; message?: unknown; error?: unknown; projectId?: 
 
 export interface FailureToastDeps {
   toast: (toast: { variant: "error"; title: string; description: string }) => void
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string>) => string
   /** The project on screen; a failure reported for another one is not shown. */
   project: string | undefined
 }
@@ -28,11 +28,16 @@ export interface FailureToastDeps {
 export function reportFailure(msg: Failure, deps: FailureToastDeps): "stale" | undefined {
   if (msg.type === "agentManager.prError") {
     if (!isCurrent(msg, deps.project)) return "stale"
-    const error = (msg as AgentManagerPRErrorMessage).error
+    const pr = msg as AgentManagerPRErrorMessage
+    // GitLab/Azure DevOps errors carry the service's own names; GitHub keeps its dedicated copy.
+    const key =
+      pr.source && pr.error !== "fetch_failed"
+        ? `agentManager.pr.error.${pr.error === "gh_auth" ? "cli_auth" : "cli_missing"}`
+        : `agentManager.pr.error.${pr.error}`
     deps.toast({
       variant: "error",
-      title: deps.t(`agentManager.pr.error.${error}.title`),
-      description: deps.t(`agentManager.pr.error.${error}.description`),
+      title: deps.t(`${key}.title`, pr.source),
+      description: deps.t(`${key}.description`, pr.source),
     })
     return undefined
   }

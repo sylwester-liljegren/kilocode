@@ -14,8 +14,17 @@ function repository(url: URL): string | undefined {
   return `${url.host}/${parts[1]}/${parts[2]}`
 }
 
+/** GitLab job page `/<namespace>/-/jobs/<id>`; the namespace is validated before it reaches a shell. */
+function gitlab(url: URL): string | undefined {
+  const job = url.pathname.match(/^\/([\w.-]{1,100}(?:\/[\w.-]{1,100}){1,10})\/-\/jobs\/(\d+)\/?$/)
+  if (!job || !/^[a-z0-9.-]+(?::\d+)?$/i.test(url.host) || url.host.length > 253) return
+  return `log=$(mktemp "\${TMPDIR:-/tmp}/kilo-ci.XXXXXX") && glab ci trace ${job[2]} --repo https://${url.host}/${job[1]} > "$log" 2>&1; printf '%s\\n' "$log"`
+}
+
 function logs(url: URL | undefined, host: string | undefined): string | undefined {
   if (!url || url.host !== host) return
+  const job = gitlab(url)
+  if (job) return job
   const repo = repository(url)
   const run = url.pathname.match(/^\/[\w.-]+\/[\w.-]+\/actions\/runs\/(\d+)(?:\/attempts\/(\d+))?(?:\/job\/(\d+))?\/?$/)
   if (!repo || !run) return
@@ -31,7 +40,7 @@ export function checkFeedback(
   if (failures.length === 0) return
   const url = link(pr.url)
   const repo = url && repository(url)
-  const number = url?.pathname.match(/^\/[\w.-]+\/[\w.-]+\/pull\/(\d+)\/?$/)?.[1]
+  const number = url?.pathname.match(/\/(?:pull|-\/merge_requests|pullrequest)\/(\d+)\/?$/)?.[1]
   const rows: string[] = []
   let size = 0
   for (const check of failures.slice(0, 5)) {
@@ -41,7 +50,7 @@ export function checkFeedback(
     const row = [
       `- ${name}: ${check.status}`,
       ...(!command && target ? [`  Details: ${target.href}`] : []),
-      ...(command ? [`  ${command}`] : ["  Inspect the check summary; no GitHub Actions log command available."]),
+      ...(command ? [`  ${command}`] : ["  Inspect the check summary; no log command is available for this check."]),
     ].join("\n")
     if (size + row.length > 3_000) break
     rows.push(row)

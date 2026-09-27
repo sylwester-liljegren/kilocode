@@ -4,6 +4,9 @@ import { execGhRead } from "../gh"
 import { execGhInput } from "./PRActions"
 import type { PRReviewContext, PRReviewHost } from "./review-context"
 import { parsePatch } from "../../shared/pr-patch"
+import { identifyPr } from "../providers/registry"
+import type { PrRef, Provider } from "../providers/provider"
+import { loadProviderDiff } from "./provider-diff"
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid GitHub response.")
@@ -194,6 +197,10 @@ export class PRReviewActions {
   }
 
   private async load(context: PRReviewContext, message: Record<string, unknown>) {
+    const identified = identifyPr(context.pr.url)
+    if (identified && identified.provider !== "github")
+      return this.loadNonGitHub(context, message, identified.provider, identified.ref)
+
     const before = await metadata(context)
     if (before.count > 3000)
       throw new Error("GitHub limits pull request files to 3000. This review cannot be loaded safely.")
@@ -227,6 +234,22 @@ export class PRReviewActions {
     return data
   }
 
+  /** GitLab/Azure DevOps equivalent of {@link load} — see `pr/provider-diff.ts` for why this loads
+   *  the diff locally instead of replicating each platform's own diff-files API. */
+  private async loadNonGitHub(
+    context: PRReviewContext,
+    message: Record<string, unknown>,
+    provider: Provider,
+    ref: PrRef,
+  ) {
+    const { baseRefOid, snapshot: data } = await loadProviderDiff(provider, ref, context.directory)
+    await this.checkBranch(context)
+    this.current(context, message)
+    if (this.snapshots.size >= 8) this.snapshots.delete(this.snapshots.keys().next().value!)
+    this.snapshots.set(data.id, { identity: identity(context), data, base: baseRefOid })
+    return data
+  }
+
   private snapshot(context: PRReviewContext, message: Record<string, unknown>) {
     const snapshot = typeof message.snapshotId === "string" ? this.snapshots.get(message.snapshotId) : undefined
     if (!snapshot || snapshot.identity !== identity(context))
@@ -235,6 +258,10 @@ export class PRReviewActions {
   }
 
   private async comment(context: PRReviewContext, message: Record<string, unknown>) {
+    const identified = identifyPr(context.pr.url)
+    if (identified && identified.provider !== "github")
+      return this.commentNonGitHub(context, message, identified.provider, identified.ref)
+
     const snapshot = this.snapshot(context, message)
     const { file, start, end, body } = selection(snapshot, message)
     const fresh = await metadata(context)
@@ -263,6 +290,32 @@ export class PRReviewActions {
       throw new Error("GitHub did not confirm the review comment. Check the pull request before trying again.")
   }
 
+  private async commentNonGitHub(
+    context: PRReviewContext,
+    message: Record<string, unknown>,
+    provider: Provider,
+    ref: PrRef,
+  ) {
+    const snapshot = this.snapshot(context, message)
+    const { file, start, end, body } = selection(snapshot, message)
+    const fresh = await provider.fetchDiffRefs(ref, context.directory)
+    await this.checkBranch(context)
+    this.current(context, message)
+    if (fresh.headRefOid !== snapshot.data.head || fresh.baseRefOid !== snapshot.base)
+      throw new Error("Pull request changed. Reload the review before posting.")
+    await provider.postComment(
+      ref,
+      {
+        path: file.path,
+        side: message.side as "LEFT" | "RIGHT",
+        line: end,
+        startLine: start !== end ? start : undefined,
+        body,
+      },
+      context.directory,
+    )
+  }
+
   private async submit(context: PRReviewContext, message: Record<string, unknown>) {
     const event = message.event
     const body = message.body as string
@@ -272,6 +325,22 @@ export class PRReviewActions {
     const snapshot = this.snapshot(context, message)
     if (message.head !== snapshot.data.head)
       throw new Error("Pull request changed. Reload the review before submitting.")
+
+    const identified = identifyPr(context.pr.url)
+    if (identified && identified.provider !== "github") {
+      const provider = identified.provider
+      const ref = identified.ref
+      const fresh = await provider.fetchDiffRefs(ref, context.directory)
+      await this.checkBranch(context)
+      this.current(context, message)
+      if (fresh.headRefOid !== snapshot.data.head || fresh.baseRefOid !== snapshot.base)
+        throw new Error("Pull request changed. Reload the review before submitting.")
+      const providerEvent =
+        event === "APPROVE" ? "approve" : event === "REQUEST_CHANGES" ? "request_changes" : "comment"
+      await provider.submitReview(ref, providerEvent, body, fresh.headRefOid, context.directory)
+      return
+    }
+
     const fresh = await metadata(context)
     await this.checkBranch(context)
     this.current(context, message)

@@ -3,9 +3,14 @@ import type { PRConversationComment } from "../../../webview-ui/agent-manager/pr
 import { isConversationComment } from "../../../webview-ui/agent-manager/pr/pr-types"
 import { execGhInput } from "./PRActions"
 import { GH_MUTATION_TIMEOUT } from "./pr-constants"
+import { identifyPr } from "../providers/registry"
+import type { PrRef, Provider } from "../providers/provider"
 
 /** Resolve IDs and comment kinds only from the host's PR snapshot. */
 export async function mutateComment(m: Record<string, unknown>, pr: PRStatus, cwd: string): Promise<void> {
+  const identified = identifyPr(pr.url)
+  if (identified && identified.provider !== "github")
+    return mutateProvider(identified.provider, identified.ref, m, pr, cwd)
   const { action, issue, id } = target(m, pr)
   const operation =
     action === "create"
@@ -31,7 +36,16 @@ export async function mutateComment(m: Record<string, unknown>, pr: PRStatus, cw
   validate(stdout, operation, action, !!issue, id)
 }
 
-function target(m: Record<string, unknown>, pr: PRStatus) {
+/** GitLab/Azure DevOps: same permission checks against the snapshot, then the provider's own call. */
+async function mutateProvider(provider: Provider, ref: PrRef, m: Record<string, unknown>, pr: PRStatus, cwd: string) {
+  const { action, comment } = permitted(m, pr)
+  if (action === "create") return provider.postGeneralComment(ref, m.body as string, cwd)
+  if (!comment?.id) throw new Error("Comment not found or you do not have permission to change it.")
+  if (action === "edit") return provider.editComment(comment.id, m.body as string, cwd)
+  return provider.deleteComment(comment.id, cwd)
+}
+
+function permitted(m: Record<string, unknown>, pr: PRStatus) {
   if (m.prNumber !== pr.number || m.prUrl !== pr.url) throw new Error("Pull request changed. Refresh and try again.")
   const action = m.action
   if (action !== "create" && action !== "edit" && action !== "delete") throw new Error("Invalid comment action.")
@@ -49,6 +63,11 @@ function target(m: Record<string, unknown>, pr: PRStatus) {
   if (action !== "create" && (!comment || comment[action === "edit" ? "canEdit" : "canDelete"] !== true)) {
     throw new Error("Comment not found or you do not have permission to change it.")
   }
+  return { action, issue, comment }
+}
+
+function target(m: Record<string, unknown>, pr: PRStatus) {
+  const { action, issue, comment } = permitted(m, pr)
   const id = action === "create" ? pr.id : comment?.id
   if (!id) throw new Error("Pull request metadata is unavailable. Refresh and try again.")
   return { action, issue, id }

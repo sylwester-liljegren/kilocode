@@ -11,6 +11,7 @@ import { PRCommentDiff } from "../../diff-viewer/PRCommentDiff"
 import { CopyButton } from "./CopyButton"
 import { PRAvatar } from "./PRAvatar"
 import { prMarkdown, preview, githubUrl } from "./pr-comment-payload"
+import { openLabel, reactionChoices } from "./pr-host"
 import { PRCommentTime } from "./PRCommentTime"
 import type { PRComment, PRReaction, PRReactionContent } from "./pr-types"
 import { PRReactions } from "./PRReactions"
@@ -152,6 +153,7 @@ export function PRCommentCard(props: Props) {
             <div class="am-pr-comment-reactions" data-comment-id={props.comment.id}>
               <PRReactions
                 reactions={props.reactions ?? props.comment.reactions}
+                choices={reactionChoices(props.prUrl)}
                 pending={props.reactionPending}
                 onToggle={(content, add) => props.onReaction?.(content, add)}
               />
@@ -173,6 +175,7 @@ export function PRCommentCard(props: Props) {
                       <div class="am-pr-comment-reactions" data-comment-id={reply().id}>
                         <PRReactions
                           reactions={props.replyReactions?.(reply().id!, reply().reactions) ?? reply().reactions}
+                          choices={reactionChoices(props.prUrl)}
                           pending={(content) => props.replyReactionPending?.(reply().id!, content) ?? false}
                           onToggle={(content, add) => props.onReplyReaction?.(reply().id!, content, add)}
                         />
@@ -240,12 +243,12 @@ export function PRCommentCard(props: Props) {
               </Tooltip>
             </Show>
             <Show when={props.onOpenUrl}>
-              <Tooltip value={t("agentManager.pr.comment.openOnGitHub")} placement="top">
+              <Tooltip value={t(openLabel(props.prUrl))} placement="top">
                 <IconButton
                   icon="square-arrow-top-right"
                   size="small"
                   variant="ghost"
-                  aria-label={t("agentManager.pr.comment.openOnGitHub")}
+                  aria-label={t(openLabel(props.prUrl))}
                   onClick={() => props.onOpenUrl?.()}
                 />
               </Tooltip>

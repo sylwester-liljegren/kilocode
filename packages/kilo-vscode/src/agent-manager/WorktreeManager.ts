@@ -34,6 +34,8 @@ import {
 import { pathKey } from "./project/paths"
 import { MISSING_GIT } from "./git-errors"
 import { Semaphore } from "./semaphore"
+import { parseNonGitHubPrUrl } from "./providers/registry"
+import { localBranchNameFor, type PrRef, type Provider, type ProviderPrInfo } from "./providers/provider"
 
 const TEMP_PREFIX = ".kilo-delete-"
 const RM_OPTS: fs.RmOptions = { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }
@@ -1517,7 +1519,7 @@ export class WorktreeManager {
   private async createFromPRImpl(url: string): Promise<CreateWorktreeResult> {
     await this.ensureGitAvailable()
     const parsed = parsePRUrl(url)
-    if (!parsed) throw new Error("Invalid PR URL. Expected: https://github.com/owner/repo/pull/123")
+    if (!parsed) return this.createFromProviderPRImpl(url)
 
     const info = await this.fetchPRInfo(parsed)
     const branch = localBranchName(info)
@@ -1618,6 +1620,94 @@ export class WorktreeManager {
           await this.gitExec(["config", `branch.${info.headRefName}.remote`, "origin"])
           await this.gitExec(["config", `branch.${info.headRefName}.merge`, `refs/heads/${info.headRefName}`])
         }
+      }
+    }
+  }
+
+  /** Same flow as {@link createFromPRImpl}, for the non-GitHub providers in `providers/registry.ts`. */
+  private async createFromProviderPRImpl(url: string): Promise<CreateWorktreeResult> {
+    const found = parseNonGitHubPrUrl(url)
+    if (!found)
+      throw new Error(
+        "Invalid PR URL. Expected a GitHub pull request, GitLab merge request, or Azure DevOps pull request URL.",
+      )
+    const { provider, ref } = found
+
+    const info = await this.fetchProviderPrInfo(provider, ref)
+    const branch = localBranchNameFor(info)
+    const isFork = info.isCrossRepository
+
+    const checkedOut = await this.checkedOutBranches()
+    if (checkedOut.has(branch) || checkedOut.has(info.headRefName)) {
+      throw new Error("This PR's branch is already checked out in another worktree")
+    }
+
+    const base = await this.resolveProviderPRBase(info)
+    await this.fetchProviderBranch(provider, ref, info)
+
+    if (isFork && info.forkOwnerKey) {
+      if (await this.branchExists(branch)) {
+        await this.git.raw(["branch", "-D", branch])
+      }
+      // Explicit tracking: PR status polling finds a fork PR by the branch this one tracks.
+      await this.git.raw(["branch", "--track", branch, `${info.forkOwnerKey}/${info.headRefName}`])
+    }
+
+    const result = await this.createWorktreeImpl({ existingBranch: branch })
+    return { ...result, parentBranch: base.branch, remote: base.remote }
+  }
+
+  private async resolveProviderPRBase(info: ProviderPrInfo): Promise<{ branch: string; remote?: string }> {
+    if (info.baseRefName === undefined) return this.resolveBaseBranch()
+    validateGitRef(info.baseRefName, "base branch")
+    const point = await this.resolveStartPoint(info.baseRefName, undefined, { allowFallback: false })
+    return { branch: point.branch, remote: point.remote }
+  }
+
+  private async fetchProviderPrInfo(provider: Provider, ref: PrRef): Promise<ProviderPrInfo> {
+    try {
+      return await provider.fetchPrInfo(ref, this.root)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      if (isTimeout(error)) throw new Error(`${provider.cliBin} did not respond in time. Try again.`)
+      const kind = provider.classifyCliError(msg)
+      if (kind === "not_found") throw new Error(`PR #${ref.number} not found in ${ref.owner}/${ref.repo}`)
+      if (kind === "cli_missing") throw new Error(provider.missingHint)
+      if (kind === "cli_auth") throw new Error(`Not authenticated with ${provider.cliBin}. ${provider.authHint}.`)
+      throw new Error(`Failed to fetch PR info: ${msg}`)
+    }
+  }
+
+  private async fetchProviderBranch(provider: Provider, ref: PrRef, info: ProviderPrInfo): Promise<void> {
+    if (info.isCrossRepository && info.forkOwnerKey && info.forkRemoteUrl) {
+      validateGitRef(info.forkOwnerKey, "fork owner")
+      validateGitRef(info.headRefName, "branch name")
+      const remotes = await this.git.getRemotes()
+      if (!remotes.some((r) => r.name === info.forkOwnerKey)) {
+        await this.git.addRemote(info.forkOwnerKey, info.forkRemoteUrl)
+      }
+      await this.gitExec([
+        "fetch",
+        "--quiet",
+        "--no-tags",
+        info.forkOwnerKey,
+        `+refs/heads/${info.headRefName}:refs/remotes/${info.forkOwnerKey}/${info.headRefName}`,
+      ])
+      return
+    }
+
+    validateGitRef(info.headRefName, "branch name")
+    const refspec = `+refs/heads/${info.headRefName}:refs/remotes/origin/${info.headRefName}`
+    const ok = await this.gitTry(["fetch", "--quiet", "--no-tags", "origin", refspec])
+    if (!ok) {
+      await this.gitExec(["fetch", "origin", `+${provider.pullRef(ref)}:refs/remotes/origin/${info.headRefName}`])
+    }
+    if (!(await this.gitTry(["show-ref", "--verify", "--quiet", `refs/heads/${info.headRefName}`]))) {
+      const start = `refs/remotes/origin/${info.headRefName}`
+      await this.gitExec(["branch", info.headRefName, start])
+      if (ok) {
+        await this.gitExec(["config", `branch.${info.headRefName}.remote`, "origin"])
+        await this.gitExec(["config", `branch.${info.headRefName}.merge`, `refs/heads/${info.headRefName}`])
       }
     }
   }

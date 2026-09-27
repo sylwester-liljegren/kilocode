@@ -20,6 +20,8 @@ const EMOJI: Record<PRReactionContent, string> = {
 
 interface Props {
   reactions?: PRReaction[]
+  /** Reactions the PR's host supports; defaults to GitHub's full set. */
+  choices?: readonly PRReactionContent[]
   pending?: (content: PRReactionContent) => boolean
   onToggle: (content: PRReactionContent, add: boolean) => void
 }
@@ -73,7 +75,7 @@ export function PRReactions(props: Props) {
         }
       >
         <div class="am-pr-reaction-picker" role="menu">
-          <For each={PR_REACTION_CONTENT}>
+          <For each={props.choices ?? PR_REACTION_CONTENT}>
             {(content) => (
               <Button
                 variant="ghost"

@@ -345,6 +345,13 @@ export const dict = {
   "agentManager.pr.comment.copy": "Copier le commentaire",
   "agentManager.pr.comment.copyLink": "Copier le lien du commentaire",
   "agentManager.pr.comment.openOnGitHub": "Ouvrir sur GitHub",
+  "agentManager.pr.comment.openOnGitLab": "Ouvrir sur GitLab",
+  "agentManager.pr.comment.openOnAzureDevOps": "Ouvrir sur Azure DevOps",
+  "agentManager.pr.error.cli_auth.title": "Authentification {{service}} requise",
+  "agentManager.pr.error.cli_auth.description":
+    "Exécutez '{{login}}' dans votre terminal pour restaurer le statut de la PR.",
+  "agentManager.pr.error.cli_missing.title": "{{tool}} non installé",
+  "agentManager.pr.error.cli_missing.description": "Installez {{tool}} pour activer le statut de la PR.",
   "agentManager.pr.comment.showInDiff": "Afficher dans le diff",
   "agentManager.pr.comment.unplaced": "Commentaires en dehors du diff actuel",
   "agentManager.pr.comment.unplacedHint": "Ces commentaires ne correspondent à aucune ligne de ce diff.",
